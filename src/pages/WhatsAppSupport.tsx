@@ -271,14 +271,6 @@ export default function WhatsAppSupport() {
               >💻 Backend Code</button>
             </div>
           </div>
-                fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
-                background: activeTab === 'code' ? 'white' : 'transparent',
-                color: activeTab === 'code' ? '#0F172A' : '#64748B',
-                boxShadow: activeTab === 'code' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.2s ease',
-              }}
-            >💻 Python Gemini Code</button>
-          </div>
         </div>
 
         {/* Gemini Key Config Banner */}
