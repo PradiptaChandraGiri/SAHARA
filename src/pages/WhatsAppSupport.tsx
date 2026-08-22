@@ -47,7 +47,7 @@ const waFlow17 = [
   { from: 'user', text: '2' },
   {
     from: 'bot',
-    text: "✨ *Here's your assessment:*\n\n🎯 *Well-being Level: HIGH (78% Risk Score)*\n\nElevated exam pressure, sleep deprivation (4.5h), and low social support detected.\n\n🚨 *Immediate Support Resources:*\n📞 *National Tele-MANAS: 14416 (24/7 Toll-Free)*\n📞 *Campus Counselor: +91 98765 43210*\n\nA trained counselor has been notified and will reach out soon. You're not alone. 💚"
+    text: "🎯 *SAHARA Wellbeing Assessment*\n━━━━━━━━━━━━━━━━━━━━\n📊 *Status:* 🔴 HIGH RISK (78% Risk Score)\n🧠 *Anxiety Index:* 7.8/10\n📉 *Dropout Risk:* 68%\n\n💬 *Personalized Insight:*\nElevated exam pressure, sleep deprivation (4.5h), and low social support detected.\n\n🔍 *Key Factors:*\n• High exam pressure\n• Low sleep (4.5h)\n• Low social support\n\n💡 *Action Steps:*\n• Use 45-min study sprints with zero-screen breaks.\n• Try NSDR deep rest 20 mins before bed.\n\n🎬 *Recommended YouTube Resources:*\n▶️ *Exam Panic Relief (4-7-8 Breathing)*\n🔗 https://youtu.be/1ZYbU82GVz4\n_Guided breathing for instant anxiety reset_\n\n▶️ *NSDR for Cognitive Recovery*\n🔗 https://youtu.be/pL02HRFk2vo\n_Restore mental stamina & improve focus_\n\n🚨 *Immediate 24/7 Support:*\n📞 *Tele-MANAS:* 14416 (Toll-Free)\n📞 *Campus Counselor:* +91 98765 43210\n\n_A counselor has been notified to support you._ 💚"
   }
 ]
 

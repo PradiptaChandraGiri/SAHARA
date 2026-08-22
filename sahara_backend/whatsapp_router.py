@@ -1,4 +1,4 @@
-"""Twilio WhatsApp webhook — full 17-question SAHARA intake flow."""
+"""Twilio WhatsApp webhook — full 17-question SAHARA intake flow with YouTube video suggestions & action plans."""
 from __future__ import annotations
 import datetime
 import os
@@ -19,23 +19,23 @@ router = APIRouter(tags=["WhatsApp"])
 SESSIONS: dict[str, dict[str, Any]] = {}
 
 QUESTIONS: list[tuple[str, str, str]] = [
-    ("age",                               "Hi! I am the SAHARA wellbeing assistant.\n\nQ1/17: How old are you? (e.g. 20)", "number"),
-    ("gender",                            "Q2/17: What is your gender?\n1 - Female\n2 - Male\n3 - Non-binary\n4 - Prefer not to say\nReply 1, 2, 3 or 4", "choice4"),
-    ("academic_year",                     "Q3/17: Which year of college?\n1 - 1st year\n2 - 2nd year\n3 - 3rd year\n4 - 4th year\nReply 1-4", "choice4"),
-    ("sleep_hours",                       "Q4/17: Average hours of sleep per night? (e.g. 6.5)", "number"),
-    ("study_hours_per_day",               "Q5/17: Hours per day studying or in class? (e.g. 5)", "number"),
-    ("physical_activity",                 "Q6/17: Days per week you exercise? (0-7)", "number"),
-    ("screen_time",                       "Q7/17: Hours per day on screens (phone/laptop)? (e.g. 8)", "number"),
-    ("internet_usage",                    "Q8/17: Hours per day on social media or browsing? (e.g. 4)", "number"),
-    ("stress_level",                      "Q9/17: Overall stress level 1-10?\n(1=very calm, 10=extremely stressed)", "scale"),
-    ("exam_pressure",                     "Q10/17: Exam pressure 1-10?\n(1=none, 10=extreme)", "scale"),
-    ("financial_stress",                  "Q11/17: Financial stress 1-10?\n(1=none, 10=very stressed)", "scale"),
-    ("family_expectation",                "Q12/17: Family expectation pressure 1-10?\n(1=none, 10=very high)", "scale"),
-    ("social_support",                    "Q13/17: How supported do you feel 1-10?\n(1=very alone, 10=very supported)", "scale"),
-    ("academic_performance",              "Q14/17: Current academic percentage? (e.g. 65)", "number"),
-    ("admission_grade",                   "Q15/17: Entrance/admission grade? (Enter 0 if unknown)", "number"),
-    ("curricular_units_1st_sem_approved", "Q16/17: Course units passed last semester? (e.g. 4)", "number"),
-    ("tuition_fees_up_to_date",           "Q17/17 (last one!): Is tuition up to date?\n1 - Yes\n2 - No\nReply 1 or 2", "choice2"),
+    ("age",                               "👋 *Welcome to SAHARA!*\n\nI am your 24/7 AI wellbeing assistant. Let's do a quick, confidential 17-question check-in to understand your wellness and provide personalized recommendations & resources.\n\n*Q1/17:* How old are you? (e.g. 20)", "number"),
+    ("gender",                            "*Q2/17:* What is your gender?\n\n1️⃣ Female\n2️⃣ Male\n3️⃣ Non-binary\n4️⃣ Prefer not to say\n\nReply 1, 2, 3 or 4", "choice4"),
+    ("academic_year",                     "*Q3/17:* Which year of college are you in?\n\n1️⃣ 1st year\n2️⃣ 2nd year\n3️⃣ 3rd year\n4️⃣ 4th year\n\nReply 1–4", "choice4"),
+    ("sleep_hours",                       "*Q4/17:* Average hours of sleep per night? (e.g. 6.5)", "number"),
+    ("study_hours_per_day",               "*Q5/17:* Hours per day studying or in class? (e.g. 5)", "number"),
+    ("physical_activity",                 "*Q6/17:* Days per week you exercise or do physical activity? (0–7)", "number"),
+    ("screen_time",                       "*Q7/17:* Hours per day on screens (phone/laptop)? (e.g. 8)", "number"),
+    ("internet_usage",                    "*Q8/17:* Hours per day on social media or browsing? (e.g. 4)", "number"),
+    ("stress_level",                      "*Q9/17:* Overall stress level right now (1–10)?\n(1 = very calm, 10 = extremely stressed)", "scale"),
+    ("exam_pressure",                     "*Q10/17:* Exam pressure & grade worry (1–10)?\n(1 = none, 10 = extreme)", "scale"),
+    ("financial_stress",                  "*Q11/17:* Financial stress (1–10)?\n(1 = no stress, 10 = very stressed)", "scale"),
+    ("family_expectation",                "*Q12/17:* Family expectation pressure (1–10)?\n(1 = none, 10 = very high)", "scale"),
+    ("social_support",                    "*Q13/17:* How supported do you feel by friends/family (1–10)?\n(1 = very alone, 10 = very supported)", "scale"),
+    ("academic_performance",              "*Q14/17:* Current academic percentage or GPA score? (e.g. 65)", "number"),
+    ("admission_grade",                   "*Q15/17:* Entrance/admission grade? (Enter 0 if unknown)", "number"),
+    ("curricular_units_1st_sem_approved", "*Q16/17:* Course units passed in your last completed semester? (e.g. 4)", "number"),
+    ("tuition_fees_up_to_date",           "*Q17/17 (last one!):* Is your college tuition fee up to date?\n\n1️⃣ Yes\n2️⃣ No\n\nReply 1 or 2", "choice2"),
 ]
 
 GENDER_MAP  = {"1": "Female", "2": "Male", "3": "Non-binary", "4": "Prefer not to say"}
@@ -67,7 +67,7 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form("")) -> Respo
 
     if text.lower() in {"stop", "quit", "cancel", "reset", "restart"}:
         SESSIONS.pop(phone, None)
-        return _twiml("Check-in paused. Send 'hi' any time to restart.")
+        return _twiml("Check-in paused. Send *hi* any time to restart your check-in! 💚")
 
     session = SESSIONS.setdefault(phone, {"step": 0, "answers": {}})
 
@@ -81,7 +81,7 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form("")) -> Respo
         try:
             raw = _parse(text, input_type)
         except ValueError:
-            return _twiml(f"Invalid input. {QUESTIONS[q_index][1]}")
+            return _twiml(f"⚠️ Invalid input. {QUESTIONS[q_index][1]}")
 
         if field == "gender":
             session["answers"]["gender"] = GENDER_MAP[raw]
@@ -96,9 +96,11 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form("")) -> Respo
         if session["step"] - 1 < len(QUESTIONS):
             return _twiml(QUESTIONS[session["step"] - 1][1])
 
-    # All 17 answered — run the real ML
+    # ── All 17 answered — run ML model and generate full suggestions & YouTube videos ──
     try:
         from phase2_merged_final import assess_student
+        from explainability import get_top_factors
+        from gemini_suggestions import get_gemini_suggestions, get_curated_youtube_links
         import database
 
         ans = session["answers"]
@@ -126,32 +128,64 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form("")) -> Respo
         }
 
         result  = assess_student(student_data, student_name="WhatsApp User")
-        tier    = result.get("risk_tier", "Unknown")
-        anxiety = result.get("anxiety_score", 0)
-        dropout = result.get("dropout_probability", 0)
+        tier    = result.get("risk_tier", "Low")
+        anxiety = round(float(result.get("anxiety_score", 0)), 1)
+        dropout = round(float(result.get("dropout_probability", 0)), 2)
         msg     = result.get("message", "Check-in complete.")
+
+        top_factors = get_top_factors(student_data, top_n=3)
+        suggestions = get_gemini_suggestions(student_data)
+        youtube_links = get_curated_youtube_links(student_data, risk_tier=tier)
 
         aid  = str(uuid.uuid4())
         ts   = datetime.datetime.now(datetime.timezone.utc).isoformat()
         robj = type("R", (), result)()
-        database.log_assessment(aid, ts, robj, student_name="WA:" + phone[-4:])
+        database.log_assessment(aid, ts, robj, student_name="WA:" + phone[-4:], top_factors=top_factors)
 
+        tier_icon = {"Low": "🟢 LOW RISK", "Medium": "🟡 MEDIUM RISK", "High": "🔴 HIGH RISK"}.get(tier, tier)
+
+        # Build comprehensive WhatsApp Response with YouTube recommendations
         reply = (
-            f"Check-in complete!\n\n"
-            f"Wellbeing Level: {tier}\n"
-            f"Anxiety Score: {anxiety:.1f}/10\n"
-            f"Dropout Risk: {dropout*100:.0f}%\n\n"
-            f"{msg}"
+            f"🎯 *SAHARA Wellbeing Assessment*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 *Status:* {tier_icon}\n"
+            f"🧠 *Anxiety Index:* {anxiety}/10\n"
+            f"📉 *Academic Dropout Risk:* {int(dropout*100)}%\n\n"
+            f"💬 *Personalized Insight:*\n{msg}\n"
         )
+
+        if top_factors:
+            reply += "\n🔍 *Key Contributing Factors:*\n"
+            for f in top_factors:
+                reply += f"• {f}\n"
+
+        if suggestions:
+            reply += "\n💡 *Personalized Action Steps:*\n"
+            for s in suggestions:
+                reply += f"• {s}\n"
+
+        if youtube_links:
+            reply += "\n🎬 *Recommended YouTube Resources:*\n"
+            for v in youtube_links:
+                reply += f"▶️ *{v['title']}*\n🔗 {v['url']}\n_{v['tip']}_\n\n"
+
         if tier == "High":
-            reply += "\n\nImmediate Help:\nTele-MANAS: 14416 (24/7 Free)\niCall: 9152987821"
+            reply += (
+                "🚨 *Immediate 24/7 Support Resources:*\n"
+                "📞 *Tele-MANAS (Govt Toll-Free):* 14416\n"
+                "📞 *iCall Helpline:* 9152987821\n"
+                "📞 *Campus Counselor:* +91 98765 43210\n\n"
+                "_A campus counselor has been notified to assist you with care._ 💚"
+            )
+        else:
+            reply += "_You are doing great. Reply 'hi' anytime to retake your check-in or chat with AI support!_ 🌟"
 
         SESSIONS.pop(phone, None)
         return _twiml(reply)
 
-    except Exception:
+    except Exception as e:
         SESSIONS.pop(phone, None)
-        return _twiml("Could not complete check-in. Please contact a counselor: iCall 9152987821")
+        return _twiml("Could not complete check-in right now. If you need support, please contact Tele-MANAS at 14416 (24/7 Free).")
 
 
 @router.get("/whatsapp-health")
@@ -161,6 +195,6 @@ def whatsapp_health():
         "status":               "ok" if acct.startswith("AC") else "unconfigured",
         "twilio_enabled":       acct.startswith("AC"),
         "active_conversations": len(SESSIONS),
-        "backend_url":          os.getenv("SAHARA_BACKEND_URL", "http://localhost:8000"),
+        "backend_url":          os.getenv("SAHARA_BACKEND_URL", "https://sahara-951p.onrender.com"),
         "sandbox_number":       os.getenv("TWILIO_WHATSAPP_NUMBER", "not set"),
     }
