@@ -100,12 +100,34 @@ export default function Home({ onNavigate }: HomeProps) {
             An AI-powered student wellbeing and academic support system designed to identify early warning signs and connect students with the right support — before a challenge becomes a crisis.
           </p>
 
-          <div style={{ display: 'flex', gap: 14 }}>
-            <button className="btn-primary" style={{ fontSize: 16, padding: '14px 32px' }} onClick={() => onNavigate('checkin')}>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <button className="btn-primary" style={{ fontSize: 16, padding: '14px 28px' }} onClick={() => onNavigate('checkin')}>
               Start Student Check-in →
             </button>
-            <button className="btn-secondary" style={{ fontSize: 16, padding: '14px 32px', background: 'transparent', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }} onClick={() => onNavigate('counselor')}>
-              Explore Dashboard
+            <a
+              href="https://wa.me/14155238886?text=join%20no-different"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 16,
+                padding: '14px 24px',
+                background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                color: 'white',
+                borderRadius: 12,
+                fontFamily: "'Outfit', sans-serif",
+                fontWeight: 700,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 16px rgba(37,211,102,0.4)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>💬 Open WhatsApp Bot</span>
+            </a>
+            <button className="btn-secondary" style={{ fontSize: 16, padding: '14px 24px', background: 'transparent', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }} onClick={() => onNavigate('counselor')}>
+              Counselor View
             </button>
           </div>
         </div>

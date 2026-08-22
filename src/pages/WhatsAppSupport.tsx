@@ -211,33 +211,66 @@ export default function WhatsAppSupport() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 6, background: '#E2E8F0', padding: 4, borderRadius: 12 }}>
-            <button
-              onClick={() => setActiveTab('demo')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <a
+              href="https://wa.me/14155238886?text=join%20no-different"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
-                background: activeTab === 'demo' ? 'white' : 'transparent',
-                color: activeTab === 'demo' ? '#0F172A' : '#64748B',
-                boxShadow: activeTab === 'demo' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                padding: '8px 18px',
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                color: 'white',
+                fontFamily: "'Outfit', sans-serif",
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(37,211,102,0.35)',
                 transition: 'all 0.2s ease',
               }}
-            >📱 Live Phone Simulator</button>
-            <button
-              onClick={() => setActiveTab('setup')}
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
-                background: activeTab === 'setup' ? 'white' : 'transparent',
-                color: activeTab === 'setup' ? '#0F172A' : '#64748B',
-                boxShadow: activeTab === 'setup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.2s ease',
-              }}
-            >🛠️ Twilio Setup Guide</button>
-            <button
-              onClick={() => setActiveTab('code')}
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            >
+              <span>📲 Open in WhatsApp</span>
+            </a>
+
+            <div style={{ display: 'flex', gap: 6, background: '#E2E8F0', padding: 4, borderRadius: 12 }}>
+              <button
+                onClick={() => setActiveTab('demo')}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
+                  background: activeTab === 'demo' ? 'white' : 'transparent',
+                  color: activeTab === 'demo' ? '#0F172A' : '#64748B',
+                  boxShadow: activeTab === 'demo' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >📱 Live Simulator</button>
+              <button
+                onClick={() => setActiveTab('setup')}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
+                  background: activeTab === 'setup' ? 'white' : 'transparent',
+                  color: activeTab === 'setup' ? '#0F172A' : '#64748B',
+                  boxShadow: activeTab === 'setup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >🛠️ Deployment Guide</button>
+              <button
+                onClick={() => setActiveTab('code')}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
+                  background: activeTab === 'code' ? 'white' : 'transparent',
+                  color: activeTab === 'code' ? '#0F172A' : '#64748B',
+                  boxShadow: activeTab === 'code' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >💻 Backend Code</button>
+            </div>
+          </div>
                 fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 13,
                 background: activeTab === 'code' ? 'white' : 'transparent',
                 color: activeTab === 'code' ? '#0F172A' : '#64748B',

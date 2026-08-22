@@ -117,6 +117,44 @@ export default function App() {
           <Profile checkInData={checkInData} onNavigate={navigate} />
         </div>
       </main>
+
+      {/* Floating Direct WhatsApp Button */}
+      <a
+        href="https://wa.me/14155238886?text=join%20no-different"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          background: 'linear-gradient(135deg, #25D366, #128C7E)',
+          color: 'white',
+          padding: '12px 18px',
+          borderRadius: 99,
+          boxShadow: '0 8px 24px rgba(37, 211, 102, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          textDecoration: 'none',
+          fontFamily: "'Outfit', sans-serif",
+          fontWeight: 700,
+          fontSize: 14,
+          zIndex: 9999,
+          transition: 'all 0.2s ease',
+          border: '2px solid white',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)'
+          e.currentTarget.style.boxShadow = '0 12px 30px rgba(37, 211, 102, 0.6)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0) scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 211, 102, 0.45)'
+        }}
+      >
+        <span style={{ fontSize: 20 }}>💬</span>
+        <span>Chat on WhatsApp</span>
+      </a>
     </div>
   )
 }
