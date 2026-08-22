@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+joblib
+pandas
+scikit-learn
+requests
+python-multipart
+twilio
+python-dotenv
+httpx

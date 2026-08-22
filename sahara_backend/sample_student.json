@@ -1,0 +1,11 @@
+{
+  "student_name": "Test Student",
+  "age": 20, "study_hours_per_day": 2, "exam_pressure": 9,
+  "academic_performance": 40, "stress_level": 9, "sleep_hours": 4,
+  "physical_activity": 0, "social_support": 2, "screen_time": 8,
+  "internet_usage": 7, "financial_stress": 8, "family_expectation": 9,
+  "gender": "Female", "academic_year": 2,
+  "admission_grade": 105, "curricular_units_1st_sem_approved": 1,
+  "curricular_units_2nd_sem_approved": 0, "tuition_fees_up_to_date": 0,
+  "debtor": 1, "age_at_enrollment": 20
+}
