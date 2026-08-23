@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 import requests
 
 from auth import create_access_token, get_current_user, get_current_user_optional, require_roles
@@ -66,13 +66,13 @@ app.include_router(whatsapp_router)
 
 class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, description="Full name")
-    email: EmailStr = Field(..., description="Institutional or personal email")
+    email: str = Field(..., min_length=3, description="Institutional or personal email")
     password: str = Field(..., min_length=6, description="Password (min 6 chars)")
     role: Literal["student", "counselor", "admin"] = Field(default="student")
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr = Field(...)
+    email: str = Field(..., min_length=3, description="Email address")
     password: str = Field(...)
 
 
