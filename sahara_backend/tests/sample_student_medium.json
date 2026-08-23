@@ -1,0 +1,23 @@
+{
+  "student_name": "Medium Risk Student",
+  "age": 21,
+  "gender": "Female",
+  "academic_year": 3,
+  "study_hours_per_day": 7.0,
+  "exam_pressure": 7,
+  "academic_performance": 62.0,
+  "stress_level": 7,
+  "sleep_hours": 5.5,
+  "physical_activity": 2,
+  "social_support": 4,
+  "screen_time": 6.5,
+  "internet_usage": 4.0,
+  "financial_stress": 6,
+  "family_expectation": 7,
+  "admission_grade": 110.0,
+  "curricular_units_1st_sem_approved": 4,
+  "curricular_units_2nd_sem_approved": 3,
+  "tuition_fees_up_to_date": 1,
+  "debtor": 0,
+  "age_at_enrollment": 19
+}

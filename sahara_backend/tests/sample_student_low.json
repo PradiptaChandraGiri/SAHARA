@@ -1,0 +1,23 @@
+{
+  "student_name": "Low Risk Student",
+  "age": 20,
+  "gender": "Male",
+  "academic_year": 2,
+  "study_hours_per_day": 4.0,
+  "exam_pressure": 2,
+  "academic_performance": 88.0,
+  "stress_level": 2,
+  "sleep_hours": 8.0,
+  "physical_activity": 5,
+  "social_support": 9,
+  "screen_time": 3.0,
+  "internet_usage": 2.0,
+  "financial_stress": 1,
+  "family_expectation": 2,
+  "admission_grade": 140.0,
+  "curricular_units_1st_sem_approved": 6,
+  "curricular_units_2nd_sem_approved": 6,
+  "tuition_fees_up_to_date": 1,
+  "debtor": 0,
+  "age_at_enrollment": 19
+}

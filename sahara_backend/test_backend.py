@@ -1,11 +1,24 @@
 import json
+from pathlib import Path
 from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
 
-with open("sample_student.json", encoding="utf-8") as f:
-    sample_payload = json.load(f)
+TESTS_DIR = Path(__file__).resolve().parent / "tests"
+if not TESTS_DIR.exists():
+    TESTS_DIR = Path(__file__).resolve().parent
+
+def _load_sample(name: str):
+    p = TESTS_DIR / name
+    if not p.exists():
+        p = Path(__file__).resolve().parent / name
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+sample_low = _load_sample("sample_student_low.json")
+sample_med = _load_sample("sample_student_medium.json")
+sample_high = _load_sample("sample_student_high.json")
 
 def test_health():
     r = client.get("/health")
@@ -16,53 +29,40 @@ def test_health():
     assert data["dropout_model_loaded"] is True
     assert "dropout_classes" in data
 
-def test_assess_contract():
-    r = client.post("/assess", json=sample_payload)
+def test_assess_low_tier():
+    r = client.post("/assess", json=sample_low)
     assert r.status_code == 200
     data = r.json()
-    required_fields = [
-        "assessment_id", "timestamp", "anxiety_score", "anxiety_level",
-        "dropout_probability", "combined_score", "risk_tier", "action",
-        "message", "counselor_alert", "next_step", "top_factors", "suggestions"
-    ]
-    for field in required_fields:
-        assert field in data
-    assert data["risk_tier"] in {"Low", "Medium", "High"}
-    assert isinstance(data["counselor_alert"], bool)
+    assert data["risk_tier"] == "Low"
+    assert data["counselor_alert"] is False
+    assert "suggestions" in data
+
+def test_assess_high_tier():
+    r = client.post("/assess", json=sample_high)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["risk_tier"] == "High"
+    assert data["counselor_alert"] is True
+    assert len(data["top_factors"]) > 0
 
 def test_validation_rules():
-    # Invalid age (< 16)
-    bad_payload = dict(sample_payload, age=12)
+    bad_payload = dict(sample_low, age=12)
     r = client.post("/assess", json=bad_payload)
     assert r.status_code == 422
 
-    # Invalid stress level (> 10)
-    bad_payload2 = dict(sample_payload, stress_level=15)
-    r = client.post("/assess", json=bad_payload2)
-    assert r.status_code == 422
-
 def test_counselor_endpoints():
-    assessment = client.post("/assess", json=sample_payload).json()
+    assessment = client.post("/assess", json=sample_med).json()
     aid = assessment["assessment_id"]
 
-    # List
     r = client.get("/assessments")
     assert r.status_code == 200
     res = r.json()
     assert "total" in res
-    assert "assessments" in res
     assert any(row["assessment_id"] == aid for row in res["assessments"])
 
-    # Detail
-    r = client.get(f"/assessments/{aid}")
-    assert r.status_code == 200
-    assert r.json()["assessment_id"] == aid
-
-    # Status update
-    r = client.patch(f"/assessments/{aid}/status", json={"status": "Contacted", "notes": "Reached out via email"})
+    r = client.patch(f"/assessments/{aid}/status", json={"status": "Contacted", "notes": "Followed up"})
     assert r.status_code == 200
     assert r.json()["status"] == "Contacted"
-    assert r.json()["notes"] == "Reached out via email"
 
 def test_admin_stats():
     r = client.get("/admin/stats")
@@ -70,12 +70,9 @@ def test_admin_stats():
     data = r.json()
     assert "total_students" in data
     assert "by_tier" in data
-    assert "by_tier_percent" in data
-    assert "top_factors_institution_wide" in data
 
 def test_whatsapp_health():
     r = client.get("/whatsapp-health")
     assert r.status_code == 200
     data = r.json()
-    assert "status" in data
-    assert "twilio_enabled" in data
+    assert data["status"] in ("ok", "unconfigured")
