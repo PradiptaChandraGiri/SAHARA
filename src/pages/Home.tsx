@@ -1,262 +1,154 @@
-import type { Page } from '../App'
+import React from 'react';
+import type { Page } from '../App';
+import {
+  Shield,
+  Activity,
+  MessageCircle,
+  Brain,
+  ArrowRight,
+  CheckCircle,
+  Users,
+  Lock,
+  PhoneCall
+} from 'lucide-react';
 
 interface HomeProps {
-  onNavigate: (page: Page) => void
+  onNavigate: (page: Page) => void;
 }
 
-const features = [
-  {
-    icon: '✨',
-    title: 'Gemini AI Wellbeing Companion',
-    desc: 'Powered by Google Gemini 1.5 Flash for 24/7 empathetic student counseling, study stress relief, and crisis helpline triage.',
-    color: '#EFF3FF',
-    accent: '#4F7BF7',
-  },
-  {
-    icon: '💬',
-    title: 'Zero-Barrier WhatsApp Bot',
-    desc: 'Twilio WhatsApp Sandbox + Gemini AI stateful check-in. Students chat naturally without installing any new apps.',
-    color: '#F0FDF4',
-    accent: '#25D366',
-  },
-  {
-    icon: '📊',
-    title: 'Academic & Dropout Risk ML',
-    desc: 'Multi-indicator AI analyzes sleep, screen time, exam pressure & grades to alert campus counselors before crisis occurs.',
-    color: '#F5F3FF',
-    accent: '#8B5CF6',
-  },
-]
-
-const stats = [
-  { value: '94%', label: 'Early Detection Rate', sub: 'vs 34% traditional screening' },
-  { value: '2.4×', label: 'Counselor Efficiency', sub: 'with AI-prioritized alerts' },
-  { value: '78%', label: 'Students Helped', sub: 'who would have gone unnoticed' },
-]
-
-const flowSteps = [
-  { icon: '👤', label: 'Student', desc: 'Completes 5-min check-in' },
-  { icon: '🤖', label: 'AI Analysis', desc: 'Evaluates 15+ indicators' },
-  { icon: '⚠️', label: 'Risk Score', desc: 'Low / Medium / High' },
-  { icon: '💙', label: 'Counselor', desc: 'Receives alert & intervenes' },
-]
-
 export default function Home({ onNavigate }: HomeProps) {
-  return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
-      {/* Hero */}
-      <section style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #312E81 100%)',
-        padding: '72px 60px 80px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* BG decoration */}
-        <div style={{
-          position: 'absolute', top: -80, right: -80,
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'rgba(79,123,247,0.15)',
-          filter: 'blur(60px)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: -60, left: 200,
-          width: 300, height: 300, borderRadius: '50%',
-          background: 'rgba(139,92,246,0.15)',
-          filter: 'blur(60px)',
-        }} />
+  const capabilities = [
+    {
+      icon: <Brain className="w-6 h-6 text-indigo-400" />,
+      title: 'Dual-Lens Risk Inference',
+      desc: 'Combines Random Forest Anxiety continuous regression with Academic Dropout Risk classification to identify distress early.',
+    },
+    {
+      icon: <MessageCircle className="w-6 h-6 text-emerald-400" />,
+      title: 'Zero-Barrier WhatsApp Intake',
+      desc: '24/7 Twilio WhatsApp Sandbox integration featuring interactive list pickers and Google Gemini conversational triage.',
+    },
+    {
+      icon: <Shield className="w-6 h-6 text-purple-400" />,
+      title: 'Confidential Triage & Anonymization',
+      desc: 'SHA-256 student ID hashing protects confidentiality while notifying campus counselors of priority cases.',
+    },
+  ];
 
-        <div style={{ maxWidth: 680, position: 'relative', zIndex: 1 }} className="animate-fade-in">
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'rgba(79,123,247,0.2)',
-            border: '1px solid rgba(79,123,247,0.4)',
-            borderRadius: 99, padding: '6px 16px', marginBottom: 28,
-          }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4F7BF7' }} className="animate-pulse-ring" />
-            <span style={{ fontSize: 13, color: '#93C5FD', fontFamily: "'Outfit', sans-serif", fontWeight: 500 }}>
-              AI-Powered Student Wellbeing Platform
-            </span>
+  const workflow = [
+    { title: '1. Multi-Channel Check-in', desc: 'Student checks in via Web Slider or WhatsApp Bot.' },
+    { title: '2. Dual ML Inference', desc: 'Evaluates anxiety index (0-10) and dropout probability (0-100%).' },
+    { title: '3. Automated Triage', desc: 'Delivers tier-specific study tips, breathing exercises, and video search guides.' },
+    { title: '4. Counselor Escalation', desc: 'High-risk cases trigger priority alerts on the Institutional Dashboard.' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 px-6 py-20 lg:px-12 border-b border-slate-800">
+        <div className="max-w-5xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6">
+            <Shield className="w-3.5 h-3.5" />
+            <span>Institutional Early-Warning & Wellbeing Platform</span>
           </div>
 
-          <h1 style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 56, fontWeight: 800, color: 'white',
-            lineHeight: 1.1, marginBottom: 16,
-          }}>
-            Understand risk.<br />
-            <span style={{
-              background: 'linear-gradient(90deg, #93C5FD, #C4B5FD)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>Reach students early.</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-6">
+            Proactive Student Wellbeing & Attrition Prevention Powered by AI
           </h1>
 
-          <p style={{
-            fontSize: 18, color: '#94A3B8', lineHeight: 1.7,
-            marginBottom: 40, maxWidth: 540,
-            fontFamily: "'Inter', sans-serif",
-          }}>
-            An AI-powered student wellbeing and academic support system designed to identify early warning signs and connect students with the right support — before a challenge becomes a crisis.
+          <p className="text-base md:text-lg text-slate-300 max-w-3xl leading-relaxed mb-8">
+            SAHARA combines multi-modal psychological lifestyle modeling with academic progression analytics to detect student distress early and deliver timely, compassionate intervention.
           </p>
 
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <button className="btn-primary" style={{ fontSize: 16, padding: '14px 28px' }} onClick={() => onNavigate('checkin')}>
-              Start Student Check-in →
-            </button>
-            <a
-              href="https://wa.me/14155238886?text=join%20no-different"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: 16,
-                padding: '14px 24px',
-                background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                color: 'white',
-                borderRadius: 12,
-                fontFamily: "'Outfit', sans-serif",
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 16px rgba(37,211,102,0.4)',
-                transition: 'all 0.2s ease',
-              }}
+          {/* Action CTAs */}
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={() => onNavigate('checkin')}
+              className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all"
             >
-              <span>💬 Open WhatsApp Bot</span>
-            </a>
-            <button className="btn-secondary" style={{ fontSize: 16, padding: '14px 24px', background: 'transparent', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }} onClick={() => onNavigate('counselor')}>
-              Counselor View
+              <span>Take 2-Minute Wellbeing Assessment</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => onNavigate('whatsapp')}
+              className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-semibold text-sm rounded-xl shadow-md flex items-center gap-2 transition-all"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              <span>Connect via WhatsApp</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('counselor')}
+              className="px-6 py-3.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-sm rounded-xl transition-all"
+            >
+              <span>Counselor Dashboard</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <div style={{
-        background: 'white',
-        borderBottom: '1px solid #E2E8F0',
-        padding: '24px 60px',
-        display: 'flex',
-        gap: 0,
-      }}>
-        {stats.map((s, i) => (
-          <div key={i} style={{
-            flex: 1,
-            borderRight: i < stats.length - 1 ? '1px solid #F1F5F9' : 'none',
-            padding: '0 40px 0 0',
-            marginRight: i < stats.length - 1 ? 40 : 0,
-          }}>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: '#4F7BF7' }}>{s.value}</div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>{s.label}</div>
-            <div style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Inter', sans-serif" }}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
+      {/* Core Capabilities */}
+      <section className="px-6 py-16 lg:px-12 max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-2xl font-bold text-white tracking-tight">Core System Architecture</h2>
+          <p className="text-xs text-slate-400 mt-2">Engineered for accuracy, accessibility, and student privacy</p>
+        </div>
 
-      <div style={{ padding: '60px 60px' }}>
-        {/* Features */}
-        <div style={{ marginBottom: 64 }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 700, color: '#0F172A', marginBottom: 10 }}>
-              Everything a university needs
-            </h2>
-            <p style={{ fontSize: 16, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
-              Three pillars of proactive student care, powered by AI.
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {capabilities.map((c, i) => (
+            <div key={i} className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-slate-800/80 flex items-center justify-center mb-4">
+                  {c.icon}
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">{c.title}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">{c.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4-Step Institutional Workflow */}
+      <section className="px-6 py-16 lg:px-12 bg-slate-900/40 border-t border-slate-800/80">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-white tracking-tight">How SAHARA Protects Students</h2>
+            <p className="text-xs text-slate-400 mt-2">End-to-end early warning and care continuum</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-            {features.map((f, i) => (
-              <div key={i} className="card card-hover animate-fade-in" style={{
-                padding: 32,
-                animationDelay: `${i * 0.1}s`,
-                borderTop: `3px solid ${f.accent}`,
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 14,
-                  background: f.color, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: 28, marginBottom: 20,
-                }}>{f.icon}</div>
-                <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 10 }}>
-                  {f.title}
-                </h3>
-                <p style={{ fontSize: 14, color: '#64748B', lineHeight: 1.7, fontFamily: "'Inter', sans-serif" }}>
-                  {f.desc}
-                </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {workflow.map((w, idx) => (
+              <div key={idx} className="p-5 bg-slate-900 border border-slate-800 rounded-2xl">
+                <p className="text-xs font-bold text-indigo-400 mb-1">{w.title}</p>
+                <p className="text-xs text-slate-400 leading-relaxed">{w.desc}</p>
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* Flow diagram */}
-        <div className="card" style={{ padding: 48, marginBottom: 64 }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
-              How SAHARA Works
-            </h2>
-            <p style={{ fontSize: 15, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
-              From a 5-minute check-in to counselor intervention — automated, intelligent, and compassionate.
-            </p>
+      {/* 24/7 Helpline Footer Banner */}
+      <section className="px-6 py-12 max-w-5xl mx-auto border-t border-slate-800">
+        <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <PhoneCall className="w-5 h-5 text-indigo-400 shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-white">Emergency National Support Helplines</p>
+              <p className="text-[11px] text-slate-400">
+                National Tele-MANAS: <strong className="text-indigo-300">14416</strong> (24/7 Toll-Free) | iCall: <strong className="text-indigo-300">9152987821</strong>
+              </p>
+            </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
-            {flowSteps.map((step, i) => (
-              <>
-                <div key={i} style={{ textAlign: 'center', flex: 1, maxWidth: 160 }}>
-                  <div style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    background: i === 0 ? '#EFF3FF' : i === 1 ? '#F5F3FF' : i === 2 ? '#FFFBEB' : '#F0FDF4',
-                    border: `2px solid ${i === 0 ? '#4F7BF7' : i === 1 ? '#8B5CF6' : i === 2 ? '#F59E0B' : '#22C55E'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 30, margin: '0 auto 16px',
-                  }}>{step.icon}</div>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>
-                    {step.label}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>{step.desc}</div>
-                </div>
-                {i < flowSteps.length - 1 && (
-                  <div key={`arrow-${i}`} style={{ flex: 0, padding: '0 12px', color: '#CBD5E1', fontSize: 24, paddingBottom: 24 }}>→</div>
-                )}
-              </>
-            ))}
-          </div>
+          <button
+            onClick={() => onNavigate('checkin')}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium shrink-0"
+          >
+            Start Check-in
+          </button>
         </div>
-
-        {/* CTA */}
-        <div style={{
-          background: 'linear-gradient(135deg, #4F7BF7, #8B5CF6)',
-          borderRadius: 20, padding: '48px 60px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 700, color: 'white', marginBottom: 8 }}>
-              Ready to start your wellbeing check-in?
-            </h2>
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter', sans-serif" }}>
-              Takes just 5 minutes. Private, confidential, and designed to help — not judge.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
-            <button
-              className="btn-primary"
-              style={{ background: 'white', color: '#4F7BF7', fontSize: 16, padding: '14px 28px', whiteSpace: 'nowrap' }}
-              onClick={() => onNavigate('checkin')}
-            >
-              Start Check-in
-            </button>
-            <button
-              className="btn-secondary"
-              style={{ borderColor: 'rgba(255,255,255,0.5)', color: 'white', background: 'transparent', fontSize: 16, padding: '14px 28px', whiteSpace: 'nowrap' }}
-              onClick={() => onNavigate('counselor')}
-            >
-              Counselor Login
-            </button>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
-  )
+  );
 }

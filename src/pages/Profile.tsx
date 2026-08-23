@@ -1,181 +1,183 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { profileHistory, checkInHistory } from '../data/mockData'
-import type { Page } from '../App'
-import type { CheckInData } from '../App'
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import type { Page } from '../App';
+import {
+  User,
+  Activity,
+  Calendar,
+  Shield,
+  ArrowRight,
+  TrendingDown,
+  CheckCircle,
+  Clock,
+  ExternalLink
+} from 'lucide-react';
 
 interface ProfileProps {
-  checkInData: CheckInData | null
-  onNavigate: (page: Page) => void
+  onNavigate: (page: Page) => void;
 }
 
-export default function Profile({ checkInData, onNavigate }: ProfileProps) {
-  const riskForHistory = checkInData?.riskLevel || 'medium'
-  const latestHistory = [...checkInHistory]
-  if (checkInData) {
-    latestHistory[0] = {
-      date: 'August 18, 2026',
-      risk: checkInData.riskLevel === 'high' ? 'High' : checkInData.riskLevel === 'medium' ? 'Medium' : 'Low',
-      score: checkInData.riskScore,
-      status: 'latest',
-    }
-  }
+const API_BASE = import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com';
 
-  const wellbeingCards = [
-    { label: 'Stress Level', value: checkInData ? `${checkInData.stressLevel}/10` : '7/10', icon: '😓', trend: '↑', color: '#EF4444', bg: '#FEF2F2' },
-    { label: 'Sleep Quality', value: checkInData ? `${checkInData.sleepHours}h` : '5.5h', icon: '😴', trend: '↓', color: '#8B5CF6', bg: '#F5F3FF' },
-    { label: 'Exam Pressure', value: checkInData ? `${checkInData.examPressure}/10` : '8/10', icon: '📚', trend: '↑', color: '#F59E0B', bg: '#FFFBEB' },
-    { label: 'Risk Score', value: checkInData ? `${checkInData.riskScore}%` : '74%', icon: '⚠️', trend: riskForHistory === 'high' ? '↑' : '→', color: '#4F7BF7', bg: '#EFF3FF' },
-  ]
+export default function Profile({ onNavigate }: ProfileProps) {
+  const { user, token } = useAuth();
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setIsLoading(true);
+      try {
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const url = user?.id
+          ? `${API_BASE}/assessments?student_id=${user.id}`
+          : `${API_BASE}/assessments?limit=10`;
+
+        const res = await fetch(url, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setHistory(data.assessments || []);
+        }
+      } catch (err) {
+        console.warn('Error fetching profile check-in history:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user, token]);
+
+  const latest = history[0];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '40px 60px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        {/* Profile hero */}
-        <div className="card animate-fade-in" style={{ padding: '32px 36px', marginBottom: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <div style={{
-              width: 88, height: 88, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #4F7BF7, #8B5CF6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, fontWeight: 800, color: 'white', fontFamily: "'Outfit', sans-serif",
-              boxShadow: '0 8px 24px rgba(79,123,247,0.3)',
-            }}>RS</div>
-            <div style={{ flex: 1 }}>
-              <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>
-                Rohit Sharma
-              </h1>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>🎓 3rd Year · Computer Science</span>
-                <span style={{ fontSize: 13, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>🆔 STU-CS-2024-042</span>
-                <span style={{ fontSize: 13, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>📧 rohit.sharma@university.edu</span>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <span style={{
-                  background: '#EFF3FF', border: '1px solid #BFDBFE', borderRadius: 6,
-                  padding: '3px 10px', fontSize: 12, fontWeight: 600, color: '#4F7BF7',
-                  fontFamily: "'Outfit', sans-serif",
-                }}>Active Student</span>
-                <span style={{
-                  background: checkInData ? (checkInData.riskLevel === 'high' ? '#FEF2F2' : checkInData.riskLevel === 'medium' ? '#FFFBEB' : '#F0FDF4') : '#FFFBEB',
-                  border: `1px solid ${checkInData ? (checkInData.riskLevel === 'high' ? '#FECACA' : checkInData.riskLevel === 'medium' ? '#FDE68A' : '#BBF7D0') : '#FDE68A'}`,
-                  borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600,
-                  color: checkInData ? (checkInData.riskLevel === 'high' ? '#DC2626' : checkInData.riskLevel === 'medium' ? '#D97706' : '#16A34A') : '#D97706',
-                  fontFamily: "'Outfit', sans-serif",
-                }}>
-                  {checkInData ? `${checkInData.riskLevel.toUpperCase()} Risk` : 'MEDIUM Risk'}
-                </span>
-              </div>
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
+      {/* Header Profile Info */}
+      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 mb-8 shadow-xl flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-xl font-bold text-indigo-300 font-mono">
+            {user ? user.name.slice(0, 2).toUpperCase() : 'ST'}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">{user?.name || 'Student Account'}</h1>
+            <p className="text-xs text-slate-400 mt-0.5">{user?.email || 'Anonymous Session'}</p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
+              <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full text-[11px] font-semibold uppercase">
+                {user?.role || 'Student'}
+              </span>
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <Shield className="w-3 h-3 text-emerald-400" /> Privacy Protected
+              </span>
             </div>
-            <button className="btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={() => onNavigate('checkin')}>
-              New Check-in
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate('checkin')}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition-all shadow-lg flex items-center gap-1.5"
+        >
+          <span>Take New Assessment</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Latest Metrics Overview */}
+      {latest && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Latest Wellbeing Tier</span>
+            <p className="text-2xl font-bold text-white mt-1">{latest.risk_tier || 'Low'}</p>
+            <p className="text-[11px] text-slate-400 mt-1">From check-in on {new Date(latest.timestamp).toLocaleDateString()}</p>
+          </div>
+          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Anxiety Index</span>
+            <p className="text-2xl font-bold text-indigo-400 mt-1">{latest.anxiety_score !== null ? `${latest.anxiety_score}/10` : '—'}</p>
+            <p className="text-[11px] text-slate-400 mt-1">Lifestyle & psychological scale</p>
+          </div>
+          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Academic Retention Score</span>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">
+              {latest.dropout_probability !== null ? `${Math.round((1 - latest.dropout_probability) * 100)}%` : '—'}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">Progression confidence</p>
+          </div>
+        </div>
+      )}
+
+      {/* Historical Check-in Logs */}
+      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-indigo-400" />
+          Past Check-in History
+        </h2>
+
+        {isLoading ? (
+          <p className="text-xs text-slate-400 py-6 text-center">Loading check-in records...</p>
+        ) : history.length === 0 ? (
+          <div className="text-center py-10">
+            <Activity className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-300">No past check-ins recorded yet.</p>
+            <p className="text-xs text-slate-500 mt-1 mb-4">
+              Complete your first 2-minute assessment to unlock personalized wellbeing tracking.
+            </p>
+            <button
+              onClick={() => onNavigate('checkin')}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition-all"
+            >
+              Start First Check-in
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-900/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">Wellbeing Tier</th>
+                  <th className="py-3 px-4">Anxiety Index</th>
+                  <th className="py-3 px-4">Dropout Risk</th>
+                  <th className="py-3 px-4">Contributing Factors</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/40 text-slate-300">
+                {history.map((row, i) => {
+                  const tier = row.risk_tier || 'Low';
+                  const tierBadge =
+                    tier === 'High' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                    : tier === 'Medium' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
 
-        {/* Wellbeing snapshot */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-          {wellbeingCards.map((card, i) => (
-            <div key={i} className="card card-hover animate-fade-in" style={{ padding: '20px 20px', background: card.bg, animationDelay: `${i * 0.07}s` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                <span style={{ fontSize: 24 }}>{card.icon}</span>
-                <span style={{
-                  fontSize: 16, fontWeight: 800, color: card.color,
-                  fontFamily: "'Outfit', sans-serif",
-                }}>{card.trend}</span>
-              </div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: '#0F172A', marginBottom: 2 }}>
-                {card.value}
-              </div>
-              <div style={{ fontSize: 13, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>{card.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Chart + history */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28 }}>
-          <div className="card" style={{ padding: '24px 24px' }}>
-            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 20 }}>
-              Wellbeing Trend (Last 5 Weeks)
-            </h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={profileHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'Inter' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12 }} />
-                <Line type="monotone" dataKey="stress" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} name="Stress" />
-                <Line type="monotone" dataKey="pressure" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} name="Exam Pressure" />
-                <Line type="monotone" dataKey="risk" stroke="#4F7BF7" strokeWidth={2.5} dot={{ r: 4 }} name="Risk Score" />
-              </LineChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', gap: 16, marginTop: 12, justifyContent: 'center' }}>
-              {[{ label: 'Stress', color: '#EF4444' }, { label: 'Exam Pressure', color: '#F59E0B' }, { label: 'Risk Score', color: '#4F7BF7' }].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 12, height: 3, background: l.color, borderRadius: 99 }} />
-                  <span style={{ fontSize: 12, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>{l.label}</span>
-                </div>
-              ))}
-            </div>
+                  return (
+                    <tr key={i} className="hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3.5 px-4 font-mono">
+                        {new Date(row.timestamp).toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${tierBadge}`}>
+                          {tier}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">{row.anxiety_score}/10</td>
+                      <td className="py-3.5 px-4">{Math.round((row.dropout_probability || 0) * 100)}%</td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap gap-1 max-w-sm">
+                          {(row.top_factors || []).map((f: string, idx: number) => (
+                            <span key={idx} className="px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 text-[10px]">
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-
-          {/* Check-in history */}
-          <div className="card" style={{ padding: '24px 24px' }}>
-            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 20 }}>
-              Previous Check-ins
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {latestHistory.map((entry, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px',
-                  background: i === 0 ? '#F8FAFC' : 'transparent',
-                  borderRadius: 10, border: i === 0 ? '1px solid #E2E8F0' : 'none',
-                }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                    background: entry.risk === 'High' ? '#FEF2F2' : entry.risk === 'Medium' ? '#FFFBEB' : '#F0FDF4',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
-                    color: entry.risk === 'High' ? '#EF4444' : entry.risk === 'Medium' ? '#F59E0B' : '#22C55E',
-                  }}>{entry.score}%</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
-                      {entry.date}
-                      {i === 0 && <span style={{ marginLeft: 8, fontSize: 11, color: '#4F7BF7', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>LATEST</span>}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Inter', sans-serif" }}>
-                      {entry.risk} Risk
-                    </div>
-                  </div>
-                  <span className={`tag-${entry.risk.toLowerCase()}`}>{entry.risk}</span>
-                </div>
-              ))}
-            </div>
-            <button className="btn-primary" style={{ width: '100%', marginTop: 16, fontSize: 14 }} onClick={() => onNavigate('checkin')}>
-              + Start New Check-in
-            </button>
-          </div>
-        </div>
-
-        {/* Academic info */}
-        <div className="card" style={{ padding: '28px 32px' }}>
-          <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 20 }}>
-            Academic Information
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-            {[
-              { label: 'Department', value: 'Computer Science' },
-              { label: 'Roll Number', value: 'CS21042' },
-              { label: 'Academic Year', value: '3rd Year (2026)' },
-              { label: 'Enrolled', value: 'July 2023' },
-            ].map((item, i) => (
-              <div key={i} style={{ padding: '16px', background: '#F8FAFC', borderRadius: 10 }}>
-                <div style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Inter', sans-serif", textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{item.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,175 +1,233 @@
-import type { ReactNode } from 'react'
-import type { Page } from '../App'
+import React from 'react';
+import type { ReactNode } from 'react';
+import type { Page } from '../App';
+import { useAuth } from '../context/AuthContext';
+import {
+  Home,
+  CheckSquare,
+  Activity,
+  Bot,
+  MessageCircle,
+  LayoutDashboard,
+  UserCheck,
+  User as UserIcon,
+  LogOut,
+  LogIn,
+  Shield,
+  FileText
+} from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: Page
-  onNavigate: (page: Page) => void
+  currentPage: Page;
+  onNavigate: (page: Page) => void;
 }
 
-const navItems: { page: Page; label: string; icon: ReactNode }[] = [
-  {
-    page: 'home',
-    label: 'Home',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    )
-  },
-  {
-    page: 'checkin',
-    label: 'Student Check-in',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-      </svg>
-    )
-  },
-  {
-    page: 'results',
-    label: 'My Results',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-    )
-  },
-  {
-    page: 'ai-support',
-    label: 'AI Support',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    )
-  },
-  {
-    page: 'whatsapp',
-    label: 'WhatsApp Support',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-      </svg>
-    )
-  },
-  {
-    page: 'counselor',
-    label: 'Counselor Dashboard',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-      </svg>
-    )
-  },
-  {
-    page: 'medication',
-    label: 'Medication Support',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>
-      </svg>
-    )
-  },
-  {
-    page: 'profile',
-    label: 'Profile',
-    icon: (
-      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-      </svg>
-    )
-  },
-]
-
 export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const isStaff = user?.role === 'counselor' || user?.role === 'admin';
+
   return (
-    <aside style={{
-      width: 240,
-      minWidth: 240,
-      background: 'white',
-      borderRight: '1px solid #E2E8F0',
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden'
-    }}>
-      {/* Logo */}
-      <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid #F1F5F9' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'linear-gradient(135deg, #4F7BF7, #8B5CF6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(79,123,247,0.3)'
-          }}>
-            <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-            </svg>
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0">
+      {/* Brand Header */}
+      <div>
+        <div className="p-5 border-b border-slate-800 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <Shield className="w-5 h-5" />
           </div>
           <div>
-            <div style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 800,
-              fontSize: 20,
-              background: 'linear-gradient(135deg, #4F7BF7, #8B5CF6)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              lineHeight: 1.1
-            }}>SAHARA</div>
+            <h1 className="font-bold text-white tracking-wide text-base">SAHARA</h1>
+            <p className="text-[11px] text-slate-400 font-medium">Wellbeing & Attrition AI</p>
           </div>
         </div>
-        <p style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Inter', sans-serif", paddingLeft: 46, marginTop: -2 }}>
-          Early support. Better outcomes.
-        </p>
+
+        {/* Navigation Sections */}
+        <div className="p-3 space-y-6 overflow-y-auto max-h-[calc(100vh-180px)]">
+          {/* General & Student Hub */}
+          <div>
+            <p className="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Student Platform
+            </p>
+            <nav className="space-y-1">
+              <button
+                onClick={() => onNavigate('home')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'home'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                <span>Overview</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('checkin')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'checkin'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <CheckSquare className="w-4 h-4" />
+                <span>Risk Assessment</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('results')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'results'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <Activity className="w-4 h-4" />
+                <span>Assessment Results</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('ai-support')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'ai-support'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                <span>AI Wellbeing Companion</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('whatsapp')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'whatsapp'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span>WhatsApp Bot (24/7)</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('profile')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'profile'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                }`}
+              >
+                <UserIcon className="w-4 h-4" />
+                <span>My Check-in History</span>
+              </button>
+            </nav>
+          </div>
+
+          {/* Institutional / Counselor Hub */}
+          <div>
+            <p className="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Staff & Counselor
+            </p>
+            <nav className="space-y-1">
+              <button
+                onClick={() => {
+                  if (!isStaff && isAuthenticated) {
+                    alert('Counselor privileges required to access this portal.');
+                    return;
+                  }
+                  onNavigate('counselor');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'counselor'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : isStaff
+                    ? 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                    : 'text-slate-400 hover:bg-slate-800/30'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Counselor Dashboard</span>
+                {!isStaff && <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Staff</span>}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!isStaff && isAuthenticated) {
+                    alert('Counselor privileges required to view student profiles.');
+                    return;
+                  }
+                  onNavigate('student-profile');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'student-profile'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : isStaff
+                    ? 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                    : 'text-slate-400 hover:bg-slate-800/30'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Case Detail View</span>
+              </button>
+            </nav>
+          </div>
+
+          {/* Optional Demonstration Resources */}
+          <div>
+            <p className="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Resources (Preview)
+            </p>
+            <nav className="space-y-1">
+              <button
+                onClick={() => onNavigate('medication')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  currentPage === 'medication'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-300'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Prescription Hub</span>
+                <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Demo</span>
+              </button>
+            </nav>
+          </div>
+        </div>
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '12px 12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', padding: '8px 14px 4px', fontFamily: "'Inter', sans-serif", textTransform: 'uppercase' }}>
-          Student
-        </div>
-        {navItems.slice(0, 5).map(item => (
-          <button
-            key={item.page}
-            className={`nav-item ${currentPage === item.page || (currentPage === 'student-profile' && item.page === 'counselor') ? 'active' : ''}`}
-            onClick={() => onNavigate(item.page)}
-          >
-            <span style={{ flexShrink: 0 }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', padding: '12px 14px 4px', fontFamily: "'Inter', sans-serif", textTransform: 'uppercase' }}>
-          Admin
-        </div>
-        {navItems.slice(5).map(item => (
-          <button
-            key={item.page}
-            className={`nav-item ${currentPage === item.page ? 'active' : ''}`}
-            onClick={() => onNavigate(item.page)}
-          >
-            <span style={{ flexShrink: 0 }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Footer */}
-      <div style={{ padding: '16px 20px', borderTop: '1px solid #F1F5F9' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #14B8A6, #4F7BF7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: 'white', fontFamily: "'Outfit', sans-serif"
-          }}>RS</div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>Rohit S.</div>
-            <div style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Inter', sans-serif" }}>CS — 3rd Year</div>
+      {/* User Footer Profile & Auth Control */}
+      <div className="p-3 border-t border-slate-800 bg-slate-900/80">
+        {isAuthenticated && user ? (
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-300 shrink-0">
+                {user.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{user.name}</p>
+                <span className="inline-block text-[10px] font-medium text-indigo-400 uppercase tracking-wide">
+                  {user.role}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-        </div>
+        ) : (
+          <button
+            onClick={() => onNavigate('login' as Page)}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition-all shadow-md"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>Sign In to SAHARA</span>
+          </button>
+        )}
       </div>
     </aside>
-  )
+  );
 }

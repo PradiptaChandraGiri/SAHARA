@@ -187,13 +187,15 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
       age_at_enrollment: form.age || 20,
     }
 
-    let resultData: CheckInData | null = null
-
     try {
-      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+      const apiUrl = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+      const savedToken = localStorage.getItem('sahara_token')
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (savedToken) headers["Authorization"] = `Bearer ${savedToken}`
+
       const res = await fetch(`${apiUrl}/assess`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       })
 
@@ -210,6 +212,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
           riskLevel: tierLower,
           anxietyRisk,
           dropoutRisk,
+          isAiPredicted: true,
           factors: data.top_factors && data.top_factors.length > 0 ? data.top_factors : computeRisk().factors,
         } as CheckInData
       }
@@ -219,11 +222,11 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
 
     setTimeout(() => {
       clearInterval(cycle)
-      const finalData = resultData || computeRisk()
+      const finalData = resultData || { ...computeRisk(), isAiPredicted: false }
       onComplete(finalData)
       setAnalyzing(false)
       onNavigate('results')
-    }, 2800)
+    }, 2000)
   }
 
   if (analyzing) {

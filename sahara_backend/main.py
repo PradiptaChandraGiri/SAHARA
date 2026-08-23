@@ -1,85 +1,130 @@
+"""SAHARA FastAPI Backend Service.
+
+Provides:
+- Machine Learning Risk Assessment (Anxiety Regression + Academic Dropout Risk)
+- Role-based Authentication (Student, Counselor, Admin)
+- Secure Server-Side Gemini AI Chat Proxy (Zero Client-Side API Key Exposure)
+- Counselor Case Triage & Institutional Analytics
+- WhatsApp Webhook Router
+"""
 from __future__ import annotations
 
 import datetime
+import os
 import uuid
-from typing import Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+import requests
 
-import database
-from explainability import get_top_factors
-from gemini_suggestions import get_gemini_suggestions
-import phase2_merged_final as sahara
+from auth import create_access_token, get_current_user, get_current_user_optional, require_roles
+from core.explainability import get_top_factors
+from core.risk_engine import (
+    DROPOUT_CLASSES,
+    anxiety_model,
+    assess_student,
+    dropout_model,
+)
+from storage.database import (
+    create_user,
+    get_admin_stats,
+    get_assessment,
+    get_user_by_email,
+    init_db,
+    list_assessments,
+    log_assessment,
+    update_assessment_status,
+    verify_password,
+)
+from whatsapp.bot import router as whatsapp_router
+
+init_db()
 
 app = FastAPI(
     title="SAHARA API",
-    description="Student wellbeing and dropout-risk early-warning system API",
-    version="1.2.0",
+    description="Student Wellbeing and Academic Attrition Early-Warning Platform",
+    version="2.0.0",
 )
 
-# CORS middleware for frontend access
+# CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8443",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:8443",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "*",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(whatsapp_router)
+
 
 # ============================================================
 # Schemas
 # ============================================================
-class StudentIntake(BaseModel):
-    student_name: Optional[str] = Field(default="Student", description="Display name only")
-    age: int = Field(..., ge=16, le=100, description="Age between 16 and 100")
-    gender: str = Field(..., description="Gender identity")
-    academic_year: int = Field(..., description="College year 1-4")
-    study_hours_per_day: float = Field(..., ge=0.0, le=24.0, description="Daily study hours 0-24")
-    exam_pressure: int = Field(..., ge=0, le=10, description="Exam pressure 0-10")
-    academic_performance: float = Field(..., description="GPA or percentage score")
-    stress_level: int = Field(..., ge=0, le=10, description="Stress level 0-10")
-    sleep_hours: float = Field(..., ge=0.0, le=24.0, description="Nightly sleep hours 0-24")
-    physical_activity: int = Field(..., description="Physical activity days or scale")
-    social_support: int = Field(..., ge=0, le=10, description="Social support 0-10")
-    screen_time: float = Field(..., ge=0.0, le=24.0, description="Screen hours 0-24")
-    internet_usage: float = Field(..., ge=0.0, le=24.0, description="Internet hours 0-24")
-    financial_stress: int = Field(..., ge=0, le=10, description="Financial stress 0-10")
-    family_expectation: int = Field(..., ge=0, le=10, description="Family expectation 0-10")
 
-    # Optional dropout-specific fields
+class RegisterRequest(BaseModel):
+    name: str = Field(..., min_length=2, description="Full name")
+    email: EmailStr = Field(..., description="Institutional or personal email")
+    password: str = Field(..., min_length=6, description="Password (min 6 chars)")
+    role: Literal["student", "counselor", "admin"] = Field(default="student")
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr = Field(...)
+    password: str = Field(...)
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: str
+    name: str
+    email: str
+    role: str
+
+
+class StudentIntake(BaseModel):
+    student_name: Optional[str] = Field(default="Student", description="Display name")
+    age: int = Field(..., ge=16, le=100)
+    gender: str = Field(..., description="Female, Male, Non-binary, Prefer not to say")
+    academic_year: int = Field(..., ge=1, le=6)
+    study_hours_per_day: float = Field(..., ge=0.0, le=24.0)
+    exam_pressure: int = Field(..., ge=1, le=10)
+    academic_performance: float = Field(..., ge=0.0, le=100.0)
+    stress_level: int = Field(..., ge=1, le=10)
+    sleep_hours: float = Field(..., ge=0.0, le=24.0)
+    physical_activity: int = Field(..., ge=0, le=7)
+    social_support: int = Field(..., ge=1, le=10)
+    screen_time: float = Field(default=6.0, ge=0.0, le=24.0)
+    internet_usage: float = Field(default=3.0, ge=0.0, le=24.0)
+    financial_stress: int = Field(default=5, ge=1, le=10)
+    family_expectation: int = Field(default=5, ge=1, le=10)
     admission_grade: Optional[float] = Field(default=0.0)
-    curricular_units_1st_sem_approved: Optional[int] = Field(default=0)
-    curricular_units_2nd_sem_approved: Optional[int] = Field(default=0)
-    tuition_fees_up_to_date: Optional[int] = Field(default=0)
+    curricular_units_1st_sem_approved: Optional[int] = Field(default=3)
+    curricular_units_2nd_sem_approved: Optional[int] = Field(default=3)
+    tuition_fees_up_to_date: Optional[int] = Field(default=1)
     debtor: Optional[int] = Field(default=0)
-    age_at_enrollment: Optional[int] = None
+    age_at_enrollment: Optional[int] = Field(default=20)
 
 
 class AssessmentResponse(BaseModel):
     assessment_id: str
-    timestamp: str
+    student_id: str
     anxiety_score: float
     anxiety_level: str
     dropout_probability: float
+    dropout_predicted_class: str
     combined_score: float
     risk_tier: str
     action: str
     message: str
     counselor_alert: bool
     next_step: str
-    top_factors: list[str] = Field(default_factory=list)
-    suggestions: list[str] = Field(default_factory=list)
+    top_factors: List[str]
+    suggestions: List[str]
+    timestamp: str
 
 
 class StatusUpdateRequest(BaseModel):
@@ -87,187 +132,242 @@ class StatusUpdateRequest(BaseModel):
     notes: Optional[str] = None
 
 
-def to_model_dict(payload: StudentIntake) -> dict:
+class ChatMessage(BaseModel):
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str = Field(...)
+
+
+class AIChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    conversation_history: Optional[List[ChatMessage]] = Field(default=[])
+
+
+# ============================================================
+# 1. Authentication Endpoints
+# ============================================================
+
+@app.post("/auth/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+def register(req: RegisterRequest):
+    """Register a new student, counselor, or admin user."""
+    try:
+        user = create_user(req.name, req.email, req.password, req.role)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    token = create_access_token(user["id"], user["email"], user["role"], user["name"])
+    return AuthResponse(
+        access_token=token,
+        user_id=user["id"],
+        name=user["name"],
+        email=user["email"],
+        role=user["role"],
+    )
+
+
+@app.post("/auth/login", response_model=AuthResponse)
+def login(req: LoginRequest):
+    """Authenticate with email and password to receive JWT token."""
+    user = get_user_by_email(req.email)
+    if not user or not verify_password(req.password, user["password_hash"], user["salt"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password.",
+        )
+
+    token = create_access_token(user["id"], user["email"], user["role"], user["name"])
+    return AuthResponse(
+        access_token=token,
+        user_id=user["id"],
+        name=user["name"],
+        email=user["email"],
+        role=user["role"],
+    )
+
+
+@app.get("/auth/me")
+def get_me(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Retrieve logged-in user profile."""
+    return current_user
+
+
+# ============================================================
+# 2. Server-Side Gemini AI Chat Proxy (Safe & Key-Protected)
+# ============================================================
+
+@app.post("/ai-support/chat")
+def ai_support_chat(req: AIChatRequest):
+    """Server-side Gemini AI proxy ensuring API keys are never exposed to browser clients."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {
+            "response": (
+                "I'm here for you! 💚 College can feel demanding, but taking one small step at a time helps. "
+                "Try taking 3 slow deep breaths right now. You can also explore our wellness resources or connect with campus support."
+            ),
+            "emergency_helpline": "Tele-MANAS: 14416 (24/7 National Toll-Free)",
+        }
+
+    system_instruction = (
+        "You are SAHARA AI — a compassionate, empathetic, and professional mental wellbeing companion "
+        "for college students. Keep responses warm, structured, actionable, and under 3 short paragraphs. "
+        "Offer practical academic and mindfulness strategies. If severe crisis or self-harm is mentioned, "
+        "always prioritize recommending the 24/7 National Tele-MANAS helpline (14416)."
+    )
+
+    # Format contents for Gemini REST API
+    contents = []
+    for m in req.conversation_history[-6:]:
+        role = "user" if m.role == "user" else "model"
+        contents.append({"role": role, "parts": [{"text": m.content}]})
+    contents.append({"role": "user", "parts": [{"text": req.message}]})
+
+    # Verified current Google Gemini model endpoints
+    models = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    for model_name in models:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            payload = {
+                "system_instruction": {"parts": [{"text": system_instruction}]},
+                "contents": contents,
+            }
+            res = requests.post(url, json=payload, timeout=12)
+            if res.status_code == 200:
+                reply = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return {"response": reply, "model_used": model_name}
+        except Exception:
+            continue
+
     return {
-        "age": payload.age,
-        "study_hours_per_day": payload.study_hours_per_day,
-        "exam_pressure": payload.exam_pressure,
-        "academic_performance": payload.academic_performance,
-        "stress_level": payload.stress_level,
-        "sleep_hours": payload.sleep_hours,
-        "physical_activity": payload.physical_activity,
-        "social_support": payload.social_support,
-        "screen_time": payload.screen_time,
-        "internet_usage": payload.internet_usage,
-        "financial_stress": payload.financial_stress,
-        "family_expectation": payload.family_expectation,
-        "gender": payload.gender,
-        "academic_year": payload.academic_year,
-        "Admission grade": payload.admission_grade or 0,
-        "Curricular units 1st sem (approved)": payload.curricular_units_1st_sem_approved or 0,
-        "Curricular units 2nd sem (approved)": payload.curricular_units_2nd_sem_approved or 0,
-        "Tuition fees up to date": payload.tuition_fees_up_to_date if payload.tuition_fees_up_to_date is not None else 0,
-        "Debtor": payload.debtor or 0,
-        "Age at enrollment": payload.age_at_enrollment or payload.age,
+        "response": (
+            "Thank you for sharing. 💚 It's completely valid to feel stressed during college. "
+            "Prioritize a short screen break, hydrate, and consider trying a 5-minute breathing exercise."
+        ),
+        "emergency_helpline": "Tele-MANAS: 14416 (24/7 National Toll-Free)",
     }
 
 
 # ============================================================
-# Core Endpoints
+# 3. Core Assessment & Health
 # ============================================================
+
 @app.get("/health")
-def health():
-    """Confirm service status and ML model state."""
+def health_check():
+    """Health check validating ML model weights readiness."""
     return {
         "status": "ok",
-        "anxiety_model_loaded": sahara.anxiety_model is not None,
-        "dropout_model_loaded": sahara.dropout_model is not None,
-        "dropout_classes": list(sahara.DROPOUT_CLASSES) if hasattr(sahara, "DROPOUT_CLASSES") else ["Dropout", "Enrolled", "Graduate"],
+        "anxiety_model_loaded": anxiety_model is not None,
+        "dropout_model_loaded": dropout_model is not None,
+        "dropout_classes": DROPOUT_CLASSES,
+        "version": "2.0.0",
     }
 
 
 @app.post("/assess", response_model=AssessmentResponse)
-def assess(payload: StudentIntake):
-    """Assess a student using real anxiety & dropout ML models."""
-    student_data = to_model_dict(payload)
-    try:
-        result = sahara.assess_student(student_data, student_name=payload.student_name or "Student")
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Assessment computation failed: {str(e)}")
+def assess(intake: StudentIntake, current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)):
+    """Run dual-model early-warning assessment and store result."""
+    data = intake.model_dump()
+    result = assess_student(data, student_name=intake.student_name or "Student")
 
-    assessment_id = str(uuid.uuid4())
-    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    top_factors = get_top_factors(data, top_n=3)
 
-    risk_tier = result.get("risk_tier", "Low")
-    top_factors = (
-        get_top_factors(student_data)
-        if risk_tier in {"Medium", "High"}
-        else []
-    )
+    # Dynamic suggestions based on risk tier
+    tier = result["risk_tier"]
+    if tier == "Low":
+        suggestions = [
+            "Maintain your healthy routine and 7-8 hours of sleep.",
+            "Use Pomodoro 25/5 study intervals to prevent mental fatigue.",
+            "Engage in 20-30 mins of daily physical activity.",
+        ]
+    elif tier == "Medium":
+        suggestions = [
+            "Practice 4-7-8 breathing exercises during study breaks.",
+            "Connect with a study group or peer mentor to distribute workload.",
+            "Schedule a light 15-minute screen-free wind-down routine before sleep.",
+        ]
+    else:
+        suggestions = [
+            "Reach out to your designated campus counselor for a confidential session.",
+            "Call National Tele-MANAS (14416) for immediate 24/7 emotional support.",
+            "Speak with an academic advisor regarding workload adjustments.",
+        ]
 
-    suggestions = (
-        get_gemini_suggestions(student_data)
-        if risk_tier == "Low"
-        else []
-    )
+    aid = str(uuid.uuid4())
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    student_identifier = current_user.get("id") if current_user else (intake.student_name or "Student")
 
-    # Clean numbers per spec
-    anxiety_score = round(float(result.get("anxiety_score", 0.0)), 2)
-    dropout_probability = round(float(result.get("dropout_probability", 0.0)), 3)
-    combined_score = round(0.5 * (anxiety_score / 10.0) + 0.5 * dropout_probability, 3)
-
-    response_data = {
-        "assessment_id": assessment_id,
-        "timestamp": timestamp,
-        "anxiety_score": anxiety_score,
-        "anxiety_level": result.get("anxiety_level", "Low"),
-        "dropout_probability": dropout_probability,
-        "combined_score": combined_score,
-        "risk_tier": risk_tier,
-        "action": result.get("action", "show_suggestions"),
-        "message": result.get("message", f"Assessment completed for {payload.student_name}"),
-        "counselor_alert": risk_tier == "High",
-        "next_step": result.get("next_step", "Self-care guidelines provided"),
-        "top_factors": top_factors,
-        "suggestions": suggestions,
-    }
-
-    # Persist record
-    robj = type("AssessmentResult", (), response_data)()
-    database.log_assessment(
-        assessment_id=assessment_id,
-        timestamp=timestamp,
-        result=robj,
-        student_name=payload.student_name,
+    robj = type("R", (), result)()
+    log_assessment(
+        aid,
+        ts,
+        robj,
+        student_name=student_identifier,
         top_factors=top_factors,
-        raw_input=payload.model_dump(),
+        raw_input=data,
     )
 
-    return response_data
+    return AssessmentResponse(
+        assessment_id=aid,
+        student_id=student_identifier,
+        anxiety_score=result["anxiety_score"],
+        anxiety_level=result["anxiety_level"],
+        dropout_probability=result["dropout_probability"],
+        dropout_predicted_class=result["dropout_predicted_class"],
+        combined_score=result["combined_score"],
+        risk_tier=result["risk_tier"],
+        action=result["action"],
+        message=result["message"],
+        counselor_alert=result["counselor_alert"],
+        next_step=result["next_step"],
+        top_factors=top_factors,
+        suggestions=suggestions,
+        timestamp=ts,
+    )
 
+
+# ============================================================
+# 4. Counselor & Admin Case Management Endpoints
+# ============================================================
 
 @app.get("/assessments")
 def get_assessments(
-    student_id: Optional[str] = Query(None, description="Filter by anonymized student ID"),
-    risk_tier: Optional[str] = Query(None, description="Filter by Low, Medium, or High"),
-    limit: int = Query(50, ge=1, le=200),
+    student_id: Optional[str] = Query(None),
+    risk_tier: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional),
 ):
-    """List historical assessments for counselor dashboard and reporting."""
-    if risk_tier and risk_tier not in {"Low", "Medium", "High"}:
-        raise HTTPException(status_code=400, detail="risk_tier must be Low, Medium, or High")
-    return database.list_assessments(
-        student_id=student_id, risk_tier=risk_tier, limit=limit, offset=offset
+    """Fetch paginated assessments. Counselors see all; students see only their own."""
+    # If user is a student, restrict to their own records
+    if current_user and current_user.get("role") == "student":
+        student_id = current_user.get("id")
+
+    return list_assessments(
+        student_id=student_id,
+        risk_tier=risk_tier,
+        limit=limit,
+        offset=offset,
     )
 
 
 @app.get("/assessments/{assessment_id}")
 def get_single_assessment(assessment_id: str):
-    row = database.get_assessment(assessment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-    return row
+    """Retrieve single assessment record with full details."""
+    rec = get_assessment(assessment_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Assessment record not found.")
+    return rec
 
 
 @app.patch("/assessments/{assessment_id}/status")
 def update_status(assessment_id: str, payload: StatusUpdateRequest):
-    """Counselor marks assessment status (New / In progress / Contacted) with notes."""
-    updated = database.update_assessment_status(
-        assessment_id=assessment_id, status=payload.status, notes=payload.notes
-    )
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-    return updated
-
-
-@app.patch("/assessments/{assessment_id}/contacted")
-def mark_contacted_legacy(assessment_id: str):
-    """Legacy endpoint alias for mark as contacted."""
-    updated = database.update_assessment_status(
-        assessment_id=assessment_id, status="Contacted", notes="Contacted via dashboard"
-    )
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+    """Update counselor review status and notes for an assessment."""
+    updated = update_assessment_status(assessment_id, payload.status, payload.notes)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Assessment not found.")
     return updated
 
 
 @app.get("/admin/stats")
-def get_admin_statistics():
-    """Institution-wide aggregated metrics across all assessments."""
-    return database.get_admin_stats()
-
-
-# ============================================================
-# WhatsApp Integration Router
-# ============================================================
-try:
-    from whatsapp_router import router as whatsapp_router
-    app.include_router(whatsapp_router)
-except Exception as e:
-    print(f"WhatsApp router notice: {e}")
-
-
-@app.get("/")
-def root():
-    return {
-        "service": "SAHARA API",
-        "docs": "/docs",
-        "endpoints": [
-            "GET /health",
-            "POST /assess",
-            "GET /assessments",
-            "GET /assessments/{assessment_id}",
-            "PATCH /assessments/{assessment_id}/status",
-            "GET /admin/stats",
-            "POST /whatsapp-webhook",
-            "GET /whatsapp-health",
-        ],
-    }
-
-
-if __name__ == "__main__":
-    import os
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
-
+def admin_stats():
+    """Retrieve institution-wide risk distribution and weekly check-in trends."""
+    return get_admin_stats()
