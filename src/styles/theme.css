@@ -1,0 +1,82 @@
+/* ============================================================
+   SAHARA DESIGN TOKENS
+   Signature concept: "dawn arc" — catching problems at first
+   light, before they become a crisis. Deep navy (institutional
+   trust) + warm amber (the dawn signal) + sage (care, growth).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Core palette */
+  --navy-950: #0E1A2B;
+  --navy-900: #14243D;
+  --navy-800: #1D3357;
+  --navy-700: #2B4570;
+  --navy-100: #E8EDF5;
+
+  --amber-600: #B8791F;
+  --amber-500: #D99A34;
+  --amber-400: #E8B563;
+  --amber-100: #FBF0DD;
+
+  --sage-600: #4F6B57;
+  --sage-500: #6E8A76;
+  --sage-100: #E6EEE8;
+
+  --coral-600: #A64B45;
+  --coral-500: #C56058;
+  --coral-100: #F7E5E3;
+
+  --cream-50: #FBF9F5;
+  --slate-50: #F6F7F9;
+  --slate-100: #EEF0F3;
+
+  --ink-900: #16202B;
+  --ink-700: #3A4552;
+  --ink-500: #64707D;
+  --ink-400: #8B94A0;
+  --border: #E1E5EA;
+
+  /* Type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Public Sans', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(14, 26, 43, 0.06);
+  --shadow-md: 0 4px 16px rgba(14, 26, 43, 0.08);
+  --shadow-lg: 0 16px 40px rgba(14, 26, 43, 0.14);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+html, body {
+  font-family: var(--font-body);
+  background: var(--slate-50);
+  color: var(--ink-900);
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.mono { font-family: var(--font-mono); letter-spacing: 0.01em; }
+
+/* Risk tier tokens — muted, never alarm-bright */
+.tier-low    { color: var(--sage-600);  background: var(--sage-100);  border-color: var(--sage-500); }
+.tier-medium { color: var(--amber-600); background: var(--amber-100); border-color: var(--amber-500); }
+.tier-high   { color: var(--coral-600); background: var(--coral-100); border-color: var(--coral-500); }
+
+@keyframes dawnRise {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.dawn-in { animation: dawnRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dawn-in { animation: none; }
+}

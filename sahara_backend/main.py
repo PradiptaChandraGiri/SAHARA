@@ -76,6 +76,13 @@ class LoginRequest(BaseModel):
     password: str = Field(...)
 
 
+class UserProfile(BaseModel):
+    id: str
+    name: str
+    email: str
+    role: str
+
+
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -83,6 +90,7 @@ class AuthResponse(BaseModel):
     name: str
     email: str
     role: str
+    user: Optional[UserProfile] = None
 
 
 class StudentIntake(BaseModel):
@@ -155,12 +163,14 @@ def register(req: RegisterRequest):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     token = create_access_token(user["id"], user["email"], user["role"], user["name"])
+    user_prof = UserProfile(id=user["id"], name=user["name"], email=user["email"], role=user["role"])
     return AuthResponse(
         access_token=token,
         user_id=user["id"],
         name=user["name"],
         email=user["email"],
         role=user["role"],
+        user=user_prof,
     )
 
 
@@ -175,12 +185,14 @@ def login(req: LoginRequest):
         )
 
     token = create_access_token(user["id"], user["email"], user["role"], user["name"])
+    user_prof = UserProfile(id=user["id"], name=user["name"], email=user["email"], role=user["role"])
     return AuthResponse(
         access_token=token,
         user_id=user["id"],
         name=user["name"],
         email=user["email"],
         role=user["role"],
+        user=user_prof,
     )
 
 

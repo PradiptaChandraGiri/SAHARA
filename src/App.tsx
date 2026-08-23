@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import Home from './pages/Home';
-import CheckIn from './pages/CheckIn';
-import Results from './pages/Results';
-import AISupport from './pages/AISupport';
-import WhatsAppSupport from './pages/WhatsAppSupport';
-import CounselorDashboard from './pages/CounselorDashboard';
-import StudentProfile from './pages/StudentProfile';
-import MedicationSupport from './pages/MedicationSupport';
-import Profile from './pages/Profile';
-import Login from './pages/Login';
+import { useState } from 'react'
+import { useAuth } from './context/AuthContext'
+import Sidebar from './components/Sidebar'
+import Home from './pages/Home'
+import CheckIn from './pages/CheckIn'
+import Results from './pages/Results'
+import AISupport from './pages/AISupport'
+import WhatsAppSupport from './pages/WhatsAppSupport'
+import CounselorDashboard from './pages/CounselorDashboard'
+import StudentProfile from './pages/StudentProfile'
+import MedicationSupport from './pages/MedicationSupport'
+import Profile from './pages/Profile'
+import Login from './pages/Login'
 
 export type Page =
   | 'home'
@@ -22,72 +22,89 @@ export type Page =
   | 'counselor'
   | 'student-profile'
   | 'medication'
-  | 'profile';
+  | 'profile'
 
 export interface CheckInData {
-  age: number;
-  gender: string;
-  year: string;
-  department: string;
-  gpa: string;
-  studyHours: number;
-  examPressure: number;
-  attendance: number;
-  stressLevel: number;
-  sleepHours: number;
-  physicalActivity: string;
-  socialSupport: number;
-  screenTime: number;
-  financialStress: string;
-  familyExpectations: string;
-  riskScore: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  anxietyRisk: number;
-  dropoutRisk: number;
-  isAiPredicted?: boolean;
-  factors: string[];
+  age: number
+  gender: string
+  year: string
+  department: string
+  gpa: string
+  studyHours: number
+  examPressure: number
+  attendance: number
+  stressLevel: number
+  sleepHours: number
+  physicalActivity: string
+  socialSupport: number
+  screenTime: number
+  financialStress: string
+  familyExpectations: string
+  riskScore: number
+  riskLevel: 'low' | 'medium' | 'high'
+  anxietyRisk: number
+  dropoutRisk: number
+  isAiPredicted?: boolean
+  factors: string[]
 }
 
-function MainApp() {
-  const [page, setPage] = useState<Page>('home');
-  const [checkInData, setCheckInData] = useState<CheckInData | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [studentStatuses, setStudentStatuses] = useState<Record<string, string>>({});
-  const { user, isAuthenticated } = useAuth();
+export default function App() {
+  const { user, loading } = useAuth()
+  const [page, setPage] = useState<Page>('home')
+  const [checkInData, setCheckInData] = useState<CheckInData | null>(null)
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [studentStatuses, setStudentStatuses] = useState<Record<string, string>>({})
 
   const navigate = (p: Page) => {
-    // Role protection guard
-    if ((p === 'counselor' || p === 'student-profile') && !isAuthenticated) {
-      setPage('login');
-      return;
+    if ((p === 'counselor' || p === 'student-profile') && (!user || (user.role !== 'counselor' && user.role !== 'admin'))) {
+      if (!user) {
+        setPage('login')
+        return
+      }
+      alert('Counselor or Admin privileges required to access this portal.')
+      return
     }
-    if ((p === 'counselor' || p === 'student-profile') && user?.role === 'student') {
-      alert('Access restricted: Counselor/Admin credentials required.');
-      return;
-    }
-    setPage(p);
-    window.scrollTo(0, 0);
-  };
+    setPage(p)
+    window.scrollTo(0, 0)
+  }
 
   const handleCheckInComplete = (data: CheckInData) => {
-    const anxietyRisk = Math.min(Math.round(data.riskScore * 1.05), 95);
-    const dropoutRisk = Math.max(Math.round(data.riskScore * 0.92), 5);
-    setCheckInData({ ...data, anxietyRisk, dropoutRisk });
-  };
+    const anxietyRisk = Math.min(Math.round(data.riskScore * 1.05), 95)
+    const dropoutRisk = Math.max(Math.round(data.riskScore * 0.92), 5)
+    setCheckInData({ ...data, anxietyRisk, dropoutRisk })
+  }
 
   const handleUpdateStatus = (id: string, status: string) => {
-    setStudentStatuses((prev) => ({ ...prev, [id]: status }));
-  };
+    setStudentStatuses(prev => ({ ...prev, [id]: status }))
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--slate-50)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: 'var(--navy-950)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </div>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-500)', fontWeight: 500 }}>Connecting to SAHARA…</p>
+        </div>
+      </div>
+    )
+  }
 
   if (page === 'login') {
-    return <Login onNavigate={navigate} />;
+    return <Login onSuccess={() => navigate('home')} />
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--slate-50)' }}>
       <Sidebar currentPage={page} onNavigate={navigate} />
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-900">
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {page === 'home' && <Home onNavigate={navigate} />}
         {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
         {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
@@ -118,19 +135,19 @@ function MainApp() {
         target="_blank"
         rel="noopener noreferrer"
         title="Open SAHARA WhatsApp Bot"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-600/40 font-semibold text-xs transition-all hover:scale-105 border border-emerald-400/30"
+        style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 50,
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 18px', background: 'var(--navy-950)',
+          color: '#fff', borderRadius: 99,
+          boxShadow: 'var(--shadow-lg)', fontWeight: 600, fontSize: 13,
+          border: '1.5px solid rgba(232,181,99,0.3)', textDecoration: 'none',
+          transition: 'transform 0.2s ease',
+        }}
       >
-        <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--amber-400)' }}></span>
         <span>WhatsApp Bot (24/7)</span>
       </a>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
-  );
+  )
 }

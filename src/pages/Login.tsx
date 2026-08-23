@@ -1,223 +1,220 @@
-import React, { useState } from 'react';
-import type { Page } from '../App';
-import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, Mail, User as UserIcon, ArrowRight, CheckCircle } from 'lucide-react';
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
-interface LoginProps {
-  onNavigate: (page: Page) => void;
+/**
+ * DawnArc — the signature visual element for SAHARA.
+ * A horizon line with a rising arc: the idea of catching something
+ * at first light, before it becomes a crisis. Used here as an ambient
+ * backdrop, and reused (smaller) as a loading/progress motif elsewhere.
+ */
+function DawnArc({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg
+      style={style}
+      viewBox="0 0 600 400"
+      fill="none"
+      preserveAspectRatio="xMidYMax slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#14243D" />
+          <stop offset="100%" stopColor="#1D3357" />
+        </linearGradient>
+        <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#E8B563" />
+          <stop offset="100%" stopColor="#B8791F" />
+        </linearGradient>
+      </defs>
+      <rect width="600" height="400" fill="url(#skyGrad)" />
+      <circle cx="300" cy="330" r="90" fill="url(#sunGrad)" opacity="0.9" />
+      <rect y="332" width="600" height="68" fill="#14243D" />
+      {[1, 2, 3].map(i => (
+        <path
+          key={i}
+          d={`M 0 ${330 - i * 34} Q 300 ${330 - i * 34 - 46} 600 ${330 - i * 34}`}
+          stroke="#E8B563"
+          strokeOpacity={0.16 + i * 0.06}
+          strokeWidth="1.5"
+          fill="none"
+        />
+      ))}
+    </svg>
+  )
 }
 
-export default function Login({ onNavigate }: LoginProps) {
-  const { login, register } = useAuth();
+interface LoginProps {
+  onSuccess: () => void
+}
 
-  const [isRegister, setIsRegister] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'counselor' | 'admin'>('student');
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function Login({ onSuccess }: LoginProps) {
+  const { login } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showDemo, setShowDemo] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-
-    if (isRegister) {
-      if (!name.trim()) {
-        setError('Please enter your full name');
-        setIsSubmitting(false);
-        return;
-      }
-      const res = await register(name, email, password, role);
-      setIsSubmitting(false);
-      if (res.success) {
-        onNavigate(role === 'student' ? 'checkin' : 'counselor');
-      } else {
-        setError(res.error || 'Registration failed');
-      }
-    } else {
-      const res = await login(email, password);
-      setIsSubmitting(false);
-      if (res.success) {
-        onNavigate('home');
-      } else {
-        setError(res.error || 'Invalid credentials');
-      }
+    e.preventDefault()
+    setError('')
+    if (!email.trim() || !password) {
+      setError('Enter your email and password to continue.')
+      return
     }
-  };
+    setSubmitting(true)
+    const result = await login(email.trim(), password)
+    setSubmitting(false)
+    if (result.ok) onSuccess()
+    else setError(result.error || 'Something went wrong. Please try again.')
+  }
 
-  const handleQuickLogin = async (demoEmail: string, demoPass: string) => {
-    setError(null);
-    setIsSubmitting(true);
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    const res = await login(demoEmail, demoPass);
-    setIsSubmitting(false);
-    if (res.success) {
-      onNavigate('home');
-    } else {
-      setError(res.error || 'Quick login failed');
-    }
-  };
+  const fillDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail)
+    setPassword('sahara-demo')
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-800/90 border border-slate-700 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl mb-3">
-            <Shield className="w-7 h-7 text-indigo-400" />
+    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--slate-50)' }}>
+      {/* Left — brand panel */}
+      <div style={{
+        flex: '0 0 44%', position: 'relative', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '48px 56px', minWidth: 420,
+      }}>
+        <DawnArc style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8, background: 'var(--amber-500)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M2 18 Q12 8 22 18" stroke="#14243D" strokeWidth="2.2" strokeLinecap="round" />
+                <circle cx="12" cy="13" r="3.2" fill="#14243D" />
+              </svg>
+            </div>
+            <span className="display" style={{ color: '#fff', fontSize: 20, fontWeight: 600 }}>SAHARA</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">SAHARA Institutional Portal</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Student Mental Wellbeing & Academic Early-Warning System
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 380 }}>
+          <h1 className="display" style={{ color: '#fff', fontSize: 34, fontWeight: 500, lineHeight: 1.25, marginBottom: 16 }}>
+            Early signs, caught early.
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 15, lineHeight: 1.7 }}>
+            A shared early-warning system for student wellbeing and academic risk —
+            built so support reaches students before a difficult term becomes a crisis.
           </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegister && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Full Name
-              </label>
-              <div className="relative">
-                <UserIcon className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aarav Patel"
-                  className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@sahara.edu"
-                className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-slate-900/60 border border-slate-700 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          {isRegister && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Role
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['student', 'counselor', 'admin'] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`py-2 px-3 rounded-xl text-xs font-medium capitalize border transition-all ${
-                      role === r
-                        ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200'
-                        : 'bg-slate-900/40 border-slate-700 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 text-sm"
-          >
-            {isSubmitting ? 'Authenticating...' : isRegister ? 'Create Account' : 'Sign In'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-
-        <div className="mt-6 pt-6 border-t border-slate-700/60">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
-            <span>Instant Demo Accounts:</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => handleQuickLogin('counselor@sahara.edu', 'counselor123')}
-              className="px-2.5 py-1.5 bg-slate-900/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-1 transition-all"
-            >
-              <CheckCircle className="w-3 h-3 text-emerald-400" /> Counselor
-            </button>
-            <button
-              onClick={() => handleQuickLogin('student@sahara.edu', 'student123')}
-              className="px-2.5 py-1.5 bg-slate-900/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-1 transition-all"
-            >
-              <CheckCircle className="w-3 h-3 text-blue-400" /> Student
-            </button>
-            <button
-              onClick={() => handleQuickLogin('admin@sahara.edu', 'admin123')}
-              className="px-2.5 py-1.5 bg-slate-900/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300 flex items-center justify-center gap-1 transition-all"
-            >
-              <CheckCircle className="w-3 h-3 text-purple-400" /> Admin
-            </button>
-          </div>
+        <div style={{ position: 'relative', zIndex: 1, fontSize: 12.5, color: 'rgba(255,255,255,0.5)' }}>
+          Smart India Hackathon 2026 · Smart Education
         </div>
+      </div>
 
-        <div className="text-center mt-5 text-xs text-slate-400">
-          {isRegister ? (
-            <span>
-              Already have an account?{' '}
-              <button
-                onClick={() => setIsRegister(false)}
-                className="text-indigo-400 hover:underline font-medium"
-              >
-                Sign In
-              </button>
-            </span>
-          ) : (
-            <span>
-              Need a new account?{' '}
-              <button
-                onClick={() => setIsRegister(true)}
-                className="text-indigo-400 hover:underline font-medium"
-              >
-                Register Here
-              </button>
-            </span>
+      {/* Right — form panel */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+        <div className="dawn-in" style={{ width: '100%', maxWidth: 380 }}>
+          <h2 className="display" style={{ fontSize: 26, fontWeight: 600, color: 'var(--ink-900)', marginBottom: 6 }}>
+            Sign in
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--ink-500)', marginBottom: 32 }}>
+            Students, counselors, and administrators all sign in here — your account
+            determines what you can see.
+          </p>
+
+          {error && (
+            <div style={{
+              background: 'var(--coral-100)', border: `1px solid var(--coral-500)`, color: 'var(--coral-600)',
+              borderRadius: 'var(--radius-sm)', padding: '11px 14px', fontSize: 13.5, marginBottom: 20,
+            }} role="alert">
+              {error}
+            </div>
           )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', marginBottom: 6 }}>
+              Email address
+            </label>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              style={inputStyle}
+              placeholder="you@institution.edu"
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)' }}>Password</label>
+              <span style={{ fontSize: 12.5, color: 'var(--navy-700)' }}>Institutional SSO</span>
+            </div>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={inputStyle}
+              placeholder="••••••••"
+            />
+
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: '100%', marginTop: 28, padding: '12px 0', borderRadius: 'var(--radius-sm)',
+                border: 'none', background: submitting ? 'var(--navy-700)' : 'var(--navy-900)',
+                color: '#fff', fontSize: 14.5, fontWeight: 600, fontFamily: 'var(--font-body)',
+                cursor: submitting ? 'default' : 'pointer', transition: 'background 0.15s ease',
+              }}
+            >
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 18 }}>
+            <button
+              onClick={() => setShowDemo(v => !v)}
+              style={{ background: 'none', border: 'none', color: 'var(--ink-500)', fontSize: 12.5, cursor: 'pointer', padding: 0 }}
+            >
+              {showDemo ? 'Hide' : 'Reviewing for the hackathon? View'} demo accounts
+            </button>
+            {showDemo && (
+              <div className="dawn-in" style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { role: 'Student', email: 'demo.student@sahara.app' },
+                  { role: 'Counselor', email: 'demo.counselor@sahara.app' },
+                  { role: 'Admin', email: 'demo.admin@sahara.app' },
+                ].map(d => (
+                  <div
+                    key={d.role}
+                    onClick={() => fillDemoAccount(d.email)}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', fontSize: 12.5,
+                      background: 'var(--slate-100)', borderRadius: 6, padding: '8px 12px',
+                      cursor: 'pointer', border: '1px solid var(--border)',
+                    }}
+                    title="Click to auto-fill"
+                  >
+                    <span style={{ fontWeight: 600, color: 'var(--ink-700)' }}>{d.role}</span>
+                    <span className="mono" style={{ color: 'var(--navy-700)' }}>{d.email}</span>
+                  </div>
+                ))}
+                <p style={{ fontSize: 11.5, color: 'var(--ink-400)', marginTop: 2 }}>
+                  Password for all demo accounts: <span className="mono">sahara-demo</span> (Click any to auto-fill)
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 14px', borderRadius: 'var(--radius-sm)',
+  border: '1.5px solid var(--border)', fontSize: 14, fontFamily: 'var(--font-body)',
+  color: 'var(--ink-900)', outline: 'none', background: '#fff',
 }

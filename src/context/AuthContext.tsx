@@ -1,131 +1,91 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'student' | 'counselor' | 'admin';
+export type Role = 'student' | 'counselor' | 'admin'
+
+export interface AuthUser {
+  id: string
+  name: string
+  email: string
+  role: Role
 }
 
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string, role: 'student' | 'counselor' | 'admin') => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+interface AuthContextValue {
+  user: AuthUser | null
+  token: string | null
+  loading: boolean
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  logout: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com';
+const API_URL = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('sahara_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('sahara_token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
+  // Restore session on load
   useEffect(() => {
-    const verifySession = async () => {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-          localStorage.setItem('sahara_user', JSON.stringify(data));
-        } else {
-          // Token expired or invalid
-          logout();
-        }
-      } catch (err) {
-        console.warn('Auth check skipped (offline or network error):', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    verifySession();
-  }, [token]);
+    const stored = localStorage.getItem('sahara_token')
+    if (stored) {
+      setToken(stored)
+      fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${stored}` } })
+        .then(res => (res.ok ? res.json() : Promise.reject()))
+        .then(data => setUser(data))
+        .catch(() => {
+          localStorage.removeItem('sahara_token')
+          setToken(null)
+        })
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
+    }
+  }, [])
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
+        body: JSON.stringify({ email, password }),
+      })
       if (!res.ok) {
-        return { success: false, error: data.detail || 'Invalid email or password' };
+        const err = await res.json().catch(() => ({}))
+        return { ok: false, error: err.detail || 'Incorrect email or password.' }
       }
-      const loggedUser: User = {
+      const data = await res.json()
+      setToken(data.access_token)
+      const userProfile = data.user || {
         id: data.user_id,
         name: data.name,
         email: data.email,
         role: data.role
-      };
-      setUser(loggedUser);
-      setToken(data.access_token);
-      localStorage.setItem('sahara_token', data.access_token);
-      localStorage.setItem('sahara_user', JSON.stringify(loggedUser));
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: 'Cannot reach authentication server. Please check connection.' };
-    }
-  };
-
-  const register = async (name: string, email: string, password: string, role: 'student' | 'counselor' | 'admin') => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.detail || 'Registration failed' };
       }
-      const loggedUser: User = {
-        id: data.user_id,
-        name: data.name,
-        email: data.email,
-        role: data.role
-      };
-      setUser(loggedUser);
-      setToken(data.access_token);
-      localStorage.setItem('sahara_token', data.access_token);
-      localStorage.setItem('sahara_user', JSON.stringify(loggedUser));
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: 'Registration server error.' };
+      setUser(userProfile)
+      localStorage.setItem('sahara_token', data.access_token)
+      return { ok: true }
+    } catch {
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' }
     }
-  };
+  }
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('sahara_token');
-    localStorage.removeItem('sahara_user');
-  };
+    setUser(null)
+    setToken(null)
+    localStorage.removeItem('sahara_token')
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
-};
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}

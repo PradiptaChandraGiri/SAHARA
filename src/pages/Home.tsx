@@ -1,154 +1,145 @@
-import React from 'react';
-import type { Page } from '../App';
-import {
-  Shield,
-  Activity,
-  MessageCircle,
-  Brain,
-  ArrowRight,
-  CheckCircle,
-  Users,
-  Lock,
-  PhoneCall
-} from 'lucide-react';
+import type { Page } from '../App'
+import { useAuth } from '../context/AuthContext'
 
 interface HomeProps {
-  onNavigate: (page: Page) => void;
+  onNavigate: (page: Page) => void
 }
 
-export default function Home({ onNavigate }: HomeProps) {
-  const capabilities = [
-    {
-      icon: <Brain className="w-6 h-6 text-indigo-400" />,
-      title: 'Dual-Lens Risk Inference',
-      desc: 'Combines Random Forest Anxiety continuous regression with Academic Dropout Risk classification to identify distress early.',
-    },
-    {
-      icon: <MessageCircle className="w-6 h-6 text-emerald-400" />,
-      title: 'Zero-Barrier WhatsApp Intake',
-      desc: '24/7 Twilio WhatsApp Sandbox integration featuring interactive list pickers and Google Gemini conversational triage.',
-    },
-    {
-      icon: <Shield className="w-6 h-6 text-purple-400" />,
-      title: 'Confidential Triage & Anonymization',
-      desc: 'SHA-256 student ID hashing protects confidentiality while notifying campus counselors of priority cases.',
-    },
-  ];
+const pillars = [
+  {
+    title: 'Wellbeing check-ins',
+    desc: 'A short, conversational check-in on sleep, stress, and study load — phrased around everyday behavior, never clinical labels.',
+    accent: 'var(--sage-500)',
+    bg: 'var(--sage-100)',
+  },
+  {
+    title: 'Academic risk signal',
+    desc: 'A model trained on real academic outcomes flags early signs of dropout risk alongside the wellbeing signal, not instead of it.',
+    accent: 'var(--navy-700)',
+    bg: 'var(--navy-100)',
+  },
+  {
+    title: 'Routed, human support',
+    desc: 'Every result routes to the right next step — a suggestion, a check-in prompt, or a real counselor. The system flags; a person decides.',
+    accent: 'var(--amber-600)',
+    bg: 'var(--amber-100)',
+  },
+]
 
-  const workflow = [
-    { title: '1. Multi-Channel Check-in', desc: 'Student checks in via Web Slider or WhatsApp Bot.' },
-    { title: '2. Dual ML Inference', desc: 'Evaluates anxiety index (0-10) and dropout probability (0-100%).' },
-    { title: '3. Automated Triage', desc: 'Delivers tier-specific study tips, breathing exercises, and video search guides.' },
-    { title: '4. Counselor Escalation', desc: 'High-risk cases trigger priority alerts on the Institutional Dashboard.' },
-  ];
+const flow = ['Check-in', 'Risk model', 'Counselor review', 'Support']
+
+export default function Home({ onNavigate }: HomeProps) {
+  const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 px-6 py-20 lg:px-12 border-b border-slate-800">
-        <div className="max-w-5xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Institutional Early-Warning & Wellbeing Platform</span>
+    <div style={{ minHeight: '100vh', background: 'var(--slate-50)' }}>
+      {/* Hero */}
+      <section style={{ background: 'var(--navy-950)', padding: '76px 64px 64px', position: 'relative', overflow: 'hidden' }}>
+        <svg
+          viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 180, opacity: 0.5 }}
+        >
+          <circle cx="600" cy="300" r="160" fill="var(--amber-500)" opacity="0.16" />
+          {[1, 2, 3].map(i => (
+            <path key={i} d={`M0 ${300 - i * 40} Q 600 ${300 - i * 40 - 60} 1200 ${300 - i * 40}`}
+              stroke="var(--amber-400)" strokeOpacity={0.14 + i * 0.05} strokeWidth="1.5" fill="none" />
+          ))}
+        </svg>
+
+        <div style={{ maxWidth: 620, position: 'relative', zIndex: 1 }} className="dawn-in">
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24,
+            border: '1px solid rgba(232,181,99,0.35)', borderRadius: 99, padding: '5px 14px',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber-400)' }} />
+            <span style={{ fontSize: 12.5, color: 'var(--amber-400)', fontWeight: 600 }}>
+              Student wellbeing &amp; academic risk, in one signal
+            </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-6">
-            Proactive Student Wellbeing & Attrition Prevention Powered by AI
+          <h1 className="display" style={{ fontSize: 46, fontWeight: 500, color: '#fff', lineHeight: 1.2, marginBottom: 20 }}>
+            Understand risk. Reach students at first light.
           </h1>
-
-          <p className="text-base md:text-lg text-slate-300 max-w-3xl leading-relaxed mb-8">
-            SAHARA combines multi-modal psychological lifestyle modeling with academic progression analytics to detect student distress early and deliver timely, compassionate intervention.
+          <p style={{ fontSize: 16.5, color: 'rgba(255,255,255,0.68)', lineHeight: 1.75, marginBottom: 36, maxWidth: 520 }}>
+            SAHARA reads the everyday signals — sleep, stress, academic performance — that
+            usually show up before a student struggles, and routes each result to the support
+            that actually fits: a nudge, a check-in, or a counselor.
           </p>
 
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              onClick={() => onNavigate('checkin')}
-              className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all"
-            >
-              <span>Take 2-Minute Wellbeing Assessment</span>
-              <ArrowRight className="w-4 h-4" />
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button onClick={() => onNavigate('checkin')} style={btnPrimary}>
+              Start a check-in
             </button>
-
-            <button
-              onClick={() => onNavigate('whatsapp')}
-              className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-semibold text-sm rounded-xl shadow-md flex items-center gap-2 transition-all"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-400" />
-              <span>Connect via WhatsApp</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('counselor')}
-              className="px-6 py-3.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-sm rounded-xl transition-all"
-            >
-              <span>Counselor Dashboard</span>
+            {(user?.role === 'counselor' || user?.role === 'admin') && (
+              <button onClick={() => onNavigate('counselor')} style={btnGhostDark}>
+                Open counselor dashboard
+              </button>
+            )}
+            <button onClick={() => onNavigate('whatsapp')} style={btnGhostDark}>
+              WhatsApp Bot (24/7)
             </button>
           </div>
         </div>
       </section>
 
-      {/* Core Capabilities */}
-      <section className="px-6 py-16 lg:px-12 max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Core System Architecture</h2>
-          <p className="text-xs text-slate-400 mt-2">Engineered for accuracy, accessibility, and student privacy</p>
-        </div>
+      {/* Pillars */}
+      <section style={{ padding: '56px 64px 16px', maxWidth: 1180, margin: '0 auto' }}>
+        <h2 className="display" style={{ fontSize: 24, fontWeight: 600, color: 'var(--ink-900)', marginBottom: 8 }}>
+          How SAHARA works
+        </h2>
+        <p style={{ fontSize: 14.5, color: 'var(--ink-500)', marginBottom: 32 }}>
+          Three parts, working together on one shared signal.
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {capabilities.map((c, i) => (
-            <div key={i} className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-slate-800/80 flex items-center justify-center mb-4">
-                  {c.icon}
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">{c.title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{c.desc}</p>
-              </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+          {pillars.map(p => (
+            <div key={p.title} style={{
+              background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+              padding: 26, borderTop: `3px solid ${p.accent}`,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, background: p.bg,
+                marginBottom: 16,
+              }} />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-900)', marginBottom: 8 }}>{p.title}</h3>
+              <p style={{ fontSize: 13.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>{p.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 4-Step Institutional Workflow */}
-      <section className="px-6 py-16 lg:px-12 bg-slate-900/40 border-t border-slate-800/80">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold text-white tracking-tight">How SAHARA Protects Students</h2>
-            <p className="text-xs text-slate-400 mt-2">End-to-end early warning and care continuum</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {workflow.map((w, idx) => (
-              <div key={idx} className="p-5 bg-slate-900 border border-slate-800 rounded-2xl">
-                <p className="text-xs font-bold text-indigo-400 mb-1">{w.title}</p>
-                <p className="text-xs text-slate-400 leading-relaxed">{w.desc}</p>
+      {/* Flow strip */}
+      <section style={{ padding: '40px 64px 72px', maxWidth: 1180, margin: '0 auto' }}>
+        <div style={{
+          background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+          padding: '28px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          {flow.map((step, i) => (
+            <div key={step} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="mono" style={{
+                  fontSize: 12, color: 'var(--amber-600)', background: 'var(--amber-100)',
+                  borderRadius: 6, padding: '2px 7px',
+                }}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-900)' }}>{step}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 24/7 Helpline Footer Banner */}
-      <section className="px-6 py-12 max-w-5xl mx-auto border-t border-slate-800">
-        <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <PhoneCall className="w-5 h-5 text-indigo-400 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-white">Emergency National Support Helplines</p>
-              <p className="text-[11px] text-slate-400">
-                National Tele-MANAS: <strong className="text-indigo-300">14416</strong> (24/7 Toll-Free) | iCall: <strong className="text-indigo-300">9152987821</strong>
-              </p>
+              {i < flow.length - 1 && (
+                <div style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 18px' }} />
+              )}
             </div>
-          </div>
-          <button
-            onClick={() => onNavigate('checkin')}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium shrink-0"
-          >
-            Start Check-in
-          </button>
+          ))}
         </div>
       </section>
     </div>
-  );
+  )
+}
+
+const btnPrimary: React.CSSProperties = {
+  padding: '12px 24px', borderRadius: 'var(--radius-sm)', border: 'none',
+  background: 'var(--amber-500)', color: 'var(--navy-950)', fontWeight: 700,
+  fontSize: 14.5, cursor: 'pointer',
+}
+const btnGhostDark: React.CSSProperties = {
+  padding: '12px 24px', borderRadius: 'var(--radius-sm)', background: 'transparent',
+  border: '1.5px solid rgba(255,255,255,0.3)', color: '#fff', fontWeight: 600, fontSize: 14.5, cursor: 'pointer',
 }

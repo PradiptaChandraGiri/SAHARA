@@ -100,24 +100,25 @@ def init_db() -> None:
 def _seed_default_users():
     """Ensure standard demonstrator accounts exist for easy testing."""
     with _connect() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        if count == 0:
-            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            demo_users = [
-                ("Dr. Ananya Roy", "counselor@sahara.edu", "counselor123", "counselor"),
-                ("Dean Sharma", "admin@sahara.edu", "admin123", "admin"),
-                ("Aarav Patel", "student@sahara.edu", "student123", "student"),
-            ]
-            for name, email, pwd, role in demo_users:
-                p_hash, salt = hash_password(pwd)
-                conn.execute(
-                    """
-                    INSERT OR IGNORE INTO users (id, name, email, password_hash, salt, role, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (f"usr_{uuid.uuid4().hex[:8]}", name, email.lower(), p_hash, salt, role, now),
-                )
-            conn.commit()
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        demo_users = [
+            ("Dr. Ananya Roy", "counselor@sahara.edu", "counselor123", "counselor"),
+            ("Dean Sharma", "admin@sahara.edu", "admin123", "admin"),
+            ("Aarav Patel", "student@sahara.edu", "student123", "student"),
+            ("Student Demo", "demo.student@sahara.app", "sahara-demo", "student"),
+            ("Counselor Demo", "demo.counselor@sahara.app", "sahara-demo", "counselor"),
+            ("Admin Demo", "demo.admin@sahara.app", "sahara-demo", "admin"),
+        ]
+        for name, email, pwd, role in demo_users:
+            p_hash, salt = hash_password(pwd)
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO users (id, name, email, password_hash, salt, role, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (f"usr_{uuid.uuid4().hex[:8]}", name, email.lower(), p_hash, salt, role, now),
+            )
+        conn.commit()
 
 
 # ============================================================
