@@ -165,6 +165,33 @@ def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
 
 
+def get_or_create_oauth_user(provider: str, email: str, name: Optional[str] = None, role: str = "student") -> Dict[str, Any]:
+    """Retrieve existing user or create a new authenticated user via OAuth (Google / GitHub)."""
+    init_db()
+    email_clean = email.strip().lower()
+    user = get_user_by_email(email_clean)
+    if user:
+        return user
+
+    display_name = name.strip() if name and name.strip() else f"{provider.capitalize()} User"
+    random_pw = f"oauth_{provider}_{uuid.uuid4().hex}"
+    p_hash, salt = hash_password(random_pw)
+    user_id = f"usr_{uuid.uuid4().hex[:8]}"
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO users (id, name, email, password_hash, salt, role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, display_name, email_clean, p_hash, salt, role, now),
+        )
+        conn.commit()
+
+    return {"id": user_id, "name": display_name, "email": email_clean, "role": role, "created_at": now}
+
+
 # ============================================================
 # Assessment Storage & Metrics
 # ============================================================

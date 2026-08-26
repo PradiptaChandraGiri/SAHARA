@@ -51,6 +51,7 @@ export interface CheckInData {
 export default function App() {
   const { user, loading } = useAuth()
   const [page, setPage] = useState<Page>('home')
+  const [guestMode, setGuestMode] = useState<boolean>(false)
   const [checkInData, setCheckInData] = useState<CheckInData | null>(null)
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [studentStatuses, setStudentStatuses] = useState<Record<string, string>>({})
@@ -85,19 +86,44 @@ export default function App() {
           <div style={{
             width: 44, height: 44, borderRadius: 12, background: 'var(--navy-950)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+            boxShadow: 'var(--shadow-md)',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
           </div>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-500)', fontWeight: 500 }}>Connecting to SAHARA…</p>
+          <p style={{ fontSize: 14, color: 'var(--ink-500)', fontWeight: 500 }}>Connecting to SAHARA…</p>
         </div>
       </div>
     )
   }
 
+  // Drop unauthenticated new users directly onto Login / Welcome page unless guest mode selected
+  if (!user && !guestMode && page !== 'checkin' && page !== 'whatsapp') {
+    return (
+      <Login
+        onSuccess={() => {
+          setPage('home')
+          setGuestMode(true)
+        }}
+        onExploreGuest={() => {
+          setGuestMode(true)
+          setPage('home')
+        }}
+      />
+    )
+  }
+
   if (page === 'login') {
-    return <Login onSuccess={() => navigate('home')} />
+    return (
+      <Login
+        onSuccess={() => setPage('home')}
+        onExploreGuest={() => {
+          setGuestMode(true)
+          setPage('home')
+        }}
+      />
+    )
   }
 
   return (

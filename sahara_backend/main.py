@@ -31,6 +31,7 @@ from storage.database import (
     create_user,
     get_admin_stats,
     get_assessment,
+    get_or_create_oauth_user,
     get_user_by_email,
     init_db,
     list_assessments,
@@ -74,6 +75,13 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=3, description="Email address")
     password: str = Field(...)
+
+
+class OAuthRequest(BaseModel):
+    provider: Literal["google", "github"] = Field(..., description="OAuth provider")
+    email: str = Field(..., min_length=3, description="OAuth user email")
+    name: Optional[str] = Field(default=None, description="OAuth user display name")
+    role: Optional[Literal["student", "counselor", "admin"]] = Field(default="student")
 
 
 class UserProfile(BaseModel):
@@ -184,6 +192,27 @@ def login(req: LoginRequest):
             detail="Invalid email or password.",
         )
 
+    token = create_access_token(user["id"], user["email"], user["role"], user["name"])
+    user_prof = UserProfile(id=user["id"], name=user["name"], email=user["email"], role=user["role"])
+    return AuthResponse(
+        access_token=token,
+        user_id=user["id"],
+        name=user["name"],
+        email=user["email"],
+        role=user["role"],
+        user=user_prof,
+    )
+
+
+@app.post("/auth/oauth", response_model=AuthResponse)
+def oauth_login(req: OAuthRequest):
+    """Authenticate or register seamlessly via Google / GitHub OAuth."""
+    user = get_or_create_oauth_user(
+        provider=req.provider,
+        email=req.email,
+        name=req.name,
+        role=req.role or "student",
+    )
     token = create_access_token(user["id"], user["email"], user["role"], user["name"])
     user_prof = UserProfile(id=user["id"], name=user["name"], email=user["email"], role=user["role"])
     return AuthResponse(
