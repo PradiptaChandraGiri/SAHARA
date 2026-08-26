@@ -165,14 +165,16 @@ def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
 
 
-def get_or_create_oauth_user(provider: str, email: str, name: Optional[str] = None, role: str = "student") -> Dict[str, Any]:
-    """Retrieve existing user or create a new authenticated user via OAuth (Google / GitHub)."""
+def get_or_create_oauth_user(provider: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
+    """Retrieve existing user with their designated database role, or register a new user defaulting to 'student'."""
     init_db()
     email_clean = email.strip().lower()
     user = get_user_by_email(email_clean)
     if user:
         return user
 
+    # Default to 'student' for all new OAuth sign-ups
+    assigned_role = "student"
     display_name = name.strip() if name and name.strip() else f"{provider.capitalize()} User"
     random_pw = f"oauth_{provider}_{uuid.uuid4().hex}"
     p_hash, salt = hash_password(random_pw)
@@ -185,11 +187,30 @@ def get_or_create_oauth_user(provider: str, email: str, name: Optional[str] = No
             INSERT INTO users (id, name, email, password_hash, salt, role, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, display_name, email_clean, p_hash, salt, role, now),
+            (user_id, display_name, email_clean, p_hash, salt, assigned_role, now),
         )
         conn.commit()
 
-    return {"id": user_id, "name": display_name, "email": email_clean, "role": role, "created_at": now}
+    return {"id": user_id, "name": display_name, "email": email_clean, "role": assigned_role, "created_at": now}
+
+
+def list_users() -> List[Dict[str, Any]]:
+    """List all registered users with their roles (Admin access)."""
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute("SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_user_role(user_id: str, new_role: str) -> bool:
+    """Update a user's access role (Admin access)."""
+    init_db()
+    if new_role not in {"student", "counselor", "admin"}:
+        raise ValueError("Invalid role specified.")
+    with _connect() as conn:
+        cursor = conn.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
 
 
 # ============================================================

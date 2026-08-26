@@ -1,27 +1,29 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
+import StudentDashboard from './pages/StudentDashboard'
 import CheckIn from './pages/CheckIn'
 import Results from './pages/Results'
 import AISupport from './pages/AISupport'
 import WhatsAppSupport from './pages/WhatsAppSupport'
 import CounselorDashboard from './pages/CounselorDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 import StudentProfile from './pages/StudentProfile'
-import MedicationSupport from './pages/MedicationSupport'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 
 export type Page =
   | 'home'
   | 'login'
+  | 'student-dashboard'
   | 'checkin'
   | 'results'
   | 'ai-support'
   | 'whatsapp'
   | 'counselor'
+  | 'admin'
   | 'student-profile'
-  | 'medication'
   | 'profile'
 
 export interface CheckInData {
@@ -46,25 +48,57 @@ export interface CheckInData {
   dropoutRisk: number
   isAiPredicted?: boolean
   factors: string[]
+  timestamp?: string
 }
 
 export default function App() {
   const { user, loading } = useAuth()
-  const [page, setPage] = useState<Page>('home')
+  const [page, setPage] = useState<Page>('student-dashboard')
   const [guestMode, setGuestMode] = useState<boolean>(false)
   const [checkInData, setCheckInData] = useState<CheckInData | null>(null)
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [studentStatuses, setStudentStatuses] = useState<Record<string, string>>({})
 
+  // Auto-route on login by role
+  const getRoleLandingPage = (userRole?: string): Page => {
+    if (userRole === 'admin') return 'admin'
+    if (userRole === 'counselor') return 'counselor'
+    return 'student-dashboard'
+  }
+
+  // Redirect to role dashboard upon authentication or role change
+  useEffect(() => {
+    if (user && !loading) {
+      // If current page is login, home, or unauthenticated default, route to role dashboard
+      if (page === 'login' || page === 'home') {
+        setPage(getRoleLandingPage(user.role))
+      }
+    }
+  }, [user, loading])
+
   const navigate = (p: Page) => {
+    // If logged-in user tries to navigate to marketing home, redirect to their role dashboard
+    if (user && p === 'home') {
+      setPage(getRoleLandingPage(user.role))
+      window.scrollTo(0, 0)
+      return
+    }
+
+    // Role protection guards
+    if (p === 'admin' && (!user || user.role !== 'admin')) {
+      alert('Access restricted: Institutional Administrator credentials required.')
+      return
+    }
+
     if ((p === 'counselor' || p === 'student-profile') && (!user || (user.role !== 'counselor' && user.role !== 'admin'))) {
       if (!user) {
         setPage('login')
         return
       }
-      alert('Counselor or Admin privileges required to access this portal.')
+      alert('Access restricted: Counselor credentials required.')
       return
     }
+
     setPage(p)
     window.scrollTo(0, 0)
   }
@@ -72,7 +106,8 @@ export default function App() {
   const handleCheckInComplete = (data: CheckInData) => {
     const anxietyRisk = Math.min(Math.round(data.riskScore * 1.05), 95)
     const dropoutRisk = Math.max(Math.round(data.riskScore * 0.92), 5)
-    setCheckInData({ ...data, anxietyRisk, dropoutRisk })
+    const enriched = { ...data, anxietyRisk, dropoutRisk, timestamp: new Date().toISOString() }
+    setCheckInData(enriched)
   }
 
   const handleUpdateStatus = (id: string, status: string) => {
@@ -98,13 +133,12 @@ export default function App() {
     )
   }
 
-  // Drop unauthenticated new users directly onto Login / Welcome page unless guest mode selected
+  // Dropping page: If unauthenticated and not in guest mode, drop onto Login page
   if (!user && !guestMode && page !== 'checkin' && page !== 'whatsapp') {
     return (
       <Login
         onSuccess={() => {
-          setPage('home')
-          setGuestMode(true)
+          setPage(getRoleLandingPage(user?.role))
         }}
         onExploreGuest={() => {
           setGuestMode(true)
@@ -117,7 +151,7 @@ export default function App() {
   if (page === 'login') {
     return (
       <Login
-        onSuccess={() => setPage('home')}
+        onSuccess={() => setPage(getRoleLandingPage(user?.role))}
         onExploreGuest={() => {
           setGuestMode(true)
           setPage('home')
@@ -131,11 +165,20 @@ export default function App() {
       <Sidebar currentPage={page} onNavigate={navigate} />
 
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        {/* Logged-out Visitor Home */}
         {page === 'home' && <Home onNavigate={navigate} />}
+
+        {/* Student Dashboard */}
+        {page === 'student-dashboard' && (
+          <StudentDashboard onNavigate={navigate} lastCheckInData={checkInData} />
+        )}
+
         {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
         {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
         {page === 'ai-support' && <AISupport />}
         {page === 'whatsapp' && <WhatsAppSupport />}
+        
+        {/* Counselor Triage Workspace */}
         {page === 'counselor' && (
           <CounselorDashboard
             onNavigate={navigate}
@@ -143,6 +186,10 @@ export default function App() {
             studentStatuses={studentStatuses}
           />
         )}
+
+        {/* Admin Governance Dashboard */}
+        {page === 'admin' && <AdminDashboard onNavigate={navigate} />}
+
         {page === 'student-profile' && (
           <StudentProfile
             studentId={selectedStudentId || ''}
@@ -151,20 +198,19 @@ export default function App() {
             onUpdateStatus={handleUpdateStatus}
           />
         )}
-        {page === 'medication' && <MedicationSupport onNavigate={navigate} />}
         {page === 'profile' && <Profile onNavigate={navigate} />}
       </main>
 
-      {/* Floating WhatsApp Live Button */}
+      {/* Floating 24/7 Crisis & WhatsApp Action (Reach-in-one-tap from any screen) */}
       <a
         href="https://wa.me/14155238886?text=join%20no-different"
         target="_blank"
         rel="noopener noreferrer"
-        title="Open SAHARA WhatsApp Bot"
+        title="Instant 24/7 WhatsApp Support Bot"
         style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 50,
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 18px', background: 'var(--navy-950)',
+          padding: '11px 18px', background: 'var(--navy-950)',
           color: '#fff', borderRadius: 99,
           boxShadow: 'var(--shadow-lg)', fontWeight: 600, fontSize: 13,
           border: '1.5px solid rgba(232,181,99,0.3)', textDecoration: 'none',
@@ -172,7 +218,7 @@ export default function App() {
         }}
       >
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--amber-400)' }}></span>
-        <span>WhatsApp Bot (24/7)</span>
+        <span>WhatsApp (24/7)</span>
       </a>
     </div>
   )

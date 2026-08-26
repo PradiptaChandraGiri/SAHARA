@@ -35,8 +35,10 @@ from storage.database import (
     get_user_by_email,
     init_db,
     list_assessments,
+    list_users,
     log_assessment,
     update_assessment_status,
+    update_user_role,
     verify_password,
 )
 from whatsapp.bot import router as whatsapp_router
@@ -144,7 +146,7 @@ class AssessmentResponse(BaseModel):
 
 
 class StatusUpdateRequest(BaseModel):
-    status: Literal["New", "In progress", "Contacted"]
+    status: Literal["New", "In progress", "Contacted", "Referred to clinical services", "Resolved"]
     notes: Optional[str] = None
 
 
@@ -211,7 +213,6 @@ def oauth_login(req: OAuthRequest):
         provider=req.provider,
         email=req.email,
         name=req.name,
-        role=req.role or "student",
     )
     token = create_access_token(user["id"], user["email"], user["role"], user["name"])
     user_prof = UserProfile(id=user["id"], name=user["name"], email=user["email"], role=user["role"])
@@ -412,3 +413,22 @@ def update_status(assessment_id: str, payload: StatusUpdateRequest):
 def admin_stats():
     """Retrieve institution-wide risk distribution and weekly check-in trends."""
     return get_admin_stats()
+
+
+class UpdateRoleRequest(BaseModel):
+    role: Literal["student", "counselor", "admin"]
+
+
+@app.get("/admin/users")
+def get_all_users(current_user: Dict[str, Any] = Depends(require_roles("admin"))):
+    """Retrieve all users and assigned roles (Admin only)."""
+    return {"users": list_users()}
+
+
+@app.patch("/admin/users/{user_id}/role")
+def change_user_role(user_id: str, req: UpdateRoleRequest, current_user: Dict[str, Any] = Depends(require_roles("admin"))):
+    """Update user role (Admin only)."""
+    success = update_user_role(user_id, req.role)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return {"status": "success", "user_id": user_id, "role": req.role}

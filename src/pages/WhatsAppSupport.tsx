@@ -32,30 +32,32 @@ export default function WhatsAppSupport() {
     setIsTyping(true);
 
     try {
-      const res = await fetch(`${API_BASE}/ai-support/chat`, {
+      const formData = new URLSearchParams();
+      formData.append('From', 'whatsapp:+918763541464');
+      formData.append('Body', userText);
+
+      const res = await fetch(`${API_BASE}/whatsapp-webhook`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          conversation_history: chatMessages.map(m => ({
-            role: m.from === 'user' ? 'user' : 'assistant',
-            content: m.text
-          }))
-        })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
       });
+
       if (res.ok) {
-        const data = await res.json();
-        setChatMessages(prev => [...prev, { from: 'bot', text: data.response }]);
+        const twimlText = await res.text();
+        // Parse TwiML XML to extract message text
+        const match = twimlText.match(/<Message>([\s\S]*?)<\/Message>/);
+        const botResponse = match ? match[1].trim() : twimlText;
+        setChatMessages(prev => [...prev, { from: 'bot', text: botResponse }]);
       } else {
         setChatMessages(prev => [
           ...prev,
-          { from: 'bot', text: "Thank you for reaching out! Reply *'checkin'* on WhatsApp to start your 17-question screening." }
+          { from: 'bot', text: "Thank you for reaching out! Reply *'checkin'* on WhatsApp to start your screening." }
         ]);
       }
     } catch {
       setChatMessages(prev => [
         ...prev,
-        { from: 'bot', text: "I'm here to support you. You can try our 5-minute breathing exercise or connect with Tele-MANAS at 14416." }
+        { from: 'bot', text: "SAHARA WhatsApp Bot: I'm here to support you. You can try our breathing exercise or connect with Tele-MANAS at 14416." }
       ]);
     } finally {
       setIsTyping(false);

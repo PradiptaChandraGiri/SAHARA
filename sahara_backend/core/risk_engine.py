@@ -88,18 +88,40 @@ def predict_dropout_probability(
     encoder=dropout_label_encoder,
     reference_columns=DROPOUT_COLUMNS,
 ) -> tuple[float, str]:
-    """Predict student academic dropout probability and predicted class.
+    """Predict student academic dropout probability and predicted class."""
+    # Build dictionary mapping both Title Case and snake_case features to UCI dataset columns
+    mapped_features: Dict[str, Any] = {}
+    for col in reference_columns:
+        if col in student_dict:
+            mapped_features[col] = student_dict[col]
 
-    Args:
-        student_dict: Dictionary containing UCI academic features.
-        model: Trained Random Forest Classifier.
-        encoder: LabelEncoder mapping Dropout, Enrolled, Graduate.
-        reference_columns: Exact feature column list from model training.
+    # Map student check-in responses to standard UCI academic risk features
+    age = student_dict.get("age_at_enrollment", student_dict.get("age", 20))
+    acad_perf = student_dict.get("academic_performance", 75.0)
+    # Scale academic performance to 0-20 scale if given in percentage
+    scaled_grade = acad_perf / 5.0 if acad_perf > 20 else acad_perf
 
-    Returns:
-        tuple (dropout_probability: float 0-1, predicted_label: str).
-    """
-    new_df = pd.DataFrame([student_dict])
+    mapped_features["Age at enrollment"] = age
+    mapped_features["Curricular units 1st sem (approved)"] = student_dict.get(
+        "curricular_units_1st_sem_approved", 5 if acad_perf >= 70 else 2
+    )
+    mapped_features["Curricular units 2nd sem (approved)"] = student_dict.get(
+        "curricular_units_2nd_sem_approved", 5 if acad_perf >= 70 else 2
+    )
+    mapped_features["Curricular units 1st sem (enrolled)"] = student_dict.get("curricular_units_1st_sem_enrolled", 6)
+    mapped_features["Curricular units 2nd sem (enrolled)"] = student_dict.get("curricular_units_2nd_sem_enrolled", 6)
+    mapped_features["Curricular units 1st sem (grade)"] = scaled_grade
+    mapped_features["Curricular units 2nd sem (grade)"] = scaled_grade
+    mapped_features["Tuition fees up to date"] = student_dict.get(
+        "tuition_fees_up_to_date", 0 if student_dict.get("financial_stress") in [8, 9, 10, "high"] else 1
+    )
+    mapped_features["Debtor"] = student_dict.get(
+        "debtor", 1 if student_dict.get("financial_stress") in [8, 9, 10, "high"] else 0
+    )
+    mapped_features["Gender"] = 1 if student_dict.get("gender") == "Male" else 0
+    mapped_features["Scholarship holder"] = 1 if student_dict.get("financial_stress", 5) <= 3 else 0
+
+    new_df = pd.DataFrame([mapped_features])
     new_df_reindexed = new_df.reindex(columns=reference_columns, fill_value=0)
     predicted_numeric = model.predict(new_df_reindexed)[0]
     predicted_label = encoder.inverse_transform([predicted_numeric])[0]

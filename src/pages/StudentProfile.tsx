@@ -151,7 +151,7 @@ export default function StudentProfile({ studentId, onNavigate, onUpdateStatus }
         </div>
 
         {/* Status Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => handleSaveStatus('New')}
             disabled={isSaving}
@@ -161,7 +161,7 @@ export default function StudentProfile({ studentId, onNavigate, onUpdateStatus }
                 : 'bg-slate-900/60 text-slate-400 hover:text-white'
             }`}
           >
-            Mark New
+            New
           </button>
           <button
             onClick={() => handleSaveStatus('In progress')}
@@ -183,7 +183,29 @@ export default function StudentProfile({ studentId, onNavigate, onUpdateStatus }
                 : 'bg-slate-900/60 text-slate-400 hover:text-white'
             }`}
           >
-            <CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Mark Contacted
+            <CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Contacted
+          </button>
+          <button
+            onClick={() => handleSaveStatus('Referred to clinical services')}
+            disabled={isSaving}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              status === 'Referred to clinical services'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white'
+            }`}
+          >
+            Clinical Referral
+          </button>
+          <button
+            onClick={() => handleSaveStatus('Resolved')}
+            disabled={isSaving}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              status === 'Resolved'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white'
+            }`}
+          >
+            Resolved
           </button>
         </div>
       </div>

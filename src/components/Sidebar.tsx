@@ -14,61 +14,95 @@ const icon = (d: string) => (
 )
 
 const studentNav: { page: Page; label: string; icon: ReactNode }[] = [
-  { page: 'home', label: 'Home', icon: icon('M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z') },
-  { page: 'checkin', label: 'Check-in', icon: icon('M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11') },
-  { page: 'results', label: 'My results', icon: icon('M22 12 18 12 15 21 9 3 6 12 2 12') },
-  { page: 'ai-support', label: 'AI support', icon: icon('M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z') },
-  { page: 'whatsapp', label: 'WhatsApp support', icon: icon('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z') },
-  { page: 'profile', label: 'Profile', icon: icon('M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z') },
+  { page: 'student-dashboard', label: 'My Dashboard', icon: icon('M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z') },
+  { page: 'checkin', label: 'Take Check-in', icon: icon('M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11') },
+  { page: 'results', label: 'My Results', icon: icon('M22 12 18 12 15 21 9 3 6 12 2 12') },
+  { page: 'ai-support', label: 'AI Support', icon: icon('M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z') },
+  { page: 'whatsapp', label: 'WhatsApp Bot', icon: icon('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z') },
+  { page: 'profile', label: 'My Profile', icon: icon('M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z') },
 ]
 
-const staffNav: { page: Page; label: string; icon: ReactNode }[] = [
-  { page: 'counselor', label: 'Counselor dashboard', icon: icon('M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z') },
+const counselorNav: { page: Page; label: string; icon: ReactNode }[] = [
+  { page: 'counselor', label: 'Triage Dashboard', icon: icon('M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z') },
+  { page: 'ai-support', label: 'AI Clinical Copilot', icon: icon('M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z') },
+  { page: 'whatsapp', label: 'WhatsApp Intake Log', icon: icon('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z') },
+  { page: 'profile', label: 'Counselor Profile', icon: icon('M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z') },
+]
+
+const adminNav: { page: Page; label: string; icon: ReactNode }[] = [
+  { page: 'admin', label: 'Admin Analytics', icon: icon('M18 20V10M12 20V4M6 20v-6') },
+  { page: 'counselor', label: 'Counselor Triage', icon: icon('M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z') },
+  { page: 'ai-support', label: 'AI Monitoring', icon: icon('M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z') },
+  { page: 'whatsapp', label: 'Bot Webhook Health', icon: icon('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z') },
+  { page: 'profile', label: 'Account Settings', icon: icon('M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z') },
 ]
 
 export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const { user, logout } = useAuth()
+  const role = user?.role || 'student'
+  
   const initials = user?.name
     ? user.name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
-    : '—'
+    : 'SA'
+
+  const currentNav = role === 'admin' ? adminNav : role === 'counselor' ? counselorNav : studentNav
 
   return (
     <aside style={{
-      width: 236, minWidth: 236, background: '#fff', borderRight: '1px solid var(--border)',
+      width: 240, minWidth: 240, background: '#fff', borderRight: '1px solid var(--border)',
       display: 'flex', flexDirection: 'column', height: '100vh',
     }}>
       {/* Logo */}
       <div style={{ padding: '22px 20px 18px', borderBottom: '1px solid var(--slate-100)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, background: 'var(--navy-950)',
+            width: 34, height: 34, borderRadius: 8, background: 'var(--navy-950)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
           </div>
-          <span className="display" style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink-900)' }}>SAHARA</span>
+          <div>
+            <span className="display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)' }}>SAHARA</span>
+            <span style={{ display: 'block', fontSize: 10.5, color: 'var(--amber-600)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {role} View
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
-        <div style={sectionLabel}>Student</div>
-        {studentNav.map(item => (
-          <NavButton key={item.page} item={item} active={currentPage === item.page} onNavigate={onNavigate} />
+        <div style={sectionLabel}>
+          {role === 'admin' ? 'Institutional Administration' : role === 'counselor' ? 'Clinical Triage' : 'Student Portal'}
+        </div>
+        {currentNav.map(item => (
+          <NavButton
+            key={item.page}
+            item={item}
+            active={
+              currentPage === item.page ||
+              (item.page === 'counselor' && currentPage === 'student-profile')
+            }
+            onNavigate={onNavigate}
+          />
         ))}
 
-        {(user?.role === 'counselor' || user?.role === 'admin') && (
+        {/* If Admin or Counselor, also allow viewing student experience */}
+        {(role === 'counselor' || role === 'admin') && (
           <>
-            <div style={{ ...sectionLabel, marginTop: 16 }}>Staff</div>
-            {staffNav.map(item => (
-              <NavButton
-                key={item.page} item={item}
-                active={currentPage === item.page || currentPage === 'student-profile'}
-                onNavigate={onNavigate}
-              />
-            ))}
+            <div style={{ ...sectionLabel, marginTop: 18 }}>Student Experience</div>
+            <NavButton
+              item={{ page: 'student-dashboard', label: 'Student Dashboard', icon: icon('M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z') }}
+              active={currentPage === 'student-dashboard'}
+              onNavigate={onNavigate}
+            />
+            <NavButton
+              item={{ page: 'checkin', label: 'Take Check-in', icon: icon('M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11') }}
+              active={currentPage === 'checkin'}
+              onNavigate={onNavigate}
+            />
           </>
         )}
       </nav>
@@ -77,15 +111,17 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       <div style={{ padding: '14px 16px', borderTop: '1px solid var(--slate-100)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: '50%', background: 'var(--navy-100)',
+            width: 34, height: 34, borderRadius: '50%', background: 'var(--navy-100)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 12.5, fontWeight: 700, color: 'var(--navy-800)',
           }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.name || 'Not signed in'}
+              {user?.name || 'Guest Explorer'}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-400)', textTransform: 'capitalize' }}>{user?.role}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-400)', textTransform: 'capitalize' }}>
+              {user ? user.role : 'Unauthenticated'}
+            </div>
           </div>
           {user ? (
             <button
@@ -121,7 +157,7 @@ function NavButton({ item, active, onNavigate }: {
       style={{
         display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
         padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-        fontSize: 13.5, fontWeight: 500, marginBottom: 1,
+        fontSize: 13.5, fontWeight: 500, marginBottom: 2,
         background: active ? 'var(--navy-100)' : 'transparent',
         color: active ? 'var(--navy-800)' : 'var(--ink-500)',
       }}
