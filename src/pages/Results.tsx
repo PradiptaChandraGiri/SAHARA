@@ -1,223 +1,379 @@
-import type { Page } from '../App'
-import type { CheckInData } from '../App'
+import React from 'react'
+import type { Page, CheckInData } from '../App'
+import RiskBadge from '../components/RiskBadge'
+import { getResourcesForFactors, VettedResource } from '../data/resources'
+import {
+  RotateCcw,
+  Sparkles,
+  ExternalLink,
+  MessageSquare,
+  ShieldCheck,
+  ChevronRight,
+  Compass,
+  HeartHandshake,
+} from 'lucide-react'
 
 interface ResultsProps {
   data: CheckInData | null
   onNavigate: (page: Page) => void
 }
 
-function CircleGauge({ value, label, color }: { value: number; label: string; color: string }) {
-  const r = 54
+function CircleGauge({
+  value,
+  label,
+  color,
+  sublabel,
+}: {
+  value: number
+  label: string
+  color: string
+  sublabel?: string
+}) {
+  const r = 52
   const circ = 2 * Math.PI * r
-  const offset = circ - (value / 100) * circ
+  const offset = circ - (Math.min(Math.max(value, 0), 100) / 100) * circ
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ textAlign: 'center', flex: 1, minWidth: 160 }}>
       <div style={{ position: 'relative', width: 130, height: 130, margin: '0 auto 12px' }}>
         <svg width="130" height="130" style={{ transform: 'rotate(-90deg)' }}>
           <circle cx="65" cy="65" r={r} fill="none" stroke="#F1F5F9" strokeWidth="10" />
           <circle
-            cx="65" cy="65" r={r} fill="none"
-            stroke={color} strokeWidth="10"
+            cx="65"
+            cy="65"
+            r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
             strokeDasharray={circ}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+            style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
           />
         </svg>
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column',
-        }}>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 800, color: '#0F172A' }}>{value}%</span>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+          }}
+        >
+          <span style={{ fontSize: 26, fontWeight: 700, color: '#0E1A2B' }}>{value}%</span>
+          {sublabel && <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{sublabel}</span>}
         </div>
       </div>
-      <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 600, color: '#64748B' }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 2 }}>{label}</div>
     </div>
   )
 }
 
 const defaultData: CheckInData = {
-  riskScore: 72,
+  riskScore: 68,
   riskLevel: 'high',
-  anxietyRisk: 75,
-  dropoutRisk: 68,
-  factors: ['High exam pressure', 'Insufficient sleep', 'Financial concerns', 'Low social support'],
+  anxietyRisk: 72,
+  dropoutRisk: 64,
+  factors: ['Low sleep hours', 'High exam pressure', 'Elevated stress level'],
+  isAiPredicted: true,
 } as unknown as CheckInData
-
-const recommendationsByRisk = {
-  high: [
-    { icon: '💬', text: 'Schedule a session with a university counselor as soon as possible.', color: '#EFF3FF' },
-    { icon: '😴', text: 'Aim for 7–8 hours of sleep. Your brain needs rest to process and retain information.', color: '#F5F3FF' },
-    { icon: '📚', text: 'Connect with an academic mentor or study group to reduce academic isolation.', color: '#F0FDFA' },
-    { icon: '🧘', text: 'Practice brief daily mindfulness — even 10 minutes can reduce cortisol levels.', color: '#FFFBEB' },
-    { icon: '💰', text: 'Explore student financial aid options available through the student services office.', color: '#FEF2F2' },
-    { icon: '🫂', text: 'Reach out to a trusted friend, family member, or peer support group.', color: '#F0FDF4' },
-  ],
-  medium: [
-    { icon: '😴', text: 'Aim for 7–8 hours of sleep per night to support cognitive function.', color: '#F5F3FF' },
-    { icon: '📅', text: 'Build a structured weekly study schedule with planned breaks using the Pomodoro technique.', color: '#EFF3FF' },
-    { icon: '🏃', text: 'Add 20–30 minutes of light exercise to your daily routine.', color: '#F0FDFA' },
-    { icon: '💬', text: 'Consider a casual consultation with a counselor to discuss strategies.', color: '#FFFBEB' },
-  ],
-  low: [
-    { icon: '✅', text: 'You are managing well! Keep maintaining your healthy habits.', color: '#F0FDF4' },
-    { icon: '📅', text: 'Continue your current study schedule and stay consistent.', color: '#EFF3FF' },
-    { icon: '🤝', text: 'Check in with peers who may need support — being a support to others also helps you.', color: '#F5F3FF' },
-  ],
-}
 
 export default function Results({ data, onNavigate }: ResultsProps) {
   const d = data || defaultData
-  const risk = d.riskLevel || 'high'
+  const risk = (d.riskLevel || 'high').toLowerCase() as 'low' | 'medium' | 'high'
 
-  const riskColor = risk === 'high' ? '#EF4444' : risk === 'medium' ? '#F59E0B' : '#22C55E'
-  const riskBg = risk === 'high' ? '#FEF2F2' : risk === 'medium' ? '#FFFBEB' : '#F0FDF4'
-  const riskLabel = risk === 'high' ? 'HIGH RISK' : risk === 'medium' ? 'MEDIUM RISK' : 'LOW RISK'
+  const riskColor = risk === 'high' ? '#EA580C' : risk === 'medium' ? '#D97706' : '#16A34A'
+  const riskBg = risk === 'high' ? '#FFF7ED' : risk === 'medium' ? '#FFFBEB' : '#F0FDF4'
+  const riskBorder = risk === 'high' ? '#FED7AA' : risk === 'medium' ? '#FDE68A' : '#BBF7D0'
 
-  const anxietyRisk = d.anxietyRisk || Math.min(d.riskScore + 3, 95)
-  const dropoutRisk = d.dropoutRisk || Math.max(d.riskScore - 5, 5)
+  const overallScore = d.riskScore ?? 68
+  const anxietyScore = d.anxietyRisk ?? Math.min(overallScore + 4, 95)
+  const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
+  const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
+
+  const actionableResources: VettedResource[] = getResourcesForFactors(factors, 3)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '40px 60px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* Top Header */}
+        <div
+          style={{
+            marginBottom: 28,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: 16,
+          }}
+        >
           <div>
-            <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, color: '#0F172A', marginBottom: 6 }}>
-              Your Wellbeing Snapshot
-            </h1>
-            <p style={{ fontSize: 15, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
-              Based on your check-in on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <h1 style={{ fontSize: 30, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                Your Wellbeing Snapshot
+              </h1>
+              <RiskBadge tier={risk} score={overallScore} size="md" />
+            </div>
+            <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
+              Evaluated via dual Random Forest model inference on{' '}
+              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <button className="btn-secondary" onClick={() => onNavigate('checkin')} style={{ whiteSpace: 'nowrap' }}>
-            Retake Check-in
+
+          <button
+            onClick={() => onNavigate('checkin')}
+            className="btn-outline"
+            style={{ padding: '9px 18px', fontSize: 13.5 }}
+          >
+            <RotateCcw size={15} />
+            <span>Retake Check-in</span>
           </button>
         </div>
 
-        {/* Risk level banner */}
-        <div className="card animate-count-up" style={{
-          padding: '28px 36px', marginBottom: 24,
-          background: riskBg, borderColor: riskColor + '33',
-          display: 'flex', alignItems: 'center', gap: 24,
-        }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: riskColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, flexShrink: 0, boxShadow: `0 0 20px ${riskColor}40`,
-          }}>
-            {risk === 'high' ? '⚠️' : risk === 'medium' ? '⚡' : '✅'}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, color: riskColor, letterSpacing: '0.08em', marginBottom: 4 }}>
-              OVERALL ASSESSMENT
-            </div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>
-              {riskLabel}
-            </div>
-            <div style={{ fontSize: 14, color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
+        {/* 1. Overall Assessment Summary Banner */}
+        <div
+          style={{
+            background: riskBg,
+            border: `1.5px solid ${riskBorder}`,
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 20,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ maxWidth: 540 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: riskColor,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
+              Overall Assessment Summary
+            </span>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0E1A2B', margin: '4px 0 6px' }}>
               {risk === 'high'
-                ? 'Your responses indicate elevated wellbeing risk. We strongly recommend connecting with support resources.'
+                ? "Support is recommended — you're carrying elevated pressure."
                 : risk === 'medium'
-                ? 'Some areas need attention. Proactive steps now can prevent future challenges.'
-                : 'Your wellbeing indicators look positive. Keep maintaining your healthy habits!'}
-            </div>
-          </div>
-          <div style={{
-            padding: '8px 20px', background: riskColor, color: 'white',
-            borderRadius: 99, fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 20,
-            flexShrink: 0,
-          }}>
-            {d.riskScore}%
-          </div>
-        </div>
-
-        {/* Gauges */}
-        <div className="card" style={{ padding: '32px 40px', marginBottom: 24 }}>
-          <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 28 }}>
-            Detailed Risk Scores
-          </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 24 }}>
-            <CircleGauge value={anxietyRisk} label="Anxiety Risk" color="#8B5CF6" />
-            <CircleGauge value={dropoutRisk} label="Dropout Risk" color="#EF4444" />
-            <CircleGauge value={d.riskScore} label="Overall Risk" color={riskColor} />
-          </div>
-        </div>
-
-        {/* Factors */}
-        {d.factors && d.factors.length > 0 && (
-          <div className="card" style={{ padding: '32px 36px', marginBottom: 24 }}>
-            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
-              What influenced your result?
-            </h3>
-            <p style={{ fontSize: 14, color: '#64748B', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
-              These factors contributed most to your wellbeing score.
+                ? 'Mild strain detected — small adjustments will help.'
+                : 'Balanced state — your daily routines look healthy.'}
+            </h2>
+            <p style={{ fontSize: 14, color: '#475569', margin: 0, lineHeight: 1.55 }}>
+              {risk === 'high'
+                ? 'Your responses reflect high exam stress and compromised rest. Connecting with a counselor or trying guided de-escalation can help you regain balance.'
+                : risk === 'medium'
+                ? 'Your workload is manageable, but fatigue indicators are beginning to build up. Prioritize screen-free breaks and steady sleep.'
+                : 'Your study rhythm, stress, and sleep are well-regulated. Continue protecting your recovery downtime.'}
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {d.factors.map((factor, i) => (
-                <div key={i} style={{
-                  padding: '10px 16px', borderRadius: 10,
-                  background: i % 3 === 0 ? '#FEF2F2' : i % 3 === 1 ? '#FFFBEB' : '#F5F3FF',
-                  border: `1px solid ${i % 3 === 0 ? '#FECACA' : i % 3 === 1 ? '#FDE68A' : '#DDD6FE'}`,
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                  <div style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: i % 3 === 0 ? '#EF4444' : i % 3 === 1 ? '#F59E0B' : '#8B5CF6',
-                  }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>{factor}</span>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
 
-        {/* Recommendations */}
-        <div className="card" style={{ padding: '32px 36px', marginBottom: 24 }}>
-          <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
-            Your Personalized Support Plan
+          <button
+            onClick={() => onNavigate('ai-support')}
+            className="btn-cta"
+            style={{ padding: '11px 20px', fontSize: 13.5 }}
+          >
+            <Sparkles size={16} />
+            <span>Chat with SAHARA AI</span>
+          </button>
+        </div>
+
+        {/* 2. Three Circular Score Gauges */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '28px 20px',
+            marginBottom: 24,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          }}
+        >
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 20px', textAlign: 'center' }}>
+            Multi-Dimensional Risk Breakdown
           </h3>
-          <p style={{ fontSize: 14, color: '#64748B', marginBottom: 20, fontFamily: "'Inter', sans-serif" }}>
-            Tailored recommendations based on your specific indicators.
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+            <CircleGauge
+              value={overallScore}
+              label="Combined Risk Index"
+              sublabel="Fused Signal"
+              color={riskColor}
+            />
+            <CircleGauge
+              value={anxietyScore}
+              label="Psychological Anxiety Level"
+              sublabel="RF Regression"
+              color="#01575E"
+            />
+            <CircleGauge
+              value={dropoutScore}
+              label="Academic Attrition Risk"
+              sublabel="RF Classifier"
+              color="#D99A34"
+            />
+          </div>
+        </div>
+
+        {/* 3. Primary Contributing Factors */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <Compass size={18} color="#01575E" />
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              Key Contributing Factors Identified
+            </h3>
+          </div>
+          <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 16px' }}>
+            These domain factors had the greatest weight on your early-warning evaluation:
           </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {factors.map((factor, idx) => (
+              <span
+                key={idx}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1px solid #CBD5E1',
+                  color: '#1E293B',
+                  borderRadius: 8,
+                  padding: '6px 14px',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: riskColor }} />
+                <span>{factor}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* 4. What You Can Do Now (Curated Resource Library Recommendations) */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 28,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <HeartHandshake size={20} color="#01575E" />
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              What You Can Do Now (Vetted Actionable Steps)
+            </h3>
+          </div>
+          <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 20px' }}>
+            Evidence-based tools and protocols selected specifically for your current indicators:
+          </p>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(recommendationsByRisk[risk] || recommendationsByRisk.high).map((rec, i) => (
-              <div key={i} className="animate-fade-in" style={{
-                display: 'flex', gap: 14, padding: '14px 18px',
-                background: rec.color, borderRadius: 12, alignItems: 'flex-start',
-                animationDelay: `${i * 0.08}s`,
-              }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{rec.icon}</span>
-                <p style={{ fontSize: 14, color: '#0F172A', lineHeight: 1.6, fontFamily: "'Inter', sans-serif", margin: 0 }}>{rec.text}</p>
+            {actionableResources.map((res) => (
+              <div
+                key={res.id}
+                style={{
+                  border: '1.5px solid #E2E8F0',
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  background: '#F9F9F8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                }}
+              >
+                <div style={{ maxWidth: 580 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        background: '#E0F2F1',
+                        color: '#01575E',
+                      }}
+                    >
+                      {res.tag}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#64748B' }}>{res.readTime}</span>
+                  </div>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', margin: '0 0 4px' }}>
+                    {res.title}
+                  </h4>
+                  <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5 }}>
+                    {res.description}
+                  </p>
+                </div>
+
+                <a
+                  href={res.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#01575E',
+                    color: '#FFFFFF',
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span>Open Resource</span>
+                  <ExternalLink size={14} />
+                </a>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Support message */}
-        <div style={{
-          background: 'linear-gradient(135deg, #4F7BF7, #8B5CF6)',
-          borderRadius: 16, padding: '28px 36px', marginBottom: 24, textAlign: 'center',
-        }}>
-          <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 600, color: 'white', marginBottom: 4 }}>
-            💙 You don't have to handle everything alone.
-          </p>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', fontFamily: "'Inter', sans-serif" }}>
-            Support is available — and reaching out is a sign of strength, not weakness.
-          </p>
-        </div>
+        {/* Bottom Actions */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+          <button
+            onClick={() => onNavigate('student-dashboard')}
+            style={{
+              background: '#FFFFFF',
+              border: '1.5px solid #CBD5E1',
+              color: '#475569',
+              padding: '10px 22px',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            ← Return to Dashboard
+          </button>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <button className="btn-primary" style={{ fontSize: 15, padding: '13px 26px' }} onClick={() => onNavigate('counselor')}>
-            👤 Talk to a Counselor
-          </button>
-          <button className="btn-secondary" style={{ fontSize: 15, padding: '13px 26px' }} onClick={() => onNavigate('ai-support')}>
-            🤖 Chat with AI Support
-          </button>
-          <button className="btn-ghost" style={{ fontSize: 15, padding: '13px 26px' }} onClick={() => onNavigate('whatsapp')}>
-            💬 WhatsApp Support
+          <button
+            onClick={() => onNavigate('profile')}
+            className="btn-teal"
+            style={{ padding: '10px 22px', fontSize: 14 }}
+          >
+            <span>View Risk Trend & History</span>
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>

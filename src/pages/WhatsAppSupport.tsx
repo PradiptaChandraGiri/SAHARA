@@ -1,238 +1,402 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
-  MessageCircle,
+  MessageSquare,
   ExternalLink,
   Bot,
   Send,
-  CheckCircle,
+  CheckCircle2,
   Phone,
-  Shield,
-  Layers,
-  ArrowRight,
-  Code
-} from 'lucide-react';
+  ShieldCheck,
+  Code,
+  QrCode,
+  Sparkles,
+  ChevronDown,
+} from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
 
 export default function WhatsAppSupport() {
   const [chatMessages, setChatMessages] = useState<Array<{ from: 'user' | 'bot'; text: string }>>([
     {
       from: 'bot',
-      text: "👋 *SAHARA WhatsApp Wellbeing Assistant*\n\nSend *'join no-different'* on WhatsApp to connect directly to our live Twilio Sandbox, or chat below to test our Gemini counseling model!"
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+      text: "👋 *SAHARA WhatsApp Wellbeing Assistant*\n\nReply *'hi'* or *'checkin'* to start your 5-minute wellbeing intake, or ask for study/breathing guidance!",
+    },
+  ])
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [showDevDetails, setShowDevDetails] = useState(false)
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-    const userText = input.trim();
-    setInput('');
-    setChatMessages(prev => [...prev, { from: 'user', text: userText }]);
-    setIsTyping(true);
+    if (!input.trim() || isTyping) return
+    const userText = input.trim()
+    setInput('')
+    setChatMessages((prev) => [...prev, { from: 'user', text: userText }])
+    setIsTyping(true)
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('From', 'whatsapp:+918763541464');
-      formData.append('Body', userText);
+      const formData = new URLSearchParams()
+      formData.append('From', 'whatsapp:+919876543210')
+      formData.append('Body', userText)
 
       const res = await fetch(`${API_BASE}/whatsapp-webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString()
-      });
+        body: formData.toString(),
+      })
 
       if (res.ok) {
-        const twimlText = await res.text();
-        // Parse TwiML XML to extract message text
-        const match = twimlText.match(/<Message>([\s\S]*?)<\/Message>/);
-        const botResponse = match ? match[1].trim() : twimlText;
-        setChatMessages(prev => [...prev, { from: 'bot', text: botResponse }]);
+        const twimlText = await res.text()
+        const match = twimlText.match(/<Message>([\s\S]*?)<\/Message>/)
+        const botResponse = match ? match[1].trim() : "✅ Your response has been recorded by SAHARA's WhatsApp engine."
+        setChatMessages((prev) => [...prev, { from: 'bot', text: botResponse }])
       } else {
-        setChatMessages(prev => [
+        setChatMessages((prev) => [
           ...prev,
-          { from: 'bot', text: "Thank you for reaching out! Reply *'checkin'* on WhatsApp to start your screening." }
-        ]);
+          { from: 'bot', text: "Thank you for reaching out! Reply *'checkin'* on WhatsApp to begin your screening." },
+        ])
       }
     } catch {
-      setChatMessages(prev => [
+      setChatMessages((prev) => [
         ...prev,
-        { from: 'bot', text: "SAHARA WhatsApp Bot: I'm here to support you. You can try our breathing exercise or connect with Tele-MANAS at 14416." }
-      ]);
+        {
+          from: 'bot',
+          text: "SAHARA WhatsApp Bot: I'm here to support you. You can try a 4-7-8 breathing exercise or connect with Tele-MANAS at 14416 (24/7). 💚",
+        },
+      ])
     } finally {
-      setIsTyping(false);
+      setIsTyping(false)
     }
-  };
+  }
 
   const steps = [
     {
-      step: '1',
+      num: '1',
       title: 'Join Sandbox',
-      desc: 'Send "join no-different" to +1 415 523 8886 on WhatsApp to activate session.',
-      icon: <Phone className="w-4 h-4 text-emerald-400" />
+      desc: 'Send "join no-different" to +1 415 523 8886 on WhatsApp.',
     },
     {
-      step: '2',
-      title: 'Interactive Intake',
-      desc: 'Answer 17 quick questions with tap-to-select list pickers & buttons.',
-      icon: <Layers className="w-4 h-4 text-indigo-400" />
+      num: '2',
+      title: 'Conversational Intake',
+      desc: 'Answer daily routine questions on sleep, stress, and study load.',
     },
     {
-      step: '3',
-      title: 'Instant Triage & Video Links',
-      desc: 'Receive AI risk index, YouTube study strategies, and 24/7 crisis numbers.',
-      icon: <CheckCircle className="w-4 h-4 text-purple-400" />
-    }
-  ];
+      num: '3',
+      title: 'Instant Risk & Video Support',
+      desc: 'Receive AI risk index, study strategies, and 24/7 helpline links.',
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
-      {/* Header */}
-      <div className="max-w-5xl mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <MessageCircle className="w-5 h-5" />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
+      <div style={{ maxWidth: 940, margin: '0 auto' }}>
+        {/* Top Header */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: '#16A34A',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MessageSquare size={20} />
             </div>
-            <h1 className="text-2xl font-bold text-white">SAHARA WhatsApp Wellbeing Bot</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              Message SAHARA Anytime on WhatsApp
+            </h1>
           </div>
-          <p className="text-xs text-slate-400">
-            24/7 Twilio WhatsApp integration powered by dual Random Forest ML + Google Gemini AI
+          <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
+            Take your wellbeing check-ins, practice guided breathing, or get immediate helpline access directly on WhatsApp.
           </p>
         </div>
 
-        <a
-          href="https://wa.me/14155238886?text=join%20no-different"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all self-start"
+        {/* 1. Student Hero Launch Card */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #BBF7D0',
+            borderRadius: 16,
+            padding: '32px 36px',
+            marginBottom: 28,
+            boxShadow: '0 4px 16px rgba(22, 163, 74, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 28,
+            flexWrap: 'wrap',
+          }}
         >
-          <MessageCircle className="w-4 h-4" />
-          <span>Launch WhatsApp on Your Phone</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-      </div>
-
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Live Integration Guide & Architecture */}
-        <div className="space-y-6">
-          {/* How to Connect Card */}
-          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-indigo-400" />
-              Live Deployment Configuration
+          <div style={{ maxWidth: 520 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#F0FDF4',
+                color: '#166534',
+                padding: '4px 12px',
+                borderRadius: 99,
+                fontSize: 12,
+                fontWeight: 700,
+                border: '1px solid #BBF7D0',
+                marginBottom: 12,
+              }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A' }} />
+              <span>Official Twilio Sandbox Active</span>
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
+              Connect in 10 Seconds
             </h2>
+            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
+              Open WhatsApp on your phone and send <code>join no-different</code> to{' '}
+              <strong>+1 (415) 523-8886</strong>. You will be greeted immediately by SAHARA.
+            </p>
 
-            <div className="space-y-3 mb-6">
-              {steps.map((s, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl">
-                  <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
-                    {s.icon}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">{s.title}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-              <p className="text-xs font-semibold text-emerald-300 mb-1">Twilio Sandbox Details:</p>
-              <p className="text-xs text-slate-300 font-mono">WhatsApp Number: +1 415 523 8886</p>
-              <p className="text-xs text-slate-300 font-mono">Join Code: join no-different</p>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Webhook endpoint: <code className="text-emerald-400">POST /whatsapp-webhook</code>
-              </p>
-            </div>
+            <a
+              href="https://wa.me/14155238886?text=join%20no-different"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#16A34A',
+                color: '#FFFFFF',
+                padding: '12px 24px',
+                borderRadius: 10,
+                fontWeight: 700,
+                fontSize: 14.5,
+                textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)',
+              }}
+            >
+              <span>Launch WhatsApp on Your Phone</span>
+              <ExternalLink size={16} />
+            </a>
           </div>
 
-          {/* Curated YouTube Resources Preview */}
-          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
-              Post-Assessment YouTube Search Guides
-            </h2>
-            <div className="space-y-2 text-xs">
-              <a
-                href="https://www.youtube.com/results?search_query=pomodoro+technique+study+method"
-                target="_blank"
-                rel="noreferrer"
-                className="block p-2.5 bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/60 rounded-xl text-indigo-300 transition-colors"
-              >
-                ▶️ Pomodoro Study Method Search Guide
-              </a>
-              <a
-                href="https://www.youtube.com/results?search_query=5+minute+breathing+exercise+for+stress"
-                target="_blank"
-                rel="noreferrer"
-                className="block p-2.5 bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/60 rounded-xl text-indigo-300 transition-colors"
-              >
-                ▶️ 5-Minute Breathing & Anxiety Relief Search Guide
-              </a>
-              <a
-                href="https://www.youtube.com/results?search_query=10+minute+evening+stretch+routine"
-                target="_blank"
-                rel="noreferrer"
-                className="block p-2.5 bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/60 rounded-xl text-indigo-300 transition-colors"
-              >
-                ▶️ 10-Minute Evening Wind-Down Routine
-              </a>
+          <div
+            style={{
+              background: '#F8FAFC',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: 14,
+              padding: '20px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 120,
+                height: 120,
+                margin: '0 auto 10px',
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <QrCode size={90} color="#0E1A2B" />
             </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>
+              Scan with Phone Camera
+            </span>
           </div>
         </div>
 
-        {/* Right Column: In-Browser Live Assistant Tester */}
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col h-[560px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-700 shrink-0">
-            <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-bold text-white">Live Webhook Simulator</span>
+        {/* 2. Three Steps */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 28 }}>
+          {steps.map((s) => (
+            <div
+              key={s.num}
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E2E8F0',
+                borderRadius: 14,
+                padding: '20px 22px',
+              }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: '#E0F2F1',
+                  color: '#01575E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  marginBottom: 12,
+                }}
+              >
+                {s.num}
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>{s.title}</h3>
+              <p style={{ fontSize: 13.5, color: '#64748B', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
             </div>
-            <span className="text-[10px] text-slate-400">Twilio Webhook Emulation</span>
-          </div>
+          ))}
+        </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-3">
-            {chatMessages.map((m, i) => (
-              <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-xs rounded-2xl p-3 text-xs leading-relaxed ${
-                    m.from === 'user'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-900/90 border border-slate-700 text-slate-200'
-                  }`}
-                >
-                  <p className="whitespace-pre-line">{m.text}</p>
-                </div>
+        {/* 3. Live Webhook Simulator */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 28,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <Sparkles size={18} color="#01575E" />
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              Live WhatsApp Webhook Simulator
+            </h3>
+          </div>
+          <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 16px' }}>
+            Test the live backend webhook handler directly in your browser:
+          </p>
+
+          <div
+            style={{
+              height: 280,
+              overflowY: 'auto',
+              background: '#F8FAFC',
+              borderRadius: 12,
+              border: '1px solid #E2E8F0',
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            {chatMessages.map((m, idx) => (
+              <div
+                key={idx}
+                style={{
+                  alignSelf: m.from === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '80%',
+                  background: m.from === 'user' ? '#16A34A' : '#FFFFFF',
+                  color: m.from === 'user' ? '#FFFFFF' : '#0E1A2B',
+                  border: m.from === 'user' ? 'none' : '1px solid #E2E8F0',
+                  borderRadius: m.from === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
+                  padding: '10px 16px',
+                  fontSize: 13.5,
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {m.text}
               </div>
             ))}
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-slate-900/90 border border-slate-700 rounded-2xl p-3 text-xs text-slate-400">
-                  Bot is typing...
-                </div>
+              <div style={{ fontSize: 12.5, color: '#64748B', fontStyle: 'italic' }}>
+                WhatsApp webhook replying...
               </div>
             )}
           </div>
 
-          <div className="relative shrink-0">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSend()
+            }}
+            style={{ display: 'flex', gap: 10 }}
+          >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type message or 'checkin'..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2.5 pl-3 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              placeholder="Type 'hi', 'checkin', '1', '2' or ask a question..."
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                borderRadius: 8,
+                border: '1.5px solid #CBD5E1',
+                fontSize: 14,
+                outline: 'none',
+              }}
             />
             <button
-              onClick={handleSend}
+              type="submit"
               disabled={!input.trim() || isTyping}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg transition-all"
+              style={{
+                background: '#16A34A',
+                color: '#FFFFFF',
+                padding: '10px 20px',
+                borderRadius: 8,
+                border: 'none',
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: 'pointer',
+                opacity: !input.trim() || isTyping ? 0.6 : 1,
+              }}
             >
-              <Send className="w-3.5 h-3.5" />
+              Test Send
             </button>
-          </div>
+          </form>
+        </div>
+
+        {/* 4. Collapsed Developer Details */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 12,
+            overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => setShowDevDetails(!showDevDetails)}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              background: '#F8FAFC',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 13.5,
+              color: '#475569',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Code size={16} />
+              <span>Developer & Webhook Integration Details</span>
+            </div>
+            <ChevronDown
+              size={16}
+              style={{ transform: showDevDetails ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+            />
+          </button>
+
+          {showDevDetails && (
+            <div style={{ padding: '16px 20px', fontSize: 13, color: '#334155', borderTop: '1px solid #E2E8F0' }}>
+              <p style={{ margin: '0 0 8px' }}>
+                <strong>Webhook Endpoint:</strong> <code>POST /whatsapp-webhook</code>
+              </p>
+              <p style={{ margin: '0 0 8px' }}>
+                <strong>Twilio Sandbox Number:</strong> <code>whatsapp:+14155238886</code>
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Integration Architecture:</strong> Receives standard Twilio incoming payload, steps through 17-step intake machine, routes completed answers to <code>assess_student()</code>, logs anonymized record to SQLite, and replies with formatted TwiML.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
-  );
+  )
 }

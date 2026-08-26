@@ -29,14 +29,18 @@ from core.risk_engine import (
 )
 from storage.database import (
     create_user,
+    delete_student_data,
+    export_student_data,
     get_admin_stats,
     get_assessment,
     get_or_create_oauth_user,
     get_user_by_email,
     init_db,
     list_assessments,
+    list_audit_logs,
     list_users,
     log_assessment,
+    log_audit_event,
     update_assessment_status,
     update_user_role,
     verify_password,
@@ -238,7 +242,31 @@ def get_me(current_user: Dict[str, Any] = Depends(get_current_user)):
 
 @app.post("/ai-support/chat")
 def ai_support_chat(req: AIChatRequest):
-    """Server-side Gemini AI proxy ensuring API keys are never exposed to browser clients."""
+    """Server-side Gemini AI proxy ensuring API keys are never exposed to browser clients.
+    
+    Includes deterministic crisis-keyword interceptor: routes severe distress/self-harm
+    to human-reviewed emergency response rather than freeform LLM generation.
+    """
+    msg_lower = req.message.lower()
+    crisis_triggers = [
+        "suicide", "kill myself", "end my life", "want to die", "self harm",
+        "hurt myself", "hopeless", "can't go on", "no reason to live", "hanging"
+    ]
+    
+    if any(k in msg_lower for k in crisis_triggers):
+        return {
+            "response": (
+                "I hear how much pain you're in, and I want you to know that your life matters. "
+                "You do not have to carry this alone. Please connect with someone who can support you right now:\n\n"
+                "📞 **National Tele-MANAS (24/7 Free & Confidential):** Call 14416\n"
+                "📞 **KIRAN Helpline:** Call 1800-599-0019\n"
+                "📞 **iCall Psychosocial Support:** Call 9152987821\n\n"
+                "A campus counselor is also available to support you in a safe, confidential environment."
+            ),
+            "is_crisis": True,
+            "emergency_helpline": "Tele-MANAS: 14416 (24/7 Toll-Free)",
+        }
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return {
@@ -252,8 +280,8 @@ def ai_support_chat(req: AIChatRequest):
     system_instruction = (
         "You are SAHARA AI — a compassionate, empathetic, and professional mental wellbeing companion "
         "for college students. Keep responses warm, structured, actionable, and under 3 short paragraphs. "
-        "Offer practical academic and mindfulness strategies. If severe crisis or self-harm is mentioned, "
-        "always prioritize recommending the 24/7 National Tele-MANAS helpline (14416)."
+        "Offer practical academic, sleep, and mindfulness strategies. If student asks for resources, "
+        "suggest standard evidence-based techniques like 4-7-8 breathing, Pomodoro 25/5 intervals, or campus counseling."
     )
 
     # Format contents for Gemini REST API
@@ -431,4 +459,52 @@ def change_user_role(user_id: str, req: UpdateRoleRequest, current_user: Dict[st
     success = update_user_role(user_id, req.role)
     if not success:
         raise HTTPException(status_code=404, detail="User not found.")
+    log_audit_event(
+        user_id=current_user.get("id", "admin"),
+        user_role="admin",
+        action="UPDATE_USER_ROLE",
+        resource_id=user_id,
+        details=f"Changed role to {req.role}",
+    )
     return {"status": "success", "user_id": user_id, "role": req.role}
+
+
+# ============================================================
+# 5. Student Data Privacy & Rights Endpoints (GDPR / DPDP Compliance)
+# ============================================================
+
+@app.get("/student/export-data")
+def export_my_data(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Export complete student data history (Data Portability)."""
+    student_id = current_user.get("id")
+    log_audit_event(
+        user_id=student_id,
+        user_role=current_user.get("role", "student"),
+        action="EXPORT_PERSONAL_DATA",
+        resource_id=student_id,
+    )
+    return export_student_data(student_id)
+
+
+@app.delete("/student/delete-data")
+def delete_my_data(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Permanently delete all assessment records for the requesting student."""
+    student_id = current_user.get("id")
+    delete_student_data(student_id)
+    log_audit_event(
+        user_id=student_id,
+        user_role=current_user.get("role", "student"),
+        action="DELETE_PERSONAL_DATA",
+        resource_id=student_id,
+        details="All student assessment history purged per student request.",
+    )
+    return {"status": "success", "message": "All assessment records permanently purged."}
+
+
+@app.get("/admin/audit-logs")
+def get_audit_logs(
+    limit: int = Query(50, ge=1, le=100),
+    current_user: Dict[str, Any] = Depends(require_roles("admin")),
+):
+    """Retrieve system-wide privacy and clinical access audit logs (Admin only)."""
+    return {"audit_logs": list_audit_logs(limit=limit)}

@@ -1,300 +1,337 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import type { Page } from '../App';
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
+import type { Page } from '../App'
+import RiskBadge from '../components/RiskBadge'
 import {
   ArrowLeft,
   ShieldAlert,
   AlertTriangle,
-  CheckCircle,
+  CheckCircle2,
   Activity,
-  TrendingDown,
   Clock,
   Send,
   MessageSquare,
   FileText,
-  User
-} from 'lucide-react';
+  User,
+  Shield,
+  Save,
+} from 'lucide-react'
 
 interface StudentProfileProps {
-  studentId: string;
-  onNavigate: (page: Page) => void;
-  studentStatuses: Record<string, string>;
-  onUpdateStatus: (id: string, status: string) => void;
+  studentId: string
+  onNavigate: (page: Page) => void
+  studentStatuses: Record<string, string>
+  onUpdateStatus: (id: string, status: string) => void
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
 
-export default function StudentProfile({ studentId, onNavigate, onUpdateStatus }: StudentProfileProps) {
-  const { token } = useAuth();
-  const [assessment, setAssessment] = useState<any>(null);
-  const [status, setStatus] = useState<'New' | 'In progress' | 'Contacted'>('New');
-  const [notes, setNotes] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+export default function StudentProfile({
+  studentId,
+  onNavigate,
+  onUpdateStatus,
+}: StudentProfileProps) {
+  const { token, user } = useAuth()
+  const [assessment, setAssessment] = useState<any>(null)
+  const [status, setStatus] = useState<'New' | 'In progress' | 'Contacted'>('New')
+  const [notes, setNotes] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchAssessment = async () => {
       if (!studentId) {
-        setIsLoading(false);
-        return;
+        setIsLoading(false)
+        return
       }
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`${API_BASE}/assessments/${studentId}`, { headers });
+        const res = await fetch(`${API_BASE}/assessments/${studentId}`, { headers })
         if (res.ok) {
-          const data = await res.json();
-          setAssessment(data);
-          setStatus(data.status || 'New');
-          setNotes(data.notes || '');
+          const data = await res.json()
+          setAssessment(data)
+          setStatus(data.status || 'New')
+          setNotes(data.notes || '')
         }
       } catch (err) {
-        console.warn('Error fetching single assessment:', err);
+        console.warn('Error fetching single assessment:', err)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchAssessment();
-  }, [studentId, token]);
+    fetchAssessment()
+  }, [studentId, token])
 
   const handleSaveStatus = async (newStatus: 'New' | 'In progress' | 'Contacted') => {
-    setIsSaving(true);
-    setStatus(newStatus);
-    onUpdateStatus(studentId, newStatus);
+    setIsSaving(true)
+    setStatus(newStatus)
+    onUpdateStatus(studentId, newStatus)
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
       await fetch(`${API_BASE}/assessments/${studentId}/status`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ status: newStatus, notes }),
-      });
+      })
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err) {
-      console.warn('Error updating status:', err);
+      console.warn('Error updating status:', err)
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
-        <p className="text-slate-400">Loading student assessment profile...</p>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#64748B', fontSize: 14 }}>Loading student assessment case...</p>
       </div>
-    );
+    )
   }
 
   if (!assessment) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
+      <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px' }}>
         <button
           onClick={() => onNavigate('counselor')}
-          className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-xs font-medium mb-6"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#01575E',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: 24,
+            padding: 0,
+          }}
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Counselor Dashboard
+          <ArrowLeft size={16} />
+          <span>Back to Counselor Dashboard</span>
         </button>
-        <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-8 text-center max-w-lg mx-auto">
-          <User className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-white mb-1">No Case Selected</h2>
-          <p className="text-slate-400 text-xs mb-4">
-            Select an assessment record from the Counselor Dashboard to review full student indicators.
-          </p>
-          <button
-            onClick={() => onNavigate('counselor')}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium"
-          >
-            Go to Counselor Dashboard
-          </button>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: '36px', textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
+          <AlertTriangle size={36} color="#D99A34" style={{ margin: '0 auto 12px' }} />
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>Case Record Not Found</h3>
+          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>Please select an active student case from the triage queue.</p>
         </div>
       </div>
-    );
+    )
   }
 
-  const tier = assessment.risk_tier || 'Low';
-  const tierColor =
-    tier === 'High' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
-    : tier === 'Medium' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
-    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+  const tier = assessment.risk_tier || 'Low'
+  const rawInput = typeof assessment.raw_input === 'string' ? JSON.parse(assessment.raw_input || '{}') : assessment.raw_input || {}
+  const factors = Array.isArray(assessment.top_factors)
+    ? assessment.top_factors
+    : typeof assessment.top_factors === 'string'
+    ? JSON.parse(assessment.top_factors || '[]')
+    : []
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
-      {/* Back Button */}
-      <button
-        onClick={() => onNavigate('counselor')}
-        className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-xs font-medium mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Counselor Dashboard
-      </button>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '36px 32px 80px' }}>
+      <div style={{ maxWidth: 940, margin: '0 auto' }}>
+        {/* Back navigation */}
+        <button
+          onClick={() => onNavigate('counselor')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#01575E',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: 20,
+            padding: 0,
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Counselor Triage Queue</span>
+        </button>
 
-      {/* Case Header */}
-      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 mb-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-lg font-mono">
-            {assessment.student_id ? assessment.student_id.slice(-4) : 'ID'}
-          </div>
+        {/* Case Header Banner */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 20,
+            flexWrap: 'wrap',
+          }}
+        >
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-white font-mono">{assessment.student_id || 'STU-ANON'}</h1>
-              <span className={`px-3 py-0.5 rounded-full text-xs font-semibold border ${tierColor}`}>
-                {tier} Risk
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: 0, fontFamily: 'monospace' }}>
+                Case: {assessment.student_id || 'STU-ANON'}
+              </h1>
+              <RiskBadge tier={tier} size="md" />
             </div>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5" />
-              Assessed: {new Date(assessment.timestamp).toLocaleString()}
+            <p style={{ fontSize: 13.5, color: '#64748B', margin: 0 }}>
+              Assessment ID: <span style={{ fontFamily: 'monospace' }}>{assessment.assessment_id}</span> • Taken on{' '}
+              {new Date(assessment.timestamp).toLocaleString()}
             </p>
           </div>
-        </div>
 
-        {/* Status Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => handleSaveStatus('New')}
-            disabled={isSaving}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              status === 'New'
-                ? 'bg-slate-700 text-white border border-slate-600'
-                : 'bg-slate-900/60 text-slate-400 hover:text-white'
-            }`}
-          >
-            New
-          </button>
-          <button
-            onClick={() => handleSaveStatus('In progress')}
-            disabled={isSaving}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              status === 'In progress'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-slate-900/60 text-slate-400 hover:text-white'
-            }`}
-          >
-            In Progress
-          </button>
-          <button
-            onClick={() => handleSaveStatus('Contacted')}
-            disabled={isSaving}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              status === 'Contacted'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-900/60 text-slate-400 hover:text-white'
-            }`}
-          >
-            <CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Contacted
-          </button>
-          <button
-            onClick={() => handleSaveStatus('Referred to clinical services')}
-            disabled={isSaving}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              status === 'Referred to clinical services'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-slate-900/60 text-slate-400 hover:text-white'
-            }`}
-          >
-            Clinical Referral
-          </button>
-          <button
-            onClick={() => handleSaveStatus('Resolved')}
-            disabled={isSaving}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              status === 'Resolved'
-                ? 'bg-teal-600 text-white shadow-md'
-                : 'bg-slate-900/60 text-slate-400 hover:text-white'
-            }`}
-          >
-            Resolved
-          </button>
-        </div>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Anxiety Index</span>
-            <Activity className="w-4 h-4 text-indigo-400" />
-          </div>
-          <p className="text-3xl font-bold text-white">
-            {assessment.anxiety_score !== null ? `${assessment.anxiety_score}/10` : '—'}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">Random Forest Continuous Regression</p>
-        </div>
-
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dropout Risk</span>
-            <TrendingDown className="w-4 h-4 text-rose-400" />
-          </div>
-          <p className="text-3xl font-bold text-white">
-            {assessment.dropout_probability !== null ? `${Math.round(assessment.dropout_probability * 100)}%` : '—'}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">Academic Attrition Classifier</p>
-        </div>
-
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Composite Score</span>
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
-          </div>
-          <p className="text-3xl font-bold text-white">
-            {assessment.combined_score !== null ? `${(assessment.combined_score * 100).toFixed(1)}%` : '—'}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">Harmonized 50/50 Dual-Lens Fusion</p>
-        </div>
-      </div>
-
-      {/* Top Factors & Counselor Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Key Drivers */}
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-lg">
-          <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-4">
-            AI Contributing Risk Factors (Explainability)
-          </h2>
-          <div className="space-y-3">
-            {(assessment.top_factors || []).length === 0 ? (
-              <p className="text-xs text-slate-400">No elevated risk factors detected.</p>
-            ) : (
-              (assessment.top_factors || []).map((factor: string, idx: number) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl text-xs text-slate-200"
-                >
-                  <div className="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></div>
-                  <span>{factor}</span>
-                </div>
-              ))
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {(['New', 'In progress', 'Contacted'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => handleSaveStatus(s)}
+                disabled={isSaving}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: status === s ? '1.5px solid #01575E' : '1px solid #CBD5E1',
+                  background: status === s ? '#01575E' : '#FFFFFF',
+                  color: status === s ? '#FFFFFF' : '#475569',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {s}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Counselor Notes */}
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
-          <div>
-            <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Counselor Case Notes
-            </h2>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add confidential notes on student consultation, outreach, or academic accommodations..."
-              rows={5}
-              className="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
-            />
+        {saveSuccess && (
+          <div
+            style={{
+              background: '#F0FDF4',
+              border: '1px solid #BBF7D0',
+              color: '#166534',
+              padding: '10px 16px',
+              borderRadius: 8,
+              marginBottom: 20,
+              fontSize: 13.5,
+              fontWeight: 600,
+            }}
+          >
+            ✓ Case notes & status updated successfully.
           </div>
-          <div className="flex justify-end mt-4">
+        )}
+
+        {/* 3 Metric Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Anxiety Score</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: '#01575E', margin: '4px 0 2px' }}>
+              {assessment.anxiety_score !== null ? `${assessment.anxiety_score}/10` : '—'}
+            </p>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>RF Regression Model</p>
+          </div>
+
+          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Academic Dropout Risk</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: '#D99A34', margin: '4px 0 2px' }}>
+              {assessment.dropout_probability !== null ? `${Math.round(assessment.dropout_probability * 100)}%` : '—'}
+            </p>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>RF Classifier Model</p>
+          </div>
+
+          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Combined Wellbeing Index</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: '#0E1A2B', margin: '4px 0 2px' }}>
+              {assessment.combined_score !== null ? `${Math.round(assessment.combined_score * 100)}%` : '—'}
+            </p>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>Fused Dual Signal</p>
+          </div>
+        </div>
+
+        {/* Contributing Drivers & Raw Inputs */}
+        <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '24px 28px', marginBottom: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 12px' }}>
+            Flagged Contributing Factors
+          </h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+            {factors.map((f: string, idx: number) => (
+              <span
+                key={idx}
+                style={{
+                  background: '#FFF7ED',
+                  border: '1px solid #FED7AA',
+                  color: '#9A3412',
+                  padding: '4px 12px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
+            Intake Context Attributes
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
+            {Object.entries(rawInput).slice(0, 12).map(([k, v]) => (
+              <div key={k} style={{ background: '#F8FAFC', padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                <span style={{ display: 'block', color: '#64748B', fontSize: 11.5 }}>{k.replace(/_/g, ' ')}</span>
+                <span style={{ fontWeight: 600, color: '#0E1A2B' }}>{String(v)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Counselor Clinical Notes */}
+        <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '24px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <FileText size={18} color="#01575E" />
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              Counselor Case Notes & Follow-up Log
+            </h3>
+          </div>
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Document outreach attempts, student check-in conversation summaries, or academic advisor referrals..."
+            rows={4}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 8,
+              border: '1.5px solid #CBD5E1',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              marginBottom: 14,
+              outline: 'none',
+            }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={() => handleSaveStatus(status)}
               disabled={isSaving}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-medium transition-all"
+              className="btn-teal"
+              style={{ padding: '9px 20px', fontSize: 13.5 }}
             >
-              {isSaving ? 'Saving Notes...' : 'Save Case Notes'}
+              <Save size={15} />
+              <span>{isSaving ? 'Saving Notes...' : 'Save Case Notes'}</span>
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -12,6 +12,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import StudentProfile from './pages/StudentProfile'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
+import CrisisButton from './components/CrisisButton'
 
 export type Page =
   | 'home'
@@ -201,25 +202,8 @@ export default function App() {
         {page === 'profile' && <Profile onNavigate={navigate} />}
       </main>
 
-      {/* Floating 24/7 Crisis & WhatsApp Action (Reach-in-one-tap from any screen) */}
-      <a
-        href="https://wa.me/14155238886?text=join%20no-different"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Instant 24/7 WhatsApp Support Bot"
-        style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 50,
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '11px 18px', background: 'var(--navy-950)',
-          color: '#fff', borderRadius: 99,
-          boxShadow: 'var(--shadow-lg)', fontWeight: 600, fontSize: 13,
-          border: '1.5px solid rgba(232,181,99,0.3)', textDecoration: 'none',
-          transition: 'transform 0.2s ease',
-        }}
-      >
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--amber-400)' }}></span>
-        <span>WhatsApp (24/7)</span>
-      </a>
+      {/* Persistent Crisis & 24/7 Helpline Support (One-tap on all logged-in views) */}
+      <CrisisButton />
     </div>
   )
 }

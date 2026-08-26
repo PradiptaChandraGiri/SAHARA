@@ -195,11 +195,11 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
           </div>
 
           <div style={{
-            background: 'var(--slate-100)', borderRadius: 'var(--radius-sm)',
-            padding: '14px 16px', border: '1px solid var(--border)', marginBottom: 28,
+            background: '#F0FDFA', borderRadius: 'var(--radius-sm)',
+            padding: '14px 16px', border: '1px solid #CCFBF1', marginBottom: 28,
           }}>
-            <p style={{ fontSize: 12.5, color: 'var(--ink-500)', margin: 0, lineHeight: 1.5 }}>
-              🔒 <strong>Student Privacy Protected:</strong> All check-in evaluations are pseudonymized with cryptographic hash IDs (e.g. STU-XXXXXX).
+            <p style={{ fontSize: 12.5, color: '#0F766E', margin: 0, lineHeight: 1.5 }}>
+              🔒 <strong>We only use your account to sign you in securely:</strong> Student check-ins are pseudonymized with cryptographic IDs (e.g., <code>STU-XXXXXX</code>) to protect individual privacy by default.
             </p>
           </div>
 

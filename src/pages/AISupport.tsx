@@ -1,31 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, ShieldAlert, Sparkles, PhoneCall, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react'
+import {
+  Send,
+  Bot,
+  User,
+  ShieldAlert,
+  Sparkles,
+  PhoneCall,
+  Info,
+  Clock,
+  ExternalLink,
+  BookOpen,
+} from 'lucide-react'
+import { VETTED_RESOURCES } from '../data/resources'
 
 interface Message {
-  id: number;
-  from: 'user' | 'ai';
-  text: string;
-  time: string;
+  id: number
+  from: 'user' | 'ai'
+  text: string
+  time: string
+  isCrisis?: boolean
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
 
-const fallbackResponses: Record<string, string> = {
-  exam: "Exam preparation can be stressful, but breaking it down into 25-minute Pomodoro study blocks with 5-minute screen-free breaks makes a massive difference. Which specific subject feels most urgent right now?",
-  sleep: "Sleep directly drives cognitive memory consolidation. Try establishing a 15-minute wind-down routine without phones or laptops before sleeping.",
-  anxiety: "I hear you — anxiety during college is common, but manageable. Try this quick 4-7-8 breathing exercise: inhale quietly for 4 seconds, hold for 7 seconds, and exhale completely for 8 seconds.",
-  default: "I am here to support you with exam stress, study planning, sleep routines, and emotional wellbeing. How can I help you right now?"
-};
-
-function getLocalFallback(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('exam') || lower.includes('grade') || lower.includes('test')) return fallbackResponses.exam;
-  if (lower.includes('sleep') || lower.includes('tired') || lower.includes('insomnia')) return fallbackResponses.sleep;
-  if (lower.includes('anxious') || lower.includes('panic') || lower.includes('stress')) return fallbackResponses.anxiety;
-  return fallbackResponses.default;
-}
-
-const crisisKeywords = ['suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself', 'die', 'hopeless'];
+const promptChips = [
+  'I feel overwhelmed with upcoming exams.',
+  'How can I fix my sleep routine this week?',
+  'Guide me through a 2-minute breathing exercise.',
+  'What is the Pomodoro study technique?',
+]
 
 export default function AISupport() {
   const [messages, setMessages] = useState<Message[]>([
@@ -33,211 +36,459 @@ export default function AISupport() {
       id: 1,
       from: 'ai',
       text: "Hello! I am SAHARA — your AI Student Wellbeing Companion. I'm here 24/7 to help you navigate academic pressure, sleep, focus, and emotional balance. What is on your mind today?",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [showCrisisAlert, setShowCrisisAlert] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ])
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [showCrisisBanner, setShowCrisisBanner] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isTyping])
+
+  const crisisKeywords = [
+    'suicide',
+    'kill myself',
+    'end my life',
+    'self harm',
+    'hurt myself',
+    'want to die',
+    'hopeless',
+    'cant go on',
+  ]
 
   const handleSend = async (textToSend?: string) => {
-    const messageText = (textToSend || input).trim();
-    if (!messageText || isTyping) return;
+    const messageText = (textToSend || input).trim()
+    if (!messageText || isTyping) return
 
-    const isDistress = crisisKeywords.some(k => messageText.toLowerCase().includes(k));
-    if (isDistress) {
-      setShowCrisisAlert(true);
+    const userTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const userMsg: Message = { id: Date.now(), from: 'user', text: messageText, time: userTime }
+
+    setMessages((prev) => [...prev, userMsg])
+    setInput('')
+    setIsTyping(true)
+
+    const isLocalCrisis = crisisKeywords.some((k) => messageText.toLowerCase().includes(k))
+    if (isLocalCrisis) {
+      setShowCrisisBanner(true)
     }
 
-    const userMsg: Message = {
-      id: Date.now(),
-      from: 'user',
-      text: messageText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setIsTyping(true);
-
     try {
-      const historyPayload = messages.map(m => ({
-        role: m.from === 'user' ? 'user' : 'assistant',
-        content: m.text
-      }));
+      const history = messages.map((m) => ({
+        role: m.from === 'user' ? 'user' : 'model',
+        content: m.text,
+      }))
 
       const res = await fetch(`${API_BASE}/ai-support/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: messageText,
-          conversation_history: historyPayload
-        })
-      });
+        body: JSON.stringify({ message: messageText, conversation_history: history }),
+      })
 
       if (res.ok) {
-        const data = await res.json();
-        const aiMsg: Message = {
-          id: Date.now() + 1,
-          from: 'ai',
-          text: data.response || getLocalFallback(messageText),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, aiMsg]);
+        const data = await res.json()
+        const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        if (data.is_crisis) {
+          setShowCrisisBanner(true)
+        }
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            from: 'ai',
+            text: data.response,
+            time: aiTime,
+            isCrisis: data.is_crisis,
+          },
+        ])
       } else {
-        const aiMsg: Message = {
-          id: Date.now() + 1,
-          from: 'ai',
-          text: getLocalFallback(messageText),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, aiMsg]);
+        throw new Error('API response not ok')
       }
     } catch (err) {
-      const aiMsg: Message = {
-        id: Date.now() + 1,
-        from: 'ai',
-        text: getLocalFallback(messageText),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, aiMsg]);
+      // Local graceful fallback if backend is offline
+      const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      let fallbackText =
+        "I hear you. 💚 Academic pressure can feel intense, but breaking your tasks into 25-minute Pomodoro focus blocks with 5-minute screen-free breaks makes a meaningful difference. What subject feels most urgent right now?"
+      if (isLocalCrisis) {
+        fallbackText =
+          "I hear how much pain you're in, and your safety is the #1 priority. Please connect with free, confidential 24/7 help right now: Call Tele-MANAS at 14416 or KIRAN at 1800-599-0019. You do not have to carry this alone. 💚"
+      }
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, from: 'ai', text: fallbackText, time: aiTime, isCrisis: isLocalCrisis },
+      ])
     } finally {
-      setIsTyping(false);
+      setIsTyping(false)
     }
-  };
-
-  const quickPrompts = [
-    "I'm feeling overwhelmed with upcoming exams",
-    "How can I fix my irregular sleep schedule?",
-    "Tips for managing study anxiety and panic",
-    "How to structure a daily study routine"
-  ];
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 flex flex-col items-center">
-      <div className="max-w-3xl w-full flex flex-col h-[calc(100vh-100px)]">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Bot className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white flex items-center gap-2">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'var(--bg-app, #F9F9F8)',
+      }}
+    >
+      {/* 1. Header & Honest Disclaimer */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          borderBottom: '1.5px solid #E2E8F0',
+          padding: '16px 28px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: '#01575E',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Bot size={20} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
                 SAHARA AI Wellbeing Companion
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">
-                  Active
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400">Empathetic, confidential academic & mental health guidance</p>
+              </h2>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                  background: '#F0FDF4',
+                  color: '#166534',
+                  border: '1px solid #BBF7D0',
+                }}
+              >
+                Online 24/7
+              </span>
             </div>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+              Gemini-powered empathetic support for study routines, stress, and sleep
+            </p>
           </div>
         </div>
 
-        {/* Emergency Banner */}
-        {showCrisisAlert && (
-          <div className="mb-4 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-start gap-3 shrink-0">
-            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-rose-200">
-              <p className="font-semibold text-rose-300">Immediate Support Available 24/7</p>
-              <p className="mt-1">
-                If you are in distress or need urgent human support, please contact the National Tele-MANAS helpline at{' '}
-                <strong className="text-white">14416</strong> (Toll-Free, Govt. of India) or reach out to your campus counselor.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <a
+            href="tel:14416"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#FFF7ED',
+              border: '1px solid #FED7AA',
+              color: '#C2410C',
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <PhoneCall size={13} />
+            <span>Tele-MANAS (14416)</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Honest Disclaimer Ribbon */}
+      <div
+        style={{
+          background: '#F0FDFA',
+          borderBottom: '1px solid #CCFBF1',
+          padding: '8px 28px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 12.5,
+          color: '#0F766E',
+        }}
+      >
+        <Info size={14} style={{ flexShrink: 0 }} />
+        <span>
+          <strong>Support Disclaimer:</strong> SAHARA AI provides wellbeing strategies and mindfulness guidance, not medical diagnosis. If you are experiencing crisis, reach out to campus counseling or dial 14416.
+        </span>
+      </div>
+
+      {/* Crisis Banner if triggered */}
+      {showCrisisBanner && (
+        <div
+          style={{
+            background: '#FFF7ED',
+            borderBottom: '1.5px solid #FED7AA',
+            padding: '12px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ShieldAlert size={20} color="#EA580C" />
+            <div>
+              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#9A3412' }}>
+                Immediate Emotional Support Available
+              </h4>
+              <p style={{ margin: 0, fontSize: 12.5, color: '#C2410C' }}>
+                You are not alone. Free, confidential counselors are ready to speak with you right now at 14416.
               </p>
             </div>
           </div>
-        )}
+          <a
+            href="tel:14416"
+            style={{
+              background: '#EA580C',
+              color: '#FFFFFF',
+              padding: '7px 14px',
+              borderRadius: 8,
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: 'none',
+            }}
+          >
+            Call 14416
+          </a>
+        </div>
+      )}
 
-        {/* Messages List */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
-          {messages.map((m) => (
+      {/* 2. Chat Conversation Stream */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        {messages.map((m) => {
+          const isUser = m.from === 'user'
+          return (
             <div
               key={m.id}
-              className={`flex items-start gap-3 ${m.from === 'user' ? 'flex-row-reverse' : ''}`}
+              style={{
+                display: 'flex',
+                justifyContent: isUser ? 'flex-end' : 'flex-start',
+                gap: 10,
+                maxWidth: 820,
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                width: '100%',
+              }}
             >
-              <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${
-                  m.from === 'user'
-                    ? 'bg-indigo-600 text-white font-bold'
-                    : 'bg-slate-800 border border-slate-700 text-indigo-400'
-                }`}
-              >
-                {m.from === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-              </div>
+              {!isUser && (
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#01575E',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  <Bot size={16} />
+                </div>
+              )}
 
               <div
-                className={`max-w-xl rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-                  m.from === 'user'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-slate-800/90 border border-slate-700 text-slate-200 shadow-sm'
-                }`}
+                style={{
+                  maxWidth: '75%',
+                  background: isUser ? '#01575E' : m.isCrisis ? '#FFF7ED' : '#FFFFFF',
+                  color: isUser ? '#FFFFFF' : '#0E1A2B',
+                  border: isUser ? 'none' : m.isCrisis ? '1.5px solid #FED7AA' : '1.5px solid #E2E8F0',
+                  borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  padding: '14px 18px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  fontSize: 14.5,
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                }}
               >
-                <div className="whitespace-pre-line">{m.text}</div>
+                {m.text}
                 <div
-                  className={`text-[10px] mt-1.5 ${
-                    m.from === 'user' ? 'text-indigo-200 text-right' : 'text-slate-500'
-                  }`}
+                  style={{
+                    fontSize: 11,
+                    color: isUser ? 'rgba(255,255,255,0.7)' : '#94A3B8',
+                    marginTop: 6,
+                    textAlign: isUser ? 'right' : 'left',
+                  }}
                 >
                   {m.time}
                 </div>
               </div>
-            </div>
-          ))}
 
-          {isTyping && (
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-indigo-400 flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4" />
-              </div>
-              <div className="bg-slate-800/90 border border-slate-700 rounded-2xl px-4 py-3 text-xs text-slate-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]"></span>
-              </div>
+              {isUser && (
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#D99A34',
+                    color: '#0E1A2B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  <User size={16} />
+                </div>
+              )}
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          )
+        })}
 
-        {/* Quick Prompts */}
-        {messages.length <= 2 && (
-          <div className="flex flex-wrap gap-2 mb-3 shrink-0">
-            {quickPrompts.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(p)}
-                className="px-3 py-1.5 bg-slate-800/70 hover:bg-slate-700 border border-slate-700/80 rounded-xl text-[11px] text-slate-300 transition-colors"
-              >
-                {p}
-              </button>
-            ))}
+        {isTyping && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'flex-start' }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: '#01575E',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Bot size={16} />
+            </div>
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #E2E8F0',
+                borderRadius: '16px 16px 16px 4px',
+                padding: '10px 16px',
+                fontSize: 13.5,
+                color: '#64748B',
+                fontStyle: 'italic',
+              }}
+            >
+              SAHARA is typing...
+            </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Chat Input */}
-        <div className="relative shrink-0">
+      {/* 3. Suggested Prompt Chips */}
+      <div
+        style={{
+          padding: '8px 28px',
+          background: '#FFFFFF',
+          borderTop: '1px solid #F1F5F9',
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {promptChips.map((chip, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleSend(chip)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 99,
+              border: '1px solid #CBD5E1',
+              background: '#F8FAFC',
+              color: '#334155',
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#E0F2F1'
+              e.currentTarget.style.borderColor = '#01575E'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#F8FAFC'
+              e.currentTarget.style.borderColor = '#CBD5E1'
+            }}
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+
+      {/* 4. Message Input Bar */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          borderTop: '1.5px solid #E2E8F0',
+          padding: '16px 28px',
+        }}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSend()
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            maxWidth: 960,
+            margin: '0 auto',
+          }}
+        >
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Share how you're feeling or ask for study tips..."
-            className="w-full bg-slate-800/90 border border-slate-700 rounded-2xl py-3 pl-4 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 shadow-xl"
+            placeholder="Type your question or how you're feeling right now..."
+            style={{
+              flex: 1,
+              padding: '12px 18px',
+              borderRadius: 10,
+              border: '1.5px solid #CBD5E1',
+              fontSize: 14.5,
+              outline: 'none',
+            }}
           />
           <button
-            onClick={() => handleSend()}
+            type="submit"
             disabled={!input.trim() || isTyping}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl transition-all"
+            className="btn-teal"
+            style={{
+              padding: '12px 22px',
+              borderRadius: 10,
+              opacity: !input.trim() || isTyping ? 0.6 : 1,
+              cursor: !input.trim() || isTyping ? 'not-allowed' : 'pointer',
+            }}
           >
-            <Send className="w-3.5 h-3.5" />
+            <span>Send</span>
+            <Send size={16} />
           </button>
-        </div>
+        </form>
       </div>
     </div>
-  );
+  )
 }

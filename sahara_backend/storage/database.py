@@ -104,6 +104,19 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                user_role TEXT NOT NULL,
+                action TEXT NOT NULL,
+                resource_id TEXT,
+                details TEXT,
+                timestamp TEXT NOT NULL
+            )
+            """
+        )
         conn.commit()
 
     # Seed default demonstration accounts if users table is empty
@@ -429,6 +442,86 @@ def get_admin_stats() -> Dict[str, Any]:
         "top_factors_institution_wide": top_factors_inst,
         "weekly_checkins": weekly_checkins,
     }
+
+
+def log_audit_event(
+    user_id: str,
+    user_role: str,
+    action: str,
+    resource_id: Optional[str] = None,
+    details: Optional[str] = None,
+) -> None:
+    """Record an audit trail entry for privacy compliance and clinical governance."""
+    init_db()
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO audit_logs (id, user_id, user_role, action, resource_id, details, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"aud_{uuid.uuid4().hex[:10]}",
+                user_id,
+                user_role,
+                action,
+                resource_id,
+                details,
+                datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+
+
+def list_audit_logs(limit: int = 50) -> List[Dict[str, Any]]:
+    """Fetch recent audit log entries for institutional governance."""
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def export_student_data(student_id: str) -> Dict[str, Any]:
+    """Retrieve full data package for a student under data privacy export mandates."""
+    init_db()
+    with _connect() as conn:
+        user_row = conn.execute(
+            "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
+            (student_id,),
+        ).fetchone()
+
+        assessments = conn.execute(
+            "SELECT * FROM assessments WHERE student_id = ? ORDER BY timestamp DESC",
+            (student_id,),
+        ).fetchall()
+
+        out_assessments = []
+        for a in assessments:
+            d = dict(a)
+            try:
+                d["top_factors"] = json.loads(d.get("top_factors") or "[]")
+                d["raw_input"] = json.loads(d.get("raw_input") or "{}")
+            except Exception:
+                pass
+            out_assessments.append(d)
+
+        return {
+            "exported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "profile": dict(user_row) if user_row else {"student_id": student_id},
+            "total_assessments": len(out_assessments),
+            "assessments": out_assessments,
+        }
+
+
+def delete_student_data(student_id: str) -> bool:
+    """Permanently delete all assessment records for a student per privacy compliance."""
+    init_db()
+    with _connect() as conn:
+        conn.execute("DELETE FROM assessments WHERE student_id = ?", (student_id,))
+        conn.commit()
+    return True
 
 
 init_db()
