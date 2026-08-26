@@ -58,8 +58,21 @@ def verify_password(password: str, pw_hash: str, salt: str) -> bool:
     return secrets.compare_digest(check, pw_hash)
 
 
+_DB_INITIALIZED = False
+
+
 def init_db() -> None:
-    """Initialize database tables, indexes, and initial accounts."""
+    """Initialize database tables, indexes, and initial accounts.
+
+    Uses a module-level guard to ensure this only runs ONCE at server startup,
+    not on every database call. The PBKDF2 password seeding in _seed_default_users
+    costs ~335ms (6 × 100K-iteration hashes) — running that per-request was the
+    root cause of slow /assess responses.
+    """
+    global _DB_INITIALIZED
+    if _DB_INITIALIZED:
+        return
+
     with _connect() as conn:
         conn.execute(
             """
@@ -95,6 +108,7 @@ def init_db() -> None:
 
     # Seed default demonstration accounts if users table is empty
     _seed_default_users()
+    _DB_INITIALIZED = True
 
 
 def _seed_default_users():
