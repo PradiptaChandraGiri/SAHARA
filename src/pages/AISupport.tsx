@@ -10,8 +10,11 @@ import {
   Clock,
   ExternalLink,
   BookOpen,
+  Video,
+  Wrench,
+  Headphones,
 } from 'lucide-react'
-import { VETTED_RESOURCES } from '../data/resources'
+import { getResourcesForFactors, VettedResource } from '../data/resources'
 
 interface Message {
   id: number
@@ -19,6 +22,7 @@ interface Message {
   text: string
   time: string
   isCrisis?: boolean
+  inlineResource?: VettedResource
 }
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
@@ -29,6 +33,19 @@ const promptChips = [
   'Guide me through a 2-minute breathing exercise.',
   'What is the Pomodoro study technique?',
 ]
+
+function getResourceIcon(type?: VettedResource['type']) {
+  switch (type) {
+    case 'video':
+      return <Video size={14} color="#01575E" />
+    case 'audio':
+      return <Headphones size={14} color="#D99A34" />
+    case 'tool':
+      return <Wrench size={14} color="#0E1A2B" />
+    default:
+      return <BookOpen size={14} color="#01575E" />
+  }
+}
 
 export default function AISupport() {
   const [messages, setMessages] = useState<Message[]>([
@@ -75,6 +92,11 @@ export default function AISupport() {
       setShowCrisisBanner(true)
     }
 
+    // Match potential inline resource from mock resource library (Part 5)
+    // TODO: replace with real AI tool execution to fetch dynamic resources
+    const matchedResources = getResourcesForFactors([messageText], 1)
+    const inlineRes = matchedResources.length > 0 ? matchedResources[0] : undefined
+
     try {
       const history = messages.map((m) => ({
         role: m.from === 'user' ? 'user' : 'model',
@@ -101,6 +123,7 @@ export default function AISupport() {
             text: data.response,
             time: aiTime,
             isCrisis: data.is_crisis,
+            inlineResource: inlineRes,
           },
         ])
       } else {
@@ -117,7 +140,14 @@ export default function AISupport() {
       }
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, from: 'ai', text: fallbackText, time: aiTime, isCrisis: isLocalCrisis },
+        {
+          id: Date.now() + 1,
+          from: 'ai',
+          text: fallbackText,
+          time: aiTime,
+          isCrisis: isLocalCrisis,
+          inlineResource: inlineRes,
+        },
       ])
     } finally {
       setIsTyping(false)
@@ -181,7 +211,7 @@ export default function AISupport() {
               </span>
             </div>
             <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
-              Gemini-powered empathetic support for study routines, stress, and sleep
+              Conversational support for study routines, stress, and sleep
             </p>
           </div>
         </div>
@@ -328,6 +358,59 @@ export default function AISupport() {
                 }}
               >
                 {m.text}
+
+                {/* Inline Recommended Resource Card (Part 5) */}
+                {/* TODO: replace with real API call to /api/resources?factor=X */}
+                {!isUser && m.inlineResource && !m.isCrisis && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      background: '#F0FDFA',
+                      border: '1px solid #CCFBF1',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {getResourceIcon(m.inlineResource.type)}
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F766E' }}>
+                          {m.inlineResource.title}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#64748B' }}>
+                          {m.inlineResource.readTime}
+                        </div>
+                      </div>
+                    </div>
+
+                    <a
+                      href={m.inlineResource.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: '#01575E',
+                        color: '#FFFFFF',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span>Open</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                )}
+
                 <div
                   style={{
                     fontSize: 11,
