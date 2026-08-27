@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { Page, CheckInData } from '../App'
 import RiskBadge from '../components/RiskBadge'
 import {
