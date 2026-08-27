@@ -16,7 +16,7 @@ const BASE_SYSTEM_PROMPT =
   "learning protocols (like Pomodoro 25/5, Feynman technique, Active Recall, or Box Breathing). " +
   "Use minimal markdown - **bold** for emphasis, concise bullet points for study notes. Keep formatting clean and supportive.";
 
-const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_MODEL = "openai/gpt-oss-20b";
 
 // Verified YouTube resources catalog for university students
 const VERIFIED_YT_MAP = {

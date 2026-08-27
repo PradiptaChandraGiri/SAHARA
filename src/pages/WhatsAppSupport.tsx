@@ -38,7 +38,7 @@ export default function WhatsAppSupport() {
       formData.append('From', 'whatsapp:+919876543210')
       formData.append('Body', userText)
 
-      const res = await fetch(`${API_BASE}/whatsapp-webhook`, {
+      const res = await fetch(`${API_BASE}/api/whatsapp-webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString(),

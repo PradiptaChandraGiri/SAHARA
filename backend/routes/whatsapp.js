@@ -38,8 +38,8 @@ async function saveSession(phoneNumber, step, answers) {
   );
 }
 
-// POST /whatsapp-webhook - Twilio calls this every time a message arrives.
-router.post("/whatsapp-webhook", validateTwilioRequest, async (req, res) => {
+// POST /whatsapp-webhook and /api/whatsapp-webhook - Twilio calls this every time a message arrives.
+router.post(["/whatsapp-webhook", "/api/whatsapp-webhook"], validateTwilioRequest, async (req, res) => {
   const from = req.body.From; // e.g. "whatsapp:+15551234567"
   const body = (req.body.Body || "").trim();
   const twiml = new MessagingResponse();
