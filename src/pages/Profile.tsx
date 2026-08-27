@@ -21,7 +21,7 @@ interface ProfileProps {
   onNavigate: (page: Page) => void
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+import { API_BASE } from '../config'
 
 export default function Profile({ onNavigate }: ProfileProps) {
   const { user, token } = useAuth()
@@ -450,6 +450,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
               <span>{deleting ? 'Purging...' : 'Delete My Assessment History'}</span>
             </button>
           </div>
+        </div>
+
+        {/* System & Developer Metadata */}
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12.5, color: '#64748B' }}>
+          SAHARA — Student Academic Health & Attrition Risk Assessment Platform · Lead Developer: <strong style={{ color: '#0E1A2B' }}>Pradipta Chandra Giri</strong>
         </div>
       </div>
     </div>

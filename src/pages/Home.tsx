@@ -362,8 +362,8 @@ export default function Home({ onNavigate }: HomeProps) {
               </div>
               <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 16 }}>SAHARA</span>
             </div>
-            <p style={{ margin: 0, fontSize: 13 }}>
-              Student Academic Health & Attrition Risk Assessment Platform &copy; {new Date().getFullYear()}
+            <p style={{ margin: 0, fontSize: 13, color: '#94A3B8' }}>
+              Student Academic Health & Attrition Risk Assessment Platform · Developed by Pradipta Chandra Giri &copy; {new Date().getFullYear()}
             </p>
           </div>
 

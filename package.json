@@ -1,7 +1,9 @@
 {
-  "name": "figma-make-app",
+  "name": "sahara-platform",
   "private": true,
   "version": "1.0.0",
+  "description": "SAHARA — Student Academic & Mental Resilience Platform",
+  "author": "Pradipta Chandra Giri",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

@@ -135,7 +135,7 @@ const analyzingMessages = [
   'Extracting multi-modal strain markers...',
   'Running dual Random Forest model inference...',
   'Evaluating clinical anxiety signal & retention risk...',
-  'Synthesizing personalized recovery guidance with Groq AI...',
+  'Synthesizing personalized recovery guidance with SAHARA Intelligence...',
 ]
 
 export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
@@ -776,7 +776,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               </div>
 
               <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
-                When you click "Run AI Wellbeing Assessment", SAHARA computes your dual Random Forest model inference and generates real-time Groq clinical recovery suggestions.
+                When you click "Run AI Wellbeing Assessment", SAHARA computes your dual Random Forest model inference and generates real-time clinical recovery suggestions.
               </p>
             </div>
           )}
@@ -818,7 +818,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
           </div>
         </div>
 
-        {/* Conversational NLP Symptom Modal (Ada Health / Claude Healthcare style) */}
+        {/* Conversational NLP Symptom Modal */}
         {showAiModal && (
           <div
             style={{
@@ -890,7 +890,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               </div>
 
               <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.5, margin: '0 0 16px' }}>
-                Describe what you're experiencing in plain language (e.g. sleep hours, symptoms, exam pressure, department, stress level). Groq AI will extract your clinical parameters automatically.
+                Describe what you're experiencing in plain language (e.g. sleep hours, symptoms, exam pressure, department, stress level). SAHARA AI will extract your clinical parameters automatically.
               </p>
 
               <textarea
@@ -925,7 +925,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                   }}
                 >
                   <Sparkles size={13} />
-                  <span>{isParsingSymptom ? 'Extracting Parameters...' : 'Analyze with Groq NLP'}</span>
+                  <span>{isParsingSymptom ? 'Extracting Parameters...' : 'Analyze with SAHARA AI'}</span>
                 </button>
               </div>
 

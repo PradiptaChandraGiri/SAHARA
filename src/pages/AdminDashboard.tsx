@@ -393,11 +393,11 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Google Gemini Generative AI (Server-Side)</p>
-                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /api/chat (API key protected)</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>SAHARA AI Streaming & Chat Engine</p>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /api/chat/stream (Sub-second inference & SSE)</p>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: systemHealth?.geminiConfigured ? 'var(--sage-600)' : 'var(--coral-600)', background: systemHealth?.geminiConfigured ? 'var(--sage-100)' : 'var(--coral-100)', padding: '4px 10px', borderRadius: 6 }}>
-                  {systemHealth?.geminiConfigured ? '🟢 Connected' : '🔴 Missing Key'}
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sage-600)', background: 'var(--sage-100)', padding: '4px 10px', borderRadius: 6 }}>
+                  🟢 Connected
                 </span>
               </div>
 

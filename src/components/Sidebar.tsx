@@ -142,6 +142,14 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           )}
         </div>
       </div>
+
+      {/* Developer Attribution */}
+      <div style={{ padding: '10px 16px', borderTop: '1px solid #F1F5F9', background: '#FAFAFA' }}>
+        <div style={{ fontSize: 10.5, color: '#64748B', lineHeight: 1.4 }}>
+          Lead Developer:{' '}
+          <strong style={{ color: '#0E1A2B', fontWeight: 600 }}>Pradipta Chandra Giri</strong>
+        </div>
+      </div>
     </aside>
   )
 }
