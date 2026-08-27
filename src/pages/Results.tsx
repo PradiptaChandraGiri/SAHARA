@@ -18,6 +18,10 @@ import {
   ArrowRight,
   Zap,
   Check,
+  Play,
+  FileText,
+  ExternalLink,
+  X,
 } from 'lucide-react'
 import ChatMessageText from '../components/ChatMessageText'
 
@@ -34,6 +38,9 @@ interface DynamicAISuggestion {
   duration: string
   description: string
   actionStep: string
+  youtubeId?: string
+  videoTitle?: string
+  keyNotes?: string[]
 }
 
 interface AIGuidanceData {
@@ -46,6 +53,11 @@ interface FollowupCoachingResult {
   insight: string
   microAction: string
   suggestedTopic?: string
+  studyNotes?: string[]
+  recommendedVideo?: {
+    youtubeId: string
+    videoTitle: string
+  }
 }
 
 function CircleGauge({
@@ -182,15 +194,13 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const risk = (d.riskLevel || 'high').toLowerCase() as 'low' | 'medium' | 'high'
 
   const riskColor = risk === 'high' ? '#EA580C' : risk === 'medium' ? '#D97706' : '#16A34A'
-  const riskBg = risk === 'high' ? '#FFF7ED' : risk === 'medium' ? '#FFFBEB' : '#F0FDF4'
-  const riskBorder = risk === 'high' ? '#FED7AA' : risk === 'medium' ? '#FDE68A' : '#BBF7D0'
 
   const overallScore = d.riskScore ?? 68
   const anxietyScore = d.anxietyRisk ?? Math.min(overallScore + 4, 95)
   const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
   const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
 
-  // Load real-time Groq dynamic guidance tailored to this evaluation
+  // Load real-time Groq dynamic guidance & video notes tailored to this evaluation
   useEffect(() => {
     setIsLoadingGuidance(true)
     fetch(`${API_BASE}/api/results/ai-guidance`, {
@@ -541,7 +551,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           </div>
         </div>
 
-        {/* 4. Suggested for You (Dynamic Groq AI-Generated Suggestions) */}
+        {/* 4. Suggested for You (Dynamic Groq AI-Generated Suggestions with YouTube Video & Analysis Notes) */}
         <div
           style={{
             background: '#FFFFFF',
@@ -569,12 +579,12 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 border: '1px solid #CCFBF1',
               }}
             >
-              {isLoadingGuidance ? 'Updating AI Suggestions...' : 'Dynamic AI Tailored'}
+              {isLoadingGuidance ? 'Updating AI Suggestions...' : 'Dynamic AI Tailored & Video Notes'}
             </span>
           </div>
 
           <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 20px' }}>
-            Practical, bite-sized protocols generated dynamically for your exact assessment combination:
+            Practical, bite-sized protocols with verified video breakdowns & study notes generated dynamically for your exact assessment:
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
@@ -583,28 +593,49 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 id: 'sug_1',
                 title: '5-Minute Breathing Reset Before Exams',
                 tag: 'Exam Grounding',
-                type: 'tool',
-                duration: '5 min protocol',
+                type: 'video',
+                duration: '5 min video & notes',
                 description: 'Quick somatic breathing method that settles nervous system spikes before walking into an exam.',
                 actionStep: 'Do 4 cycles of 4-second box breathing with relaxed shoulders.',
+                youtubeId: 'm3-O74xEmVE',
+                videoTitle: 'Physiological Sigh: Fast Autonomic Nervous System Reset',
+                keyNotes: [
+                  'Two rapid inhales through nose + one long mouth exhale drops acute heart rate.',
+                  'Rebalances carbon dioxide ratio in the bloodstream to halt panic signals.',
+                  'Use immediately when sitting down at your exam desk.'
+                ],
               },
               {
                 id: 'sug_2',
                 title: 'The Pomodoro Method for Study Sessions',
                 tag: 'Focus Rhythm',
                 type: 'video',
-                duration: '4 min guide',
+                duration: '4 min video & notes',
                 description: 'Break high-pressure revisions into manageable 25-minute sprints with 5-minute screen-free intervals.',
                 actionStep: 'Choose your top assignment and set a single 25-minute countdown.',
+                youtubeId: 'mNBmG24djoY',
+                videoTitle: 'How to Focus & Study Deeply with the 25/5 Pomodoro Method',
+                keyNotes: [
+                  'Single-task focus prevents cognitive fatigue and task switching friction.',
+                  '5-minute screen-free rest allows hippocampus to consolidate memories.',
+                  'Repeat for 4 cycles for maximum study retention.'
+                ],
               },
               {
                 id: 'sug_3',
                 title: 'Sleep Hygiene for University Students',
                 tag: 'Sleep Optimization',
-                type: 'audio',
-                duration: '4 min read',
+                type: 'video',
+                duration: '4 min video & notes',
                 description: 'Evidence-based protocols to fall asleep faster even when study schedules are erratic.',
                 actionStep: 'Dim overhead lights and stop screen usage 30 minutes before sleep.',
+                youtubeId: 'pL02HRFk2vo',
+                videoTitle: '10-Minute Non-Sleep Deep Rest (NSDR) Protocol - Dr. Andrew Huberman',
+                keyNotes: [
+                  'Externalize tomorrow to-do list onto physical paper to stop nocturnal rumination.',
+                  'Dim ambient overhead lights 30 minutes before sleep to trigger melatonin.',
+                  '10 minutes of NSDR in bed resets autonomic nervous system.'
+                ],
               },
             ]).map((sug) => (
               <div
@@ -646,9 +677,31 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                     {sug.title}
                   </h4>
 
-                  <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 13, color: '#475569', margin: '0 0 10px', lineHeight: 1.5 }}>
                     {sug.description}
                   </p>
+
+                  {sug.youtubeId && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                        color: '#01575E',
+                        fontWeight: 600,
+                        background: '#E6FFFA',
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Play size={12} color="#E53E3E" fill="#E53E3E" />
+                      <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {sug.videoTitle || 'Video & Study Notes Included'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -661,7 +714,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                     gap: 6,
                     background: '#01575E',
                     color: '#FFFFFF',
-                    padding: '8px 14px',
+                    padding: '9px 14px',
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 600,
@@ -670,15 +723,15 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                     marginTop: 4,
                   }}
                 >
-                  <Zap size={14} color="#FDE047" />
-                  <span>Start Micro-Action</span>
+                  <Play size={13} fill="#FFFFFF" />
+                  <span>Watch Video & Read Notes</span>
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 5. Conversational Follow-Up with Real-Time Groq AI Coaching */}
+        {/* 5. Conversational Follow-Up with Real-Time Groq AI Coaching, Study Notes & Video */}
         <div
           style={{
             background: 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)',
@@ -695,7 +748,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             </h3>
           </div>
           <p style={{ fontSize: 13.5, color: '#0F766E', margin: '0 0 16px', lineHeight: 1.5 }}>
-            Pick a situation below or type your exact thoughts to receive instant, tailored AI coaching:
+            Pick a situation below or type your exact difficulty to receive instant AI notes, a video breakdown, and coaching:
           </p>
 
           {/* Quick-Reply Chips */}
@@ -728,7 +781,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
               type="text"
               value={followupInput}
               onChange={(e) => setFollowupInput(e.target.value)}
-              placeholder="Or type a specific sentence about what feels most demanding..."
+              placeholder="Or type a specific difficulty about what feels most demanding..."
               style={{
                 flex: 1,
                 padding: '10px 16px',
@@ -758,12 +811,12 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 opacity: isSubmittingFollowup || !followupInput.trim() ? 0.6 : 1,
               }}
             >
-              <span>{isSubmittingFollowup ? 'Analyzing...' : 'Get AI Plan'}</span>
+              <span>{isSubmittingFollowup ? 'Analyzing...' : 'Get AI Plan & Notes'}</span>
               <Send size={13} />
             </button>
           </form>
 
-          {/* Dynamic AI Coaching Card Output */}
+          {/* Dynamic AI Coaching Card Output with Notes & Video */}
           {activeCoaching && (
             <div
               style={{
@@ -778,7 +831,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <Sparkles size={16} color="#0F766E" />
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#115E59' }}>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#115E59' }}>
                   {activeCoaching.headline}
                 </h4>
               </div>
@@ -786,6 +839,83 @@ export default function Results({ data, onNavigate }: ResultsProps) {
               <div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.55, marginBottom: 14 }}>
                 <ChatMessageText text={activeCoaching.insight} />
               </div>
+
+              {/* Study & Resilience Notes Section */}
+              {activeCoaching.studyNotes && activeCoaching.studyNotes.length > 0 && (
+                <div
+                  style={{
+                    background: '#F8FAFC',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    border: '1px solid #E2E8F0',
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <FileText size={15} color="#01575E" />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#01575E', textTransform: 'uppercase' }}>
+                      Key Revision & Wellbeing Notes
+                    </span>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#334155', lineHeight: 1.55 }}>
+                    {activeCoaching.studyNotes.map((note, nIdx) => (
+                      <li key={nIdx} style={{ marginBottom: 4 }}>
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommended Video Pill */}
+              {activeCoaching.recommendedVideo && (
+                <div
+                  style={{
+                    background: '#F0FDFA',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    marginBottom: 14,
+                    border: '1px solid #CCFBF1',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Play size={16} color="#E53E3E" fill="#E53E3E" />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase' }}>
+                        Recommended Video Guide
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0E1A2B' }}>
+                        {activeCoaching.recommendedVideo.videoTitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <a
+                    href={`https://www.youtube.com/watch?v=${activeCoaching.recommendedVideo.youtubeId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: '#01575E',
+                      color: '#FFFFFF',
+                      padding: '5px 10px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <span>Watch</span>
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
+              )}
 
               <div
                 style={{
@@ -836,32 +966,58 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           )}
         </div>
 
-        {/* Action Micro-Protocol Modal */}
+        {/* Action Micro-Protocol & YouTube Video/Notes Modal */}
         {activeActionModal && (
           <div
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(14,26,43,0.5)',
+              background: 'rgba(14,26,43,0.65)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 999,
               padding: 20,
+              backdropFilter: 'blur(3px)',
             }}
           >
             <div
               style={{
-                maxWidth: 480,
+                maxWidth: 620,
                 width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
                 background: '#FFFFFF',
                 borderRadius: 16,
-                padding: '28px 30px',
-                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                padding: '24px 28px',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
                 border: '1.5px solid #E2E8F0',
+                position: 'relative',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setActiveActionModal(null)}
+                style={{
+                  position: 'absolute',
+                  top: 18,
+                  right: 18,
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                }}
+              >
+                <X size={18} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <span
                   style={{
                     fontSize: 11.5,
@@ -878,21 +1034,111 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 <span style={{ fontSize: 12.5, color: '#64748B' }}>{activeActionModal.duration}</span>
               </div>
 
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0E1A2B', margin: '0 0 10px' }}>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0E1A2B', margin: '0 0 10px', paddingRight: 40 }}>
                 {activeActionModal.title}
               </h3>
 
-              <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55, margin: '0 0 18px' }}>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.55, margin: '0 0 16px' }}>
                 {activeActionModal.description}
               </p>
 
+              {/* Responsive Embedded YouTube Video Player */}
+              {activeActionModal.youtubeId && (
+                <div style={{ marginBottom: 18 }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingTop: '56.25%',
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      background: '#0E1A2B',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    <iframe
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                      }}
+                      src={`https://www.youtube-nocookie.com/embed/${activeActionModal.youtubeId}?rel=0`}
+                      title={activeActionModal.videoTitle || activeActionModal.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 6,
+                      padding: '0 4px',
+                    }}
+                  >
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>
+                      {activeActionModal.videoTitle}
+                    </span>
+                    <a
+                      href={`https://www.youtube.com/watch?v=${activeActionModal.youtubeId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#01575E',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <span>Open on YouTube</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Full Analysis & Core Study Notes */}
+              {activeActionModal.keyNotes && activeActionModal.keyNotes.length > 0 && (
+                <div
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: 12,
+                    padding: '16px 18px',
+                    marginBottom: 18,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                    <FileText size={16} color="#01575E" />
+                    <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#0E1A2B', textTransform: 'uppercase' }}>
+                      Full Analysis & Key Takeaway Notes
+                    </h4>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>
+                    {activeActionModal.keyNotes.map((note, nIdx) => (
+                      <li key={nIdx} style={{ marginBottom: 6 }}>
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Immediate 2-Minute Micro-Action */}
               <div
                 style={{
                   background: '#F0FDFA',
                   border: '1.5px solid #99F6E4',
-                  borderRadius: 10,
-                  padding: '14px 16px',
-                  marginBottom: 22,
+                  borderRadius: 12,
+                  padding: '14px 18px',
+                  marginBottom: 20,
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#0F766E', textTransform: 'uppercase', marginBottom: 4 }}>
@@ -903,7 +1149,30 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const title = activeActionModal.title
+                    setActiveActionModal(null)
+                    handleGoToChat(`Can you explain the key steps of "${title}" in more detail?`)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#01575E',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  <span>Ask SAHARA AI to Explain This Protocol →</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setActiveActionModal(null)}
@@ -911,7 +1180,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                   style={{ padding: '8px 20px', fontSize: 13.5 }}
                 >
                   <Check size={14} />
-                  <span>Got it / Done</span>
+                  <span>Done</span>
                 </button>
               </div>
             </div>

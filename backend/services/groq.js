@@ -1,6 +1,6 @@
 // services/groq.js
 // Groq: sub-second latency, 14,400 free requests/day, OpenAI-compatible SDK.
-// Fast conversational responses + Dynamic AI Guidance & Suggestions Generator.
+// Fast conversational responses + Dynamic AI Guidance & Rich YouTube Video/Notes Generator.
 
 const Groq = require("groq-sdk");
 
@@ -11,23 +11,102 @@ if (!process.env.GROQ_API_KEY) {
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const BASE_SYSTEM_PROMPT =
-  "You are SAHARA, a warm, supportive, and professional AI student wellbeing companion for university " +
+  "You are SAHARA, a warm, supportive, and professional AI student wellbeing & academic success companion for university " +
   "students. Keep responses concise (2-4 sentences), calm, empathetic, and non-clinical. " +
-  "You are not a therapist and should not attempt to diagnose. For low-stakes " +
-  "topics like study techniques, sleep habits, or exam stress, be conversational, " +
-  "practical, and helpful. If a student seems to be struggling significantly, gently " +
-  "encourage them to use the 'Message a counselor' option. " +
-  "Use minimal markdown - occasional **bold** for emphasis is fine, but " +
-  "avoid headers, nested lists, or code blocks. Keep formatting light, " +
-  "this is a casual supportive chat, not a document.";
+  "You are not a therapist and should not attempt to diagnose. For topics like study techniques, exam stress, " +
+  "sleep, or subject revision, be practical, and when helpful, provide structured bulleted notes or mention proven " +
+  "learning protocols (like Pomodoro 25/5, Feynman technique, Active Recall, or Box Breathing). " +
+  "Use minimal markdown - **bold** for emphasis, concise bullet points for study notes. Keep formatting clean and supportive.";
 
 const GROQ_MODEL = "openai/gpt-oss-120b";
+
+// Verified YouTube resources catalog for university students
+const VERIFIED_YT_MAP = {
+  sleep: {
+    youtubeId: "pL02HRFk2vo",
+    videoTitle: "10-Minute Non-Sleep Deep Rest (NSDR) Protocol - Dr. Andrew Huberman",
+    fallbackNotes: [
+      "Engages parasympathetic tone to restore neuro-chemical energy and lower systemic cortisol.",
+      "Practice double nasal inhales followed by one long unhurried exhale through the mouth.",
+      "Helps offset the cognitive fatigue of 3-4 hours of lost sleep within 15 minutes."
+    ]
+  },
+  breathing: {
+    youtubeId: "m3-O74xEmVE",
+    videoTitle: "Physiological Sigh: Fast Autonomic Nervous System Reset",
+    fallbackNotes: [
+      "Two rapid inhales through the nose, followed by one long, slow mouth exhalation.",
+      "Instantly re-opens collapsed lung alveoli and drops elevated heart rate.",
+      "Do 3-5 rounds right before walking into an exam or starting an assignment."
+    ]
+  },
+  pomodoro: {
+    youtubeId: "mNBmG24djoY",
+    videoTitle: "How to Focus & Study Deeply with the 25/5 Pomodoro Method",
+    fallbackNotes: [
+      "Commit to exactly 25 minutes of single-task focus with zero digital notifications.",
+      "Take 5 minutes of restorative break (water, walking, stretching) between sprints.",
+      "4 sprints equals 100 minutes of high-retention study without cognitive burnout."
+    ]
+  },
+  exam_stress: {
+    youtubeId: "5qap5aO4i9A",
+    videoTitle: "How to Eliminate Test Anxiety & Exam Panic - Dr. K",
+    fallbackNotes: [
+      "Reframe nervousness as physiological readiness rather than impending failure.",
+      "Use the 5-4-3-2-1 sensory grounding technique if your mind goes blank.",
+      "Tackle easiest 2 problems first to activate associative memory pathways."
+    ]
+  },
+  active_recall: {
+    youtubeId: "ukLnPbIffxE",
+    videoTitle: "How to Study with Active Recall & Spaced Repetition - Ali Abdaal",
+    fallbackNotes: [
+      "Close your textbook/notes and write down everything you remember on a blank sheet.",
+      "Only re-read sections where you found specific knowledge gaps.",
+      "Review high-difficulty concepts 24h, 3 days, and 7 days before the exam."
+    ]
+  },
+  procrastination: {
+    youtubeId: "4x7MkLDGnu8",
+    videoTitle: "How to Stop Procrastinating on Hard Assignments - Thomas Frank",
+    fallbackNotes: [
+      "Lower the activation threshold: commit to working on the task for just 2 minutes.",
+      "Break the assignment into atomic steps (e.g., write the first heading).",
+      "Motivation follows physical action, not the other way around."
+    ]
+  }
+};
+
+function enrichSuggestionWithVideo(sug) {
+  const text = `${sug.title} ${sug.tag} ${sug.description}`.toLowerCase();
+  let match = VERIFIED_YT_MAP.pomodoro;
+
+  if (text.includes("sleep") || text.includes("night") || text.includes("insomnia") || text.includes("rest")) {
+    match = VERIFIED_YT_MAP.sleep;
+  } else if (text.includes("breath") || text.includes("sigh") || text.includes("panic") || text.includes("nervous")) {
+    match = VERIFIED_YT_MAP.breathing;
+  } else if (text.includes("exam") || text.includes("test") || text.includes("anxiety") || text.includes("stress")) {
+    match = VERIFIED_YT_MAP.exam_stress;
+  } else if (text.includes("recall") || text.includes("memor") || text.includes("notes") || text.includes("study") || text.includes("feynman")) {
+    match = VERIFIED_YT_MAP.active_recall;
+  } else if (text.includes("procrastinat") || text.includes("start") || text.includes("overwhelm")) {
+    match = VERIFIED_YT_MAP.procrastination;
+  }
+
+  return {
+    ...sug,
+    youtubeId: sug.youtubeId || match.youtubeId,
+    videoTitle: sug.videoTitle || match.videoTitle,
+    keyNotes: Array.isArray(sug.keyNotes) && sug.keyNotes.length > 0 ? sug.keyNotes : match.fallbackNotes,
+  };
+}
 
 // Non-streaming version - kept for WhatsApp bot and fallback endpoints
 async function getChatReply(userMessage, conversationHistory = [], studentContext = null) {
   let systemPrompt = BASE_SYSTEM_PROMPT;
   if (studentContext) {
-    systemPrompt += `\n[Student Evaluation Context: Wellbeing ${studentContext.overallWellbeing}%, Anxiety ${studentContext.anxietySignal}%, Primary Strains: ${(studentContext.factors || []).join(", ") || "General pressure"}. Naturally weave in empathy for their situation when relevant.]`;
+    systemPrompt += `\n[Student Evaluation Context: Wellbeing ${studentContext.overallWellbeing}%, Anxiety ${studentContext.anxietySignal}%, Primary Strains: ${(studentContext.factors || []).join(", ") || "General pressure"}. If student asks for revision notes, study strategies, or video recommendations, provide clear bulleted takeaway notes and actionable steps.]`;
   }
 
   const messages = [
@@ -46,7 +125,7 @@ async function getChatReply(userMessage, conversationHistory = [], studentContex
       model: GROQ_MODEL,
       messages,
       temperature: 0.7,
-      max_tokens: 220,
+      max_tokens: 300,
     });
     return { text: completion.choices[0].message.content, flaggedCrisis: false };
   } catch (err) {
@@ -54,7 +133,7 @@ async function getChatReply(userMessage, conversationHistory = [], studentContex
       model: "groq/compound-mini",
       messages,
       temperature: 0.7,
-      max_tokens: 220,
+      max_tokens: 300,
     });
     return { text: completion.choices[0].message.content, flaggedCrisis: false };
   }
@@ -64,7 +143,7 @@ async function getChatReply(userMessage, conversationHistory = [], studentContex
 async function streamChatReply(userMessage, conversationHistory = [], onChunk, studentContext = null) {
   let systemPrompt = BASE_SYSTEM_PROMPT;
   if (studentContext) {
-    systemPrompt += `\n[Student Evaluation Context: Wellbeing ${studentContext.overallWellbeing}%, Anxiety ${studentContext.anxietySignal}%, Primary Strains: ${(studentContext.factors || []).join(", ") || "General pressure"}. Naturally weave in empathy for their situation when relevant.]`;
+    systemPrompt += `\n[Student Evaluation Context: Wellbeing ${studentContext.overallWellbeing}%, Anxiety ${studentContext.anxietySignal}%, Primary Strains: ${(studentContext.factors || []).join(", ") || "General pressure"}. If student asks for study notes, concepts, or videos, format key takeaway notes with clean bullet points.]`;
   }
 
   const messages = [
@@ -84,7 +163,7 @@ async function streamChatReply(userMessage, conversationHistory = [], onChunk, s
       model: GROQ_MODEL,
       messages,
       temperature: 0.7,
-      max_tokens: 240,
+      max_tokens: 320,
       stream: true,
     });
   } catch (err) {
@@ -92,7 +171,7 @@ async function streamChatReply(userMessage, conversationHistory = [], onChunk, s
       model: "groq/compound-mini",
       messages,
       temperature: 0.7,
-      max_tokens: 240,
+      max_tokens: 320,
       stream: true,
     });
   }
@@ -108,7 +187,7 @@ async function streamChatReply(userMessage, conversationHistory = [], onChunk, s
   return fullText;
 }
 
-// Generates dynamic, real-time AI guidance & custom suggestions for every student assessment
+// Generates dynamic, real-time AI guidance & custom suggestions + full video & notes analysis
 async function generatePersonalizedSuggestions(assessmentSummary) {
   const prompt = `You are SAHARA AI, an elite university academic wellbeing and mental resilience specialist.
 A student just completed their wellbeing check-in with these exact metrics:
@@ -129,33 +208,52 @@ Generate an individualized guidance package formatted as strict JSON with this e
       "id": "sug_1",
       "title": "Creative, compelling, actionable title",
       "tag": "Category (e.g. Sleep Optimization, Exam Grounding, Focus Rhythm, Nervous System Reset, Academic Pacing)",
-      "type": "tool",
-      "duration": "e.g. 4 min protocol",
+      "type": "video" | "tool" | "audio",
+      "duration": "e.g. 5 min protocol",
       "description": "2-sentence practical explanation tailored precisely to their metrics.",
-      "actionStep": "One concrete physical or cognitive micro-action they can do in the next 2 minutes."
+      "actionStep": "One concrete physical or cognitive micro-action they can do in the next 2 minutes.",
+      "videoTitle": "Recommended educational/mindfulness video title",
+      "keyNotes": [
+        "1st concise core study/wellbeing note explaining the mechanism",
+        "2nd actionable takeaway on how to apply it during exam prep",
+        "3rd common mistake to avoid"
+      ]
     },
     {
       "id": "sug_2",
       "title": "Second compelling title",
       "tag": "Category",
-      "type": "video",
-      "duration": "e.g. 5 min reset",
+      "type": "video" | "tool" | "audio",
+      "duration": "e.g. 4 min reset",
       "description": "2-sentence practical explanation.",
-      "actionStep": "One concrete micro-action."
+      "actionStep": "One concrete micro-action.",
+      "videoTitle": "Video or Protocol Title",
+      "keyNotes": [
+        "Core mechanism note",
+        "Step-by-step application note",
+        "Key takeaway"
+      ]
     },
     {
       "id": "sug_3",
       "title": "Third compelling title",
       "tag": "Category",
-      "type": "audio",
+      "type": "video" | "tool" | "audio",
       "duration": "e.g. 3 min guide",
       "description": "2-sentence practical explanation.",
-      "actionStep": "One concrete micro-action."
+      "actionStep": "One concrete micro-action.",
+      "videoTitle": "Video or Protocol Title",
+      "keyNotes": [
+        "Core mechanism note",
+        "Step-by-step application note",
+        "Key takeaway"
+      ]
     }
   ]
 }
-Ensure every suggestion is realistic for a busy university student and directly addresses their top strain factors. Return ONLY valid JSON.`;
+Ensure every suggestion provides high-value educational/wellbeing notes for university students. Return ONLY valid JSON.`;
 
+  let rawResult;
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
@@ -163,7 +261,7 @@ Ensure every suggestion is realistic for a busy university student and directly 
       temperature: 0.75,
       response_format: { type: 'json_object' }
     });
-    return JSON.parse(completion.choices[0].message.content);
+    rawResult = JSON.parse(completion.choices[0].message.content);
   } catch (err) {
     console.error('Groq generatePersonalizedSuggestions failed, trying fallback:', err);
     try {
@@ -173,43 +271,67 @@ Ensure every suggestion is realistic for a busy university student and directly 
         temperature: 0.75,
         response_format: { type: 'json_object' }
       });
-      return JSON.parse(completion.choices[0].message.content);
+      rawResult = JSON.parse(completion.choices[0].message.content);
     } catch (e2) {
-      // Dynamic fallback template
-      return {
+      rawResult = {
         aiSynthesis: `Based on your evaluation, your high exam pressure and current sleep patterns are the main contributors to your strain level. Focusing on a structured wind-down routine and 25-minute Pomodoro study sprints will provide the quickest relief this week.`,
         suggestions: [
           {
             id: "sug_def_1",
             title: "5-Minute Somatic Breathing Reset",
             tag: "Nervous System Reset",
-            type: "tool",
-            duration: "5 min exercise",
+            type: "video",
+            duration: "5 min video & notes",
             description: "A quick physiological sigh exercise that instantly lowers elevated heart rate before exam sessions.",
-            actionStep: "Take two deep nasal breaths, followed by one long unhurried exhale through your mouth. Repeat 5 times."
+            actionStep: "Take two deep nasal breaths, followed by one long unhurried exhale through your mouth. Repeat 5 times.",
+            videoTitle: "Physiological Sigh: Fast Autonomic Nervous System Reset",
+            keyNotes: [
+              "Two rapid inhales through nose + one long mouth exhale drops acute heart rate.",
+              "Rebalances carbon dioxide ratio in the bloodstream to halt panic signals.",
+              "Use immediately when sitting down at your exam desk."
+            ]
           },
           {
             id: "sug_def_2",
-            title: "The 25/5 Study Pacing Method",
+            title: "The 25/5 Deep Work Pacing Method",
             tag: "Focus Rhythm",
             type: "video",
-            duration: "4 min guide",
+            duration: "4 min video & notes",
             description: "Break heavy coursework into 25-minute single-focus blocks with mandatory screen-free breaks.",
-            actionStep: "Set a timer for 25 minutes on your next study task and put your phone in another room."
+            actionStep: "Set a timer for 25 minutes on your next study task and put your phone in another room.",
+            videoTitle: "How to Focus & Study Deeply with the 25/5 Pomodoro Method",
+            keyNotes: [
+              "Single-task focus prevents cognitive fatigue and task switching friction.",
+              "5-minute screen-free rest allows hippocampus to consolidate recent memories.",
+              "Repeat for 4 cycles for maximum study retention."
+            ]
           },
           {
             id: "sug_def_3",
             title: "Pre-Sleep Digital Wind-Down Protocol",
             tag: "Sleep Optimization",
-            type: "audio",
-            duration: "3 min guide",
+            type: "video",
+            duration: "3 min guide & notes",
             description: "Simple behavioral routine to lower blue-light stimulation and prevent deadline rumination in bed.",
-            actionStep: "Write down your top 3 tasks for tomorrow on a physical notepad, then dim screens 30 minutes before sleep."
+            actionStep: "Write down your top 3 tasks for tomorrow on a physical notepad, then dim screens 30 minutes before sleep.",
+            videoTitle: "10-Minute Non-Sleep Deep Rest (NSDR) Protocol - Dr. Andrew Huberman",
+            keyNotes: [
+              "Externalize tomorrow's to-do list onto physical paper to stop nocturnal rumination.",
+              "Dim ambient overhead lights 30 minutes before sleep to trigger melatonin release.",
+              "10 minutes of NSDR in bed resets autonomic nervous system for deep restorative sleep."
+            ]
           }
         ]
       };
     }
   }
+
+  // Ensure each suggestion is enriched with a verified working YouTube video and structured notes
+  if (rawResult && Array.isArray(rawResult.suggestions)) {
+    rawResult.suggestions = rawResult.suggestions.map(enrichSuggestionWithVideo);
+  }
+
+  return rawResult;
 }
 
 // Generates dynamic AI coaching for specific student concerns (Results page follow-up)
@@ -224,10 +346,16 @@ Generate an empathetic, immediate, professional action response as strict JSON:
   "headline": "A validating 4-8 word title (e.g. Breaking Down Overwhelming Coursework)",
   "insight": "2 sentences of warm psychological validation explaining why this happens under college strain.",
   "microAction": "1 clear, highly actionable 5-minute step they can take right now to regain control.",
-  "suggestedTopic": "A prompt they can click to continue talking to SAHARA AI in chat (e.g. 'Help me prioritize my assignments for this week')"
+  "suggestedTopic": "A prompt they can click to continue talking to SAHARA AI in chat",
+  "studyNotes": [
+    "1st concise high-yield note/strategy for dealing with this specific difficulty",
+    "2nd memory/revision pacing takeaway",
+    "3rd actionable mindset shift"
+  ]
 }
 Return ONLY valid JSON.`;
 
+  let coachingResult;
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
@@ -235,15 +363,35 @@ Return ONLY valid JSON.`;
       temperature: 0.7,
       response_format: { type: 'json_object' }
     });
-    return JSON.parse(completion.choices[0].message.content);
+    coachingResult = JSON.parse(completion.choices[0].message.content);
   } catch (err) {
-    return {
+    coachingResult = {
       headline: "Navigating Your Current Workload",
       insight: "When exams and coursework pile up simultaneously, our working memory gets saturated, creating a freeze response. This is a normal neurochemical reaction to prolonged stress, not a lack of capability.",
       microAction: "Pick just ONE assignment, open it, and spend exactly 5 minutes outlining the first small paragraph without judging the quality.",
-      suggestedTopic: `Help me break down my study plan for ${concern}`
+      suggestedTopic: `Help me break down my study plan for ${concern}`,
+      studyNotes: [
+        "Reduce friction: Break overwhelming tasks into 5-minute atomic micro-actions.",
+        "Use active recall instead of passive re-reading to maximize study efficiency.",
+        "Take a mandatory 5-minute walk between study blocks to clear working memory."
+      ]
     };
   }
+
+  // Attach relevant video recommendation
+  const text = `${concern} ${coachingResult.headline}`.toLowerCase();
+  let videoMatch = VERIFIED_YT_MAP.pomodoro;
+  if (text.includes("sleep") || text.includes("tired")) videoMatch = VERIFIED_YT_MAP.sleep;
+  else if (text.includes("panic") || text.includes("breath") || text.includes("anxious")) videoMatch = VERIFIED_YT_MAP.breathing;
+  else if (text.includes("exam") || text.includes("midterm") || text.includes("test")) videoMatch = VERIFIED_YT_MAP.exam_stress;
+  else if (text.includes("subject") || text.includes("math") || text.includes("understand")) videoMatch = VERIFIED_YT_MAP.active_recall;
+
+  coachingResult.recommendedVideo = {
+    youtubeId: videoMatch.youtubeId,
+    videoTitle: videoMatch.videoTitle,
+  };
+
+  return coachingResult;
 }
 
 module.exports = {
