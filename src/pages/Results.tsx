@@ -124,8 +124,35 @@ const defaultData: CheckInData = {
   isAiPredicted: true,
 } as unknown as CheckInData
 
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+
 export default function Results({ data, onNavigate }: ResultsProps) {
-  const d = data || defaultData
+  const [serverData, setServerData] = useState<any>(null)
+  const [dbResources, setDbResources] = useState<VettedResource[]>([])
+
+  useEffect(() => {
+    // If no direct data passed from immediate check-in, load latest from GET /api/results/latest
+    if (!data) {
+      fetch(`${API_BASE}/api/results/latest`, { credentials: 'include' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((row) => {
+          if (row) {
+            setServerData({
+              id: row.id,
+              riskScore: Number(row.overall_wellbeing),
+              anxietyRisk: Number(row.anxiety_signal),
+              dropoutRisk: Number(row.academic_strain),
+              riskLevel: row.risk_level,
+              factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
+              timestamp: row.created_at,
+            })
+          }
+        })
+        .catch((err) => console.warn('Could not fetch latest result:', err))
+    }
+  }, [data])
+
+  const d = data || serverData || defaultData
   const risk = (d.riskLevel || 'high').toLowerCase() as 'low' | 'medium' | 'high'
 
   const riskColor = risk === 'high' ? '#EA580C' : risk === 'medium' ? '#D97706' : '#16A34A'
@@ -137,8 +164,32 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
   const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
 
-  // TODO: replace with real API call to /api/resources?factor=X
-  const actionableResources: VettedResource[] = getResourcesForFactors(factors, 3)
+  const resultId = (d as any).id
+
+  useEffect(() => {
+    if (resultId) {
+      fetch(`${API_BASE}/api/results/${resultId}/resources`, { credentials: 'include' })
+        .then((res) => (res.ok ? res.json() : []))
+        .then((items: any[]) => {
+          if (Array.isArray(items) && items.length > 0) {
+            const mapped: VettedResource[] = items.map((it: any) => ({
+              id: it.id,
+              title: it.title,
+              description: it.description,
+              type: (it.resource_type || 'article') as any,
+              link: it.url,
+              tag: it.factor_key?.replace(/_/g, ' ') || 'Focus',
+              readTime: it.resource_type === 'video' ? '5 min watch' : '4 min read',
+            }))
+            setDbResources(mapped)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [resultId])
+
+  const actionableResources: VettedResource[] =
+    dbResources.length > 0 ? dbResources : getResourcesForFactors(factors, 3)
 
   // Conversational follow-up state (Part 3)
   const primaryConcern = factors[0] || 'academic strain'
@@ -154,7 +205,6 @@ export default function Results({ data, onNavigate }: ResultsProps) {
     'Feeling isolated or unsupported',
   ]
 
-  // TODO: replace this canned response logic with a real call to the AI backend once available
   const handleFollowupSelect = (chipText: string) => {
     setIsSubmittingFollowup(true)
     setFollowupInput(chipText)

@@ -86,16 +86,10 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleOAuth = async (provider: 'google' | 'github') => {
+  const handleOAuth = (provider: 'google' | 'github') => {
     setError('')
     setSubmitting(true)
-    const result = await loginWithOAuth(provider)
-    setSubmitting(false)
-    if (result.ok) {
-      onSuccess()
-    } else {
-      setError(result.error || `Could not sign in with ${provider}.`)
-    }
+    loginWithOAuth(provider)
   }
 
   return (

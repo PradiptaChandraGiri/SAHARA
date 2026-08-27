@@ -21,35 +21,41 @@ interface AdminDashboardProps {
   onNavigate: (page: Page) => void
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const [stats, setStats] = useState<any>(null)
+  const [systemHealth, setSystemHealth] = useState<any>(null)
+  const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [usersList, setUsersList] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'trends' | 'users' | 'system' | 'audit'>('trends')
   const [isLoading, setIsLoading] = useState(true)
-  const [roleUpdating, setRoleUpdating] = useState<string | null>(null)
   const [searchUser, setSearchUser] = useState('')
+  const [roleUpdating, setRoleUpdating] = useState<string | null>(null)
 
   const fetchAdminData = async () => {
     setIsLoading(true)
     try {
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
       // 1. Fetch aggregate statistics
-      const statsRes = await fetch(`${API_BASE}/admin/stats`, { headers })
+      const statsRes = await fetch(`${API_BASE}/api/admin/stats`, { credentials: 'include' })
       if (statsRes.ok) {
         const statsData = await statsRes.json()
         setStats(statsData)
       }
 
-      // 2. Fetch users list
-      const usersRes = await fetch(`${API_BASE}/admin/users`, { headers })
-      if (usersRes.ok) {
-        const uData = await usersRes.json()
-        setUsersList(uData.users || [])
+      // 2. Fetch real system health
+      const healthRes = await fetch(`${API_BASE}/api/admin/system-health`, { credentials: 'include' })
+      if (healthRes.ok) {
+        const healthData = await healthRes.json()
+        setSystemHealth(healthData)
+      }
+
+      // 3. Fetch real audit log
+      const auditRes = await fetch(`${API_BASE}/api/admin/audit-log`, { credentials: 'include' })
+      if (auditRes.ok) {
+        const auditData = await auditRes.json()
+        setAuditLogs(Array.isArray(auditData) ? auditData : [])
       }
     } catch (err) {
       console.warn('Error loading admin analytics:', err)
@@ -60,7 +66,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
   useEffect(() => {
     fetchAdminData()
-  }, [token])
+  }, [user])
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setRoleUpdating(userId)
@@ -371,37 +377,47 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               System Integration &amp; Webhook Diagnostics
             </h3>
             <p style={{ fontSize: 13.5, color: 'var(--ink-500)', marginBottom: 20 }}>
-              Live connection status for external messaging and AI provider APIs.
+              Live connection status for external messaging, database, and AI provider APIs.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
                 <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Random Forest Model Service</p>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>FastAPI dual-lens inference engine</p>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: systemHealth?.modelService?.status === 'ok' ? 'var(--sage-600)' : 'var(--amber-600)', background: systemHealth?.modelService?.status === 'ok' ? 'var(--sage-100)' : 'var(--amber-100)', padding: '4px 10px', borderRadius: 6 }}>
+                  {systemHealth?.modelService?.status === 'ok' ? `🟢 Active (${systemHealth.modelService.responseMs}ms)` : '🟡 Standby / Direct Scoring'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Google Gemini Generative AI (Server-Side)</p>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /api/chat (API key protected)</p>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: systemHealth?.geminiConfigured ? 'var(--sage-600)' : 'var(--coral-600)', background: systemHealth?.geminiConfigured ? 'var(--sage-100)' : 'var(--coral-100)', padding: '4px 10px', borderRadius: 6 }}>
+                  {systemHealth?.geminiConfigured ? '🟢 Connected' : '🔴 Missing Key'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Twilio WhatsApp Webhook Endpoint</p>
-                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /whatsapp-webhook (Content API + TwiML v2)</p>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /whatsapp-webhook (+1 415 523 8886)</p>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sage-600)', background: 'var(--sage-100)', padding: '4px 10px', borderRadius: 6 }}>
-                  🟢 Connected (+1 415 523 8886)
+                <span style={{ fontSize: 12, fontWeight: 700, color: systemHealth?.twilioConfigured ? 'var(--sage-600)' : 'var(--coral-600)', background: systemHealth?.twilioConfigured ? 'var(--sage-100)' : 'var(--coral-100)', padding: '4px 10px', borderRadius: 6 }}>
+                  {systemHealth?.twilioConfigured ? '🟢 Connected' : '🔴 Unconfigured'}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Google Gemini 2.0 Generative AI Proxy</p>
-                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>POST /ai-support/chat (Key Protected Server-Side)</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>Neon PostgreSQL Cloud Database</p>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>Serverless PostgreSQL pool with SSL</p>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sage-600)', background: 'var(--sage-100)', padding: '4px 10px', borderRadius: 6 }}>
-                  🟢 Active (gemini-2.0-flash)
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', margin: 0 }}>SQLite Clinical Database (sahara.db)</p>
-                  <p style={{ fontSize: 12.5, color: 'var(--ink-400)', margin: 0, fontFamily: 'var(--font-mono)' }}>storage/sahara.db (Users &amp; Assessments Tables)</p>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sage-600)', background: 'var(--sage-100)', padding: '4px 10px', borderRadius: 6 }}>
-                  🟢 Synced
+                <span style={{ fontSize: 12, fontWeight: 700, color: systemHealth?.databaseConfigured ? 'var(--sage-600)' : 'var(--coral-600)', background: systemHealth?.databaseConfigured ? 'var(--sage-100)' : 'var(--coral-100)', padding: '4px 10px', borderRadius: 6 }}>
+                  {systemHealth?.databaseConfigured ? '🟢 Online (Neon DB)' : '🔴 Disconnected'}
                 </span>
               </div>
             </div>
@@ -415,28 +431,33 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               Student Privacy &amp; Access Audit Trail
             </h3>
             <p style={{ fontSize: 13.5, color: 'var(--ink-500)', marginBottom: 20 }}>
-              Immutable audit log of staff access to student cases for compliance with data protection standards.
+              Immutable audit log of staff access to student records for compliance with data protection standards.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { actor: 'Dr. Ananya Roy (Counselor)', action: 'Viewed Case & Logged Notes', target: 'STU-B4C291', time: '14 mins ago' },
-                { actor: 'Dr. Vikram Sen (Counselor)', action: 'Updated Status to Contacted', target: 'STU-9A10F3', time: '1 hour ago' },
-                { actor: 'Dean Sharma (Admin)', action: 'Generated Monthly Analytics Report', target: 'Population Aggregate', time: '3 hours ago' },
-                { actor: 'System Worker', action: 'Executed Automated Dual-Lens Triage', target: 'Batch 44 Intake', time: '5 hours ago' },
-              ].map((log, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--slate-50)', borderRadius: 8, fontSize: 13 }}>
-                  <div>
-                    <span style={{ fontWeight: 700, color: 'var(--ink-900)' }}>{log.actor}</span>
-                    <span style={{ color: 'var(--ink-500)', margin: '0 8px' }}>—</span>
-                    <span style={{ color: 'var(--navy-700)' }}>{log.action}</span>
-                    <span style={{ marginLeft: 8, fontFamily: 'var(--font-mono)', fontSize: 11.5, background: 'var(--slate-100)', padding: '2px 6px', borderRadius: 4 }}>
-                      {log.target}
+              {auditLogs.length > 0 ? (
+                auditLogs.map((log, idx) => (
+                  <div key={log.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--slate-50)', borderRadius: 8, fontSize: 13 }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: 'var(--ink-900)' }}>{log.actor_name || 'Staff Member'}</span>
+                      <span style={{ color: 'var(--ink-500)', margin: '0 8px' }}>—</span>
+                      <span style={{ color: 'var(--navy-700)' }}>{log.action}</span>
+                      {log.target_id && (
+                        <span style={{ marginLeft: 8, fontFamily: 'var(--font-mono)', fontSize: 11.5, background: 'var(--slate-100)', padding: '2px 6px', borderRadius: 4 }}>
+                          {log.target_id}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: 'var(--ink-400)', fontSize: 12 }}>
+                      {log.created_at ? new Date(log.created_at).toLocaleString() : 'Recent'}
                     </span>
                   </div>
-                  <span style={{ color: 'var(--ink-400)', fontSize: 12 }}>{log.time}</span>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--ink-400)', fontSize: 13.5 }}>
+                  No audit log entries recorded yet. Staff actions (e.g. viewing student cases or taking notes) will appear here.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}

@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function WhatsAppSupport() {
   const [chatMessages, setChatMessages] = useState<Array<{ from: 'user' | 'bot'; text: string }>>([

@@ -25,30 +25,51 @@ interface StudentDashboardProps {
   lastCheckInData: CheckInData | null
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function StudentDashboard({ onNavigate, lastCheckInData }: StudentDashboardProps) {
-  const { user, token } = useAuth()
+  const { user } = useAuth()
   const [latestAssessment, setLatestAssessment] = useState<any>(null)
+  const [dbSuggestion, setDbSuggestion] = useState<VettedResource | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchLatest = async () => {
       setIsLoading(true)
       try {
-        const headers: Record<string, string> = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-
-        const url = user?.id
-          ? `${API_BASE}/assessments?student_id=${user.id}&limit=1`
-          : `${API_BASE}/assessments?limit=1`
-
-        const res = await fetch(url, { headers })
+        const res = await fetch(`${API_BASE}/api/results/latest`, {
+          credentials: 'include',
+        })
         if (res.ok) {
-          const data = await res.json()
-          if (data.assessments && data.assessments.length > 0) {
-            setLatestAssessment(data.assessments[0])
+          const row = await res.json()
+          setLatestAssessment({
+            id: row.id,
+            riskLevel: row.risk_level,
+            overall_wellbeing: Number(row.overall_wellbeing),
+            anxiety_signal: Number(row.anxiety_signal),
+            academic_strain: Number(row.academic_strain),
+            timestamp: row.created_at,
+            factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
+          })
+
+          // Fetch real curated resources for the week
+          const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include' })
+          if (resRes.ok) {
+            const resources = await resRes.json()
+            if (Array.isArray(resources) && resources.length > 0) {
+              setDbSuggestion({
+                id: resources[0].id,
+                title: resources[0].title,
+                description: resources[0].description,
+                type: (resources[0].resource_type || 'video') as any,
+                link: resources[0].url,
+                tag: resources[0].factor_key?.replace(/_/g, ' ') || 'Focus',
+                readTime: resources[0].resource_type === 'video' ? '5 min watch' : '4 min read',
+              })
+            }
           }
+        } else if (res.status === 404) {
+          setLatestAssessment(null)
         }
       } catch (err) {
         console.warn('Could not fetch student assessment history:', err)
@@ -58,7 +79,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
     }
 
     fetchLatest()
-  }, [user, token])
+  }, [user])
 
   const activeData = lastCheckInData || latestAssessment
   const hasCompletedCheckIn = !!activeData
@@ -112,9 +133,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
       ? JSON.parse(activeData.top_factors || '[]')
       : ['High exam pressure', 'Low sleep hours'])
 
-  // TODO: replace with real API call to /api/recommendations/weekly
   const weeklySuggestions: VettedResource[] = getResourcesForFactors(factors, 1)
-  const weeklySuggestion = weeklySuggestions[0]
+  const weeklySuggestion = dbSuggestion || weeklySuggestions[0]
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 36px 80px' }}>

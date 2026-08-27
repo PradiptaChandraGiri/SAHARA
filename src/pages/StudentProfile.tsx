@@ -24,15 +24,16 @@ interface StudentProfileProps {
   onUpdateStatus: (id: string, status: string) => void
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function StudentProfile({
   studentId,
   onNavigate,
   onUpdateStatus,
 }: StudentProfileProps) {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const [assessment, setAssessment] = useState<any>(null)
+  const [caseNotesHistory, setCaseNotesHistory] = useState<any[]>([])
   const [status, setStatus] = useState<'New' | 'In progress' | 'Contacted'>('New')
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -47,43 +48,51 @@ export default function StudentProfile({
       }
       setIsLoading(true)
       try {
-        const headers: Record<string, string> = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-
-        const res = await fetch(`${API_BASE}/assessments/${studentId}`, { headers })
+        const res = await fetch(`${API_BASE}/api/counselor/students/${studentId}`, {
+          credentials: 'include',
+        })
         if (res.ok) {
           const data = await res.json()
-          setAssessment(data)
-          setStatus(data.status || 'New')
-          setNotes(data.notes || '')
+          const latest = data.history?.[0]
+          if (latest) {
+            setAssessment({
+              student_name: latest.display_name || 'Student',
+              student_id: studentId,
+              risk_tier: latest.risk_level === 'high' ? 'High' : latest.risk_level === 'moderate' ? 'Medium' : 'Low',
+              combined_score: Number(latest.overall_wellbeing) / 100,
+              anxiety_score: (Number(latest.anxiety_signal) / 100) * 10,
+              dropout_probability: Number(latest.academic_strain) / 100,
+              top_factors: latest.contributing_factors || [],
+              timestamp: latest.created_at,
+            })
+          }
+          setCaseNotesHistory(data.notes || [])
         }
       } catch (err) {
-        console.warn('Error fetching single assessment:', err)
+        console.warn('Error fetching student case:', err)
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchAssessment()
-  }, [studentId, token])
+  }, [studentId])
 
   const handleSaveStatus = async (newStatus: 'New' | 'In progress' | 'Contacted') => {
     setIsSaving(true)
     setStatus(newStatus)
     onUpdateStatus(studentId, newStatus)
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      await fetch(`${API_BASE}/assessments/${studentId}/status`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status: newStatus, notes }),
+      await fetch(`${API_BASE}/api/counselor/students/${studentId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus.toLowerCase(), note: notes || `Status updated to ${newStatus}` }),
       })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err) {
-      console.warn('Error updating status:', err)
+      console.warn('Error saving case note:', err)
     } finally {
       setIsSaving(false)
     }

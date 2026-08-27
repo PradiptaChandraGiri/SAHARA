@@ -25,14 +25,14 @@ interface CounselorDashboardProps {
 
 type UrgencyFilter = 'all' | 'high' | 'medium' | 'low' | 'new' | 'contacted'
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function CounselorDashboard({
   onNavigate,
   onSelectStudent,
   studentStatuses,
 }: CounselorDashboardProps) {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const [assessments, setAssessments] = useState<any[]>([])
   const [adminStats, setAdminStats] = useState<any>(null)
   const [filter, setFilter] = useState<UrgencyFilter>('all')
@@ -43,24 +43,29 @@ export default function CounselorDashboard({
   const fetchDashboardData = async () => {
     setIsLoading(true)
     try {
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      // Fetch assessments
-      const assessRes = await fetch(`${API_BASE}/assessments?limit=100`, { headers })
-      if (assessRes.ok) {
-        const assessData = await assessRes.json()
-        setAssessments(assessData.assessments || [])
-      }
-
-      // Fetch aggregate stats
-      const statsRes = await fetch(`${API_BASE}/admin/stats`, { headers })
-      if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setAdminStats(statsData)
+      // Fetch real counselor triage queue
+      const res = await fetch(`${API_BASE}/api/counselor/queue`, {
+        credentials: 'include',
+      })
+      if (res.ok) {
+        const rows = await res.json()
+        const mapped = Array.isArray(rows)
+          ? rows.map((r: any) => ({
+              id: r.user_id,
+              student_id: r.user_id,
+              student_name: r.display_name || 'Student',
+              risk_tier: r.risk_level === 'high' ? 'High' : r.risk_level === 'moderate' ? 'Medium' : 'Low',
+              combined_score: Number(r.overall_wellbeing) / 100,
+              anxiety_score: (Number(r.overall_wellbeing) / 100) * 10,
+              top_factors: r.contributing_factors || [],
+              timestamp: r.created_at,
+              status: studentStatuses[r.user_id] || 'New',
+            }))
+          : []
+        setAssessments(mapped)
       }
     } catch (err) {
-      console.warn('Counselor dashboard error:', err)
+      console.warn('Counselor dashboard queue error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -68,7 +73,7 @@ export default function CounselorDashboard({
 
   useEffect(() => {
     fetchDashboardData()
-  }, [token])
+  }, [user])
 
   // Urgency score helper: High=3, Medium=2, Low=1
   const getUrgencyWeight = (tier: string = 'Low') => {

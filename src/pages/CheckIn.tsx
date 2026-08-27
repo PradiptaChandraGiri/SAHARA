@@ -268,37 +268,57 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
     let resultData: CheckInData | null = null
 
     try {
-      const apiUrl = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
       const savedToken = localStorage.getItem('sahara_token')
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
-      const res = await fetch(`${apiUrl}/assess`, {
+      const res = await fetch(`${apiUrl}/api/checkins`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(payload),
+        credentials: 'include',
+        body: JSON.stringify({
+          age: Number(form.age) || 20,
+          gender: form.gender === 'female' ? 'Female' : form.gender === 'male' ? 'Male' : 'Non-binary',
+          academic_year: parseInt(form.year) || 2,
+          department: form.department || 'General Studies',
+          sleep_hours: Number(form.sleepHours) || 6.0,
+          study_hours_per_day: Number(form.studyHours) || 4.0,
+          exam_pressure: Number(form.examPressure) ?? 5,
+          academic_performance: Number(form.attendance) || 75.0,
+          stress_level: Number(form.stressLevel) ?? 6,
+          physical_activity: form.physicalActivity === 'daily' ? 5 : form.physicalActivity === 'often' ? 3 : 1,
+          social_support: Number(form.socialSupport) ?? 5,
+          screen_time: Number(form.screenTime) || 4.0,
+          internet_usage: Math.max(1, (Number(form.screenTime) || 4) - 2),
+          financial_stress: form.financialStress === 'high' ? 8 : form.financialStress === 'medium' ? 5 : 2,
+          family_expectation: form.familyExpectations === 'very-high' ? 9 : form.familyExpectations === 'high' ? 7 : 4,
+        }),
       })
 
       if (res.ok) {
-        const data = await res.json()
-        const tierLower = (data.risk_tier || 'low').toLowerCase() as 'low' | 'medium' | 'high'
-        const riskScore = Math.round(data.combined_score * 100)
-        const anxietyRisk = Math.round((data.anxiety_score / 10) * 100)
-        const dropoutRisk = Math.round(data.dropout_probability * 100)
+        const row = await res.json()
+        const tierLower = (row.risk_level || 'low').toLowerCase() as 'low' | 'medium' | 'high'
+        const riskScore = Number(row.overall_wellbeing)
+        const anxietyRisk = Number(row.anxiety_signal)
+        const dropoutRisk = Number(row.academic_strain)
 
         resultData = {
           ...form,
+          id: row.id,
           riskScore,
           riskLevel: tierLower,
           anxietyRisk,
           dropoutRisk,
           isAiPredicted: true,
-          factors: data.top_factors && data.top_factors.length > 0 ? data.top_factors : computeRisk().factors,
-          timestamp: new Date().toISOString(),
+          factors: row.contributing_factors && row.contributing_factors.length > 0
+            ? row.contributing_factors.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()))
+            : computeRisk().factors,
+          timestamp: row.created_at || new Date().toISOString(),
         } as CheckInData
       }
     } catch (err) {
-      console.warn('Backend /assess unavailable, using local model fallback:', err)
+      console.warn('Backend /api/checkins failed, using local model fallback:', err)
     }
 
     setTimeout(() => {

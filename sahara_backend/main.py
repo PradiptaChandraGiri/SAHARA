@@ -67,6 +67,12 @@ app.add_middleware(
 app.include_router(whatsapp_router)
 
 
+@app.get("/")
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "sahara-ml-model-engine"}
+
+
 # ============================================================
 # Schemas
 # ============================================================
@@ -332,6 +338,7 @@ def health_check():
     }
 
 
+@app.post("/predict")
 @app.post("/assess", response_model=AssessmentResponse)
 def assess(intake: StudentIntake, current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)):
     """Run dual-model early-warning assessment and store result."""

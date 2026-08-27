@@ -25,7 +25,6 @@ interface Message {
   inlineResource?: VettedResource
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://sahara-951p.onrender.com').replace(/\/$/, '')
 
 const promptChips = [
   'I feel overwhelmed with upcoming exams.',
@@ -47,6 +46,8 @@ function getResourceIcon(type?: VettedResource['type']) {
   }
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+
 export default function AISupport() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -60,6 +61,26 @@ export default function AISupport() {
   const [isTyping, setIsTyping] = useState(false)
   const [showCrisisBanner, setShowCrisisBanner] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Load chat history from backend on page open
+  useEffect(() => {
+    fetch(`${API_BASE}/api/chat/history`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((history: any[]) => {
+        if (Array.isArray(history) && history.length > 0) {
+          const loaded: Message[] = history.map((item, idx) => ({
+            id: idx + 10,
+            from: item.role === 'assistant' ? 'ai' : 'user',
+            text: item.content,
+            time: item.created_at
+              ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : 'Earlier',
+          }))
+          setMessages(loaded)
+        }
+      })
+      .catch((err) => console.warn('Could not load chat history:', err))
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -92,27 +113,21 @@ export default function AISupport() {
       setShowCrisisBanner(true)
     }
 
-    // Match potential inline resource from mock resource library (Part 5)
-    // TODO: replace with real AI tool execution to fetch dynamic resources
     const matchedResources = getResourcesForFactors([messageText], 1)
     const inlineRes = matchedResources.length > 0 ? matchedResources[0] : undefined
 
     try {
-      const history = messages.map((m) => ({
-        role: m.from === 'user' ? 'user' : 'model',
-        content: m.text,
-      }))
-
-      const res = await fetch(`${API_BASE}/ai-support/chat`, {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText, conversation_history: history }),
+        credentials: 'include',
+        body: JSON.stringify({ message: messageText }),
       })
 
       if (res.ok) {
         const data = await res.json()
         const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        if (data.is_crisis) {
+        if (data.flaggedCrisis) {
           setShowCrisisBanner(true)
         }
         setMessages((prev) => [
@@ -120,9 +135,9 @@ export default function AISupport() {
           {
             id: Date.now() + 1,
             from: 'ai',
-            text: data.response,
+            text: data.text || data.response,
             time: aiTime,
-            isCrisis: data.is_crisis,
+            isCrisis: Boolean(data.flaggedCrisis),
             inlineResource: inlineRes,
           },
         ])

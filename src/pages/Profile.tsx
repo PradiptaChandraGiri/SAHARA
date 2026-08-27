@@ -34,15 +34,26 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const fetchHistory = async () => {
     setIsLoading(true)
     try {
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      const url = user?.id ? `${API_BASE}/assessments?student_id=${user.id}` : `${API_BASE}/assessments?limit=15`
-
-      const res = await fetch(url, { headers })
+      const res = await fetch(`${API_BASE}/api/results/history`, {
+        credentials: 'include',
+      })
       if (res.ok) {
-        const data = await res.json()
-        setHistory(data.assessments || [])
+        const rows = await res.json()
+        const mapped = Array.isArray(rows)
+          ? rows.map((r: any, idx: number) => ({
+              id: r.id || idx,
+              overall_wellbeing: Number(r.overall_wellbeing || 0),
+              anxiety_signal: Number(r.anxiety_signal || 0),
+              academic_strain: Number(r.academic_strain || 0),
+              combined_score: Number(r.overall_wellbeing || 0) / 100,
+              anxiety_score: (Number(r.anxiety_signal || 0) / 100) * 10,
+              dropout_probability: Number(r.academic_strain || 0) / 100,
+              risk_tier: r.risk_level || 'low',
+              risk_level: r.risk_level || 'low',
+              timestamp: r.created_at,
+            }))
+          : []
+        setHistory(mapped)
       }
     } catch (err) {
       console.warn('Error fetching profile check-in history:', err)
@@ -53,20 +64,18 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
   useEffect(() => {
     fetchHistory()
-  }, [user, token])
+  }, [user])
 
   const handleDownloadData = async () => {
     setExporting(true)
     try {
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      const res = await fetch(`${API_BASE}/student/export-data`, { headers })
+      const res = await fetch(`${API_BASE}/api/me/export`, {
+        credentials: 'include',
+      })
       let exportPayload: any
       if (res.ok) {
         exportPayload = await res.json()
       } else {
-        // Fallback in-memory export
         exportPayload = {
           exported_at: new Date().toISOString(),
           user: user || { role: 'student' },
@@ -78,7 +87,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `sahara-my-data-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `my_sahara_data.json`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
@@ -90,23 +99,21 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
   const handleDeleteData = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to permanently delete all your check-in assessment records? This action cannot be undone.'
+      'This permanently deletes all your check-ins and results — are you sure?'
     )
     if (!confirmed) return
 
     setDeleting(true)
     try {
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      await fetch(`${API_BASE}/student/delete-data`, {
+      await fetch(`${API_BASE}/api/me`, {
         method: 'DELETE',
-        headers,
+        credentials: 'include',
       })
 
       setHistory([])
       setDeleteSuccess(true)
-      setTimeout(() => setDeleteSuccess(false), 5000)
+      await logout()
+      onNavigate('home')
     } catch (err) {
       console.error('Error deleting data:', err)
     } finally {
