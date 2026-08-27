@@ -21,7 +21,7 @@ interface AdminDashboardProps {
   onNavigate: (page: Page) => void
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+import { API_BASE } from '../config'
 
 export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const { user } = useAuth()

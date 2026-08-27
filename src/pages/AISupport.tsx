@@ -73,7 +73,7 @@ function getResourceIcon(type?: VettedResource['type']) {
   }
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+import { API_BASE } from '../config'
 
 export default function AISupport() {
   const [messages, setMessages] = useState<Message[]>(getInitialMessages)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Page, CheckInData } from '../App'
 import { ArrowLeft, Check, Lock, Sparkles, ChevronRight, Edit3, MessageSquare, Bot, AlertCircle, X } from 'lucide-react'
+import { API_BASE } from '../config'
 
 interface CheckInProps {
   onNavigate: (page: Page) => void
@@ -195,8 +196,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
     if (!freeTextSymptom.trim() || isParsingSymptom) return
     setIsParsingSymptom(true)
     try {
-      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
-      const res = await fetch(`${apiUrl}/api/checkins/parse-symptoms`, {
+      const res = await fetch(`${API_BASE}/api/checkins/parse-symptoms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ freeText: freeTextSymptom }),
@@ -255,12 +255,11 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
     }, 200)
 
     try {
-      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
       const savedToken = localStorage.getItem('sahara_token')
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
-      const res = await fetch(`${apiUrl}/api/checkins`, {
+      const res = await fetch(`${API_BASE}/api/checkins`, {
         method: 'POST',
         headers,
         credentials: 'include',
