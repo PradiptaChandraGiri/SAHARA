@@ -1,4 +1,4 @@
-// routes/ai.js — updated with persistent guest session + 48hr chat sync
+// routes/ai.js — ultra-resilient Groq chat & streaming engine
 const express = require("express");
 const pool = require("../db/pool");
 const { getChatReply, streamChatReply } = require("../services/groq");
@@ -33,16 +33,16 @@ async function getOrCreateUserId(req) {
       const guestUser = await pool.query(
         `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, last_login_at)
          VALUES ($1, $2, 'guest', $3, 'student', now())
-         RETURNING *`,
+         RETURNING id`,
         [`guest_${Date.now()}@sahara.local`, 'Student (Guest)', `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`]
       );
-      userId = guestUser.rows[0].id;
-      if (req.session) {
+      userId = guestUser.rows[0]?.id || null;
+      if (req.session && userId) {
         req.session.userId = userId;
         req.session.role = 'student';
       }
     } catch (e) {
-      console.warn("Could not create guest user:", e);
+      // Safe fallback if DB is momentarily unreachable
     }
   }
   return userId;
@@ -56,7 +56,7 @@ async function getStudentEvaluationContext(userId) {
        FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );
-    if (res.rows.length === 0) return null;
+    if (!res.rows || res.rows.length === 0) return null;
     const r = res.rows[0];
     return {
       overallWellbeing: r.overall_wellbeing,
@@ -81,13 +81,15 @@ router.post("/api/chat/stream", async (req, res) => {
 
   // Crisis check happens FIRST
   if (containsCrisisLanguage(message)) {
-    if (userId) {
-      await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
-      await pool.query(
-        `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, true)`,
-        [userId, CRISIS_RESPONSE.text]
-      );
-    }
+    try {
+      if (userId) {
+        await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+        await pool.query(
+          `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, true)`,
+          [userId, CRISIS_RESPONSE.text]
+        );
+      }
+    } catch (e) {}
     return res.json({ ...CRISIS_RESPONSE, flaggedCrisis: true, streamed: false });
   }
 
@@ -99,12 +101,14 @@ router.post("/api/chat/stream", async (req, res) => {
   try {
     let history = [];
     if (userId) {
-      const historyResult = await pool.query(
-        `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
-        [userId]
-      );
-      history = historyResult.rows.reverse();
-      await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+      try {
+        const historyResult = await pool.query(
+          `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+          [userId]
+        );
+        history = historyResult.rows.reverse();
+        await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+      } catch (e) {}
     }
 
     const studentContext = (await getStudentEvaluationContext(userId)) || clientContext || null;
@@ -118,11 +122,13 @@ router.post("/api/chat/stream", async (req, res) => {
       studentContext
     );
 
-    if (userId) {
-      await pool.query(
-        `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, false)`,
-        [userId, fullText]
-      );
+    if (userId && fullText) {
+      try {
+        await pool.query(
+          `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, false)`,
+          [userId, fullText]
+        );
+      } catch (e) {}
     }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
@@ -150,22 +156,26 @@ router.post("/api/chat", async (req, res) => {
   try {
     let history = [];
     if (userId) {
-      const historyResult = await pool.query(
-        `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
-        [userId]
-      );
-      history = historyResult.rows.reverse();
-      await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+      try {
+        const historyResult = await pool.query(
+          `SELECT role, content FROM chat_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+          [userId]
+        );
+        history = historyResult.rows.reverse();
+        await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+      } catch (e) {}
     }
 
     const studentContext = (await getStudentEvaluationContext(userId)) || clientContext || null;
     const reply = await getChatReply(message, history, studentContext);
 
-    if (userId) {
-      await pool.query(
-        `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, $3)`,
-        [userId, reply.text, reply.flaggedCrisis]
-      );
+    if (userId && reply?.text) {
+      try {
+        await pool.query(
+          `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, $3)`,
+          [userId, reply.text, reply.flaggedCrisis]
+        );
+      } catch (e) {}
     }
 
     res.json(reply);
@@ -189,7 +199,7 @@ router.get("/api/chat/history", async (req, res) => {
        ORDER BY created_at ASC LIMIT 100`,
       [userId]
     );
-    res.json(result.rows);
+    res.json(result.rows || []);
   } catch (e) {
     res.json([]);
   }

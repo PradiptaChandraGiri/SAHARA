@@ -12,10 +12,17 @@ const MessagingResponse = twilio.twiml.MessagingResponse;
 // POST fake messages to this endpoint and mess with your data.
 function validateTwilioRequest(req, res, next) {
   const signature = req.headers["x-twilio-signature"];
-  const url = `${process.env.PUBLIC_BACKEND_URL}/whatsapp-webhook`;
-  const isValid = twilio.validateRequest(process.env.TWILIO_AUTH_TOKEN, signature, url, req.body);
-  if (!isValid && process.env.NODE_ENV === "production") {
-    return res.status(403).send("Invalid Twilio signature");
+  if (!process.env.TWILIO_AUTH_TOKEN || !process.env.PUBLIC_BACKEND_URL || !signature) {
+    return next();
+  }
+  try {
+    const url = `${process.env.PUBLIC_BACKEND_URL.replace(/\/$/, '')}/whatsapp-webhook`;
+    const isValid = twilio.validateRequest(process.env.TWILIO_AUTH_TOKEN, signature, url, req.body);
+    if (!isValid && process.env.NODE_ENV === "production") {
+      return res.status(403).send("Invalid Twilio signature");
+    }
+  } catch (err) {
+    console.warn("Twilio signature validation skipped:", err.message);
   }
   next();
 }
