@@ -3,7 +3,7 @@ const express = require("express");
 const twilio = require("twilio");
 const pool = require("../db/pool");
 const { scoreCheckin } = require("../services/model");
-const { getChatReply } = require("../services/gemini");
+const { getChatReply } = require("../services/groq");
 
 const router = express.Router();
 const MessagingResponse = twilio.twiml.MessagingResponse;

@@ -116,54 +116,110 @@ export default function AISupport() {
     const matchedResources = getResourcesForFactors([messageText], 1)
     const inlineRes = matchedResources.length > 0 ? matchedResources[0] : undefined
 
+    const aiMsgId = Date.now() + 1
+    const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+    // Progressive streaming bubble
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: aiMsgId,
+        from: 'ai',
+        text: '',
+        time: aiTime,
+        isCrisis: isLocalCrisis,
+        inlineResource: inlineRes,
+      },
+    ])
+
     try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ message: messageText }),
       })
 
-      if (res.ok) {
-        const data = await res.json()
-        const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const data = await response.json()
         if (data.flaggedCrisis) {
           setShowCrisisBanner(true)
         }
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            from: 'ai',
-            text: data.text || data.response,
-            time: aiTime,
-            isCrisis: Boolean(data.flaggedCrisis),
-            inlineResource: inlineRes,
-          },
-        ])
-      } else {
-        throw new Error('API response not ok')
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiMsgId
+              ? {
+                  ...msg,
+                  text: data.text || data.response || 'Please reach out to our emergency support.',
+                  isCrisis: Boolean(data.flaggedCrisis),
+                }
+              : msg
+          )
+        )
+        return
       }
-    } catch (err) {
-      // Local graceful fallback if backend is offline
-      const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+      if (!response.body) throw new Error('Streaming not supported')
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let accumulatedText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+            if (data.chunk) {
+              accumulatedText += data.chunk
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg
+                )
+              )
+            }
+            if (data.error) {
+              throw new Error(data.error)
+            }
+            if (data.flaggedCrisis) {
+              setShowCrisisBanner(true)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiMsgId
+                    ? { ...msg, text: data.text, isCrisis: true }
+                    : msg
+                )
+              )
+            }
+          } catch (jsonErr) {
+            // ignore partial stream JSON parse errors
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('Streaming error, using fallback if empty:', err)
       let fallbackText =
         "I hear you. 💚 Academic pressure can feel intense, but breaking your tasks into 25-minute Pomodoro focus blocks with 5-minute screen-free breaks makes a meaningful difference. What subject feels most urgent right now?"
       if (isLocalCrisis) {
         fallbackText =
           "I hear how much pain you're in, and your safety is the #1 priority. Please connect with free, confidential 24/7 help right now: Call Tele-MANAS at 14416 or KIRAN at 1800-599-0019. You do not have to carry this alone. 💚"
       }
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          from: 'ai',
-          text: fallbackText,
-          time: aiTime,
-          isCrisis: isLocalCrisis,
-          inlineResource: inlineRes,
-        },
-      ])
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === aiMsgId && !msg.text
+            ? { ...msg, text: fallbackText }
+            : msg
+        )
+      )
     } finally {
       setIsTyping(false)
     }
