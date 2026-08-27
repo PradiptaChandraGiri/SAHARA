@@ -15,6 +15,7 @@ import {
   Headphones,
 } from 'lucide-react'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
+import ChatMessageText from '../components/ChatMessageText'
 
 interface Message {
   id: number
@@ -428,7 +429,7 @@ export default function AISupport() {
                   whiteSpace: 'pre-wrap',
                 }}
               >
-                {m.text}
+                <ChatMessageText text={m.text} />
 
                 {/* Inline Recommended Resource Card (Part 5) */}
                 {/* TODO: replace with real API call to /api/resources?factor=X */}
