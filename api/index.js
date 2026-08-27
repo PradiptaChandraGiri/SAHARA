@@ -1,18 +1,26 @@
 // api/index.js - Vercel Serverless Function entry point for SAHARA API
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
 const passport = require("passport");
 
-const authRoutes = require("../backend/routes/auth");
-const checkinRoutes = require("../backend/routes/checkins");
-const resultsRoutes = require("../backend/routes/results");
-const aiRoutes = require("../backend/routes/ai");
-const whatsappRoutes = require("../backend/routes/whatsapp");
-const counselorRoutes = require("../backend/routes/counselor");
-const adminRoutes = require("../backend/routes/admin");
-const privacyRoutes = require("../backend/routes/privacy");
+const authRoutes = require(path.join(__dirname, "../backend/routes/auth.js"));
+const checkinRoutes = require(path.join(__dirname, "../backend/routes/checkins.js"));
+const resultsRoutes = require(path.join(__dirname, "../backend/routes/results.js"));
+const aiRoutes = require(path.join(__dirname, "../backend/routes/ai.js"));
+const whatsappRoutes = require(path.join(__dirname, "../backend/routes/whatsapp.js"));
+const counselorRoutes = require(path.join(__dirname, "../backend/routes/counselor.js"));
+const adminRoutes = require(path.join(__dirname, "../backend/routes/admin.js"));
+const privacyRoutes = require(path.join(__dirname, "../backend/routes/privacy.js"));
 
 const app = express();
 
@@ -53,6 +61,6 @@ app.use(counselorRoutes);
 app.use(adminRoutes);
 app.use(privacyRoutes);
 
-app.get("/api/health", (req, res) => res.json({ status: "ok", environment: "vercel-serverless" }));
+app.get("/api/health", (req, res) => res.json({ status: "ok", environment: "vercel-serverless", timestamp: new Date().toISOString() }));
 
-module.exports = app;
+export default app;

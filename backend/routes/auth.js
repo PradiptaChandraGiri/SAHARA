@@ -32,51 +32,55 @@ async function findOrCreateUser({ email, displayName, provider, oauthId }) {
   return inserted.rows[0];
 }
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback",
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const user = await findOrCreateUser({
-          email: profile.emails?.[0]?.value,
-          displayName: profile.displayName,
-          provider: "google",
-          oauthId: profile.id,
-        });
-        done(null, user);
-      } catch (err) {
-        done(err);
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: "/auth/google/callback",
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const user = await findOrCreateUser({
+            email: profile.emails?.[0]?.value,
+            displayName: profile.displayName,
+            provider: "google",
+            oauthId: profile.id,
+          });
+          done(null, user);
+        } catch (err) {
+          done(err);
+        }
       }
-    }
-  )
-);
+    )
+  );
+}
 
-passport.use(
-  new GitHubStrategy(
-    {
-      clientID: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: "/auth/github/callback",
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const user = await findOrCreateUser({
-          email: profile.emails?.[0]?.value || `${profile.username}@github.local`,
-          displayName: profile.displayName || profile.username,
-          provider: "github",
-          oauthId: profile.id,
-        });
-        done(null, user);
-      } catch (err) {
-        done(err);
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  passport.use(
+    new GitHubStrategy(
+      {
+        clientID: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: "/auth/github/callback",
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const user = await findOrCreateUser({
+            email: profile.emails?.[0]?.value || `${profile.username}@github.local`,
+            displayName: profile.displayName || profile.username,
+            provider: "github",
+            oauthId: profile.id,
+          });
+          done(null, user);
+        } catch (err) {
+          done(err);
+        }
       }
-    }
-  )
-);
+    )
+  );
+}
 
 // --- Routes ---
 router.get("/auth/google", (req, res, next) => {

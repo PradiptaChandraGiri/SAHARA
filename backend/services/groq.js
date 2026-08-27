@@ -4,11 +4,9 @@
 
 const Groq = require("groq-sdk");
 
-if (!process.env.GROQ_API_KEY) {
-  throw new Error("GROQ_API_KEY is not set on the server.");
-}
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || "",
+});
 
 const BASE_SYSTEM_PROMPT =
   "You are SAHARA, a warm, supportive, and professional AI student wellbeing & academic success companion for university " +

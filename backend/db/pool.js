@@ -1,17 +1,10 @@
-// db/pool.js
-// Single shared connection pool - created once when the server starts,
-// reused for every request. Never create a new Pool per request.
-
+// db/pool.js — resilient Neon Postgres pool
 const { Pool } = require("pg");
-
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set. Copy .env.example to .env and fill it in.");
-}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Neon requires SSL
-  max: 10, // reasonable for a small app; raise if you see connection exhaustion
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  max: 10,
 });
 
 pool.on("error", (err) => {
