@@ -13,6 +13,7 @@ import StudentProfile from './pages/StudentProfile'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import CrisisButton from './components/CrisisButton'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export type Page =
   | 'home'
@@ -167,43 +168,45 @@ export default function App() {
       <Sidebar currentPage={page} onNavigate={navigate} />
 
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {/* Logged-out Visitor Home */}
-        {page === 'home' && <Home onNavigate={navigate} />}
+        <ErrorBoundary fallbackTitle="Could not load page view">
+          {/* Logged-out Visitor Home */}
+          {page === 'home' && <Home onNavigate={navigate} />}
 
-        {/* Student Dashboard */}
-        {page === 'student-dashboard' && (
-          <StudentDashboard onNavigate={navigate} lastCheckInData={checkInData} />
-        )}
+          {/* Student Dashboard */}
+          {page === 'student-dashboard' && (
+            <StudentDashboard onNavigate={navigate} lastCheckInData={checkInData} />
+          )}
 
-        {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
-        {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
-        {page === 'ai-support' && <AISupport />}
-        {page === 'whatsapp' && <WhatsAppSupport />}
-        
-        {/* Counselor Triage Workspace */}
-        {page === 'counselor' && (
-          <CounselorDashboard
-            onNavigate={navigate}
-            onSelectStudent={setSelectedStudentId}
-            studentStatuses={studentStatuses}
-          />
-        )}
+          {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
+          {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
+          {page === 'ai-support' && <AISupport />}
+          {page === 'whatsapp' && <WhatsAppSupport />}
+          
+          {/* Counselor Triage Workspace */}
+          {page === 'counselor' && (
+            <CounselorDashboard
+              onNavigate={navigate}
+              onSelectStudent={setSelectedStudentId}
+              studentStatuses={studentStatuses}
+            />
+          )}
 
-        {/* Admin Governance Dashboard */}
-        {page === 'admin' && <AdminDashboard onNavigate={navigate} />}
+          {/* Admin Governance Dashboard */}
+          {page === 'admin' && <AdminDashboard onNavigate={navigate} />}
 
-        {page === 'student-profile' && (
-          <StudentProfile
-            studentId={selectedStudentId || ''}
-            onNavigate={navigate}
-            studentStatuses={studentStatuses}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        )}
-        {page === 'profile' && <Profile onNavigate={navigate} />}
+          {page === 'student-profile' && (
+            <StudentProfile
+              studentId={selectedStudentId || ''}
+              onNavigate={navigate}
+              studentStatuses={studentStatuses}
+              onUpdateStatus={handleUpdateStatus}
+            />
+          )}
+          {page === 'profile' && <Profile onNavigate={navigate} />}
+        </ErrorBoundary>
       </main>
 
-      {/* Persistent Crisis & 24/7 Helpline Support (One-tap on all logged-in views) */}
+      {/* Persistent Crisis & 24/7 Helpline Support (One-tap on all views) */}
       <CrisisButton />
     </div>
   )

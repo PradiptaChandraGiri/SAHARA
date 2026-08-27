@@ -23,7 +23,20 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // allow requests with no origin (like curl, mobile apps)
+      if (!origin) return callback(null, true);
+      // Allow localhost on any port
+      if (
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.includes("onrender.com") ||
+        origin.includes("vercel.app")
+      ) {
+        return callback(null, true);
+      }
+      callback(null, true);
+    },
     credentials: true, // required so the session cookie is sent
   })
 );

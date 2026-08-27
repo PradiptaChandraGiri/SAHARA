@@ -16,8 +16,23 @@ const CHECKIN_FIELDS = [
 // POST /api/checkins - submit a completed check-in (Step 5 "Submit").
 // This is the ONE endpoint the whole 5-step flow submits to at the end;
 // steps 1-4 just hold state in the frontend until Step 5 posts it all.
-router.post("/api/checkins", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+router.post("/api/checkins", async (req, res) => {
+  let userId = req.session ? req.session.userId : null;
+  if (!userId) {
+    // Automatically provision a guest student record in DB
+    const guestUser = await pool.query(
+      `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, last_login_at)
+       VALUES ($1, $2, 'guest', $3, 'student', now())
+       RETURNING *`,
+      [`guest_${Date.now()}@sahara.local`, 'Student (Guest)', `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`]
+    );
+    userId = guestUser.rows[0].id;
+    if (req.session) {
+      req.session.userId = userId;
+      req.session.role = 'student';
+    }
+  }
+
   const answers = req.body;
 
   // Basic validation - reject if required fields are missing rather than
