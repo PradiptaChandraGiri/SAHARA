@@ -1,4 +1,4 @@
-// routes/ai.js — updated to use Groq + streaming with dynamic student context
+// routes/ai.js — updated with persistent guest session + 48hr chat sync
 const express = require("express");
 const pool = require("../db/pool");
 const { getChatReply, streamChatReply } = require("../services/groq");
@@ -25,6 +25,28 @@ const CRISIS_RESPONSE = {
     { name: "Campus Counseling Center", contact: "See your Profile page for direct contact" },
   ],
 };
+
+async function getOrCreateUserId(req) {
+  let userId = req.session ? req.session.userId : null;
+  if (!userId) {
+    try {
+      const guestUser = await pool.query(
+        `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, last_login_at)
+         VALUES ($1, $2, 'guest', $3, 'student', now())
+         RETURNING *`,
+        [`guest_${Date.now()}@sahara.local`, 'Student (Guest)', `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`]
+      );
+      userId = guestUser.rows[0].id;
+      if (req.session) {
+        req.session.userId = userId;
+        req.session.role = 'student';
+      }
+    } catch (e) {
+      console.warn("Could not create guest user:", e);
+    }
+  }
+  return userId;
+}
 
 async function getStudentEvaluationContext(userId) {
   if (!userId) return null;
@@ -55,7 +77,7 @@ router.post("/api/chat/stream", async (req, res) => {
     return res.status(400).json({ error: "Message is required." });
   }
 
-  const userId = req.session ? req.session.userId : null;
+  const userId = await getOrCreateUserId(req);
 
   // Crisis check happens FIRST
   if (containsCrisisLanguage(message)) {
@@ -119,7 +141,7 @@ router.post("/api/chat", async (req, res) => {
     return res.status(400).json({ error: "Message is required." });
   }
 
-  const userId = req.session ? req.session.userId : null;
+  const userId = await getOrCreateUserId(req);
 
   if (containsCrisisLanguage(message)) {
     return res.json({ ...CRISIS_RESPONSE, flaggedCrisis: true });
@@ -153,16 +175,35 @@ router.post("/api/chat", async (req, res) => {
   }
 });
 
+// GET /api/chat/history - Fetches stored messages from past 48 hours
 router.get("/api/chat/history", async (req, res) => {
   const userId = req.session ? req.session.userId : null;
   if (!userId) {
     return res.json([]);
   }
-  const result = await pool.query(
-    `SELECT role, content, created_at FROM chat_messages WHERE user_id = $1 ORDER BY created_at ASC LIMIT 50`,
-    [userId]
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      `SELECT role, content, created_at 
+       FROM chat_messages 
+       WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '48 hours'
+       ORDER BY created_at ASC LIMIT 100`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// DELETE /api/chat/history - Clear chat history
+router.delete("/api/chat/history", async (req, res) => {
+  const userId = req.session ? req.session.userId : null;
+  if (userId) {
+    try {
+      await pool.query(`DELETE FROM chat_messages WHERE user_id = $1`, [userId]);
+    } catch (e) {}
+  }
+  res.json({ success: true, message: "Chat history cleared." });
 });
 
 module.exports = router;

@@ -13,6 +13,7 @@ import {
   Video,
   Wrench,
   Headphones,
+  Trash2,
 } from 'lucide-react'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
 import ChatMessageText from '../components/ChatMessageText'
@@ -26,6 +27,31 @@ interface Message {
   inlineResource?: VettedResource
 }
 
+const CHAT_STORAGE_KEY = 'sahara_ai_chat_history_v2'
+const CHAT_STORAGE_TTL = 48 * 60 * 60 * 1000 // 48 Hours Retention
+
+const getInitialMessages = (): Message[] => {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY)
+    if (raw) {
+      const data = JSON.parse(raw)
+      const isWithin48h = data.timestamp && (Date.now() - data.timestamp < CHAT_STORAGE_TTL)
+      if (isWithin48h && Array.isArray(data.messages) && data.messages.length > 0) {
+        return data.messages
+      }
+    }
+  } catch (e) {
+    console.warn('Could not read cached chat messages:', e)
+  }
+  return [
+    {
+      id: 1,
+      from: 'ai',
+      text: "Hello! I am SAHARA — your AI Student Wellbeing Companion. I'm here 24/7 to help you navigate academic pressure, sleep, focus, and emotional balance. What is on your mind today?",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ]
+}
 
 const promptChips = [
   'I feel overwhelmed with upcoming exams.',
@@ -50,19 +76,26 @@ function getResourceIcon(type?: VettedResource['type']) {
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 export default function AISupport() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      from: 'ai',
-      text: "Hello! I am SAHARA — your AI Student Wellbeing Companion. I'm here 24/7 to help you navigate academic pressure, sleep, focus, and emotional balance. What is on your mind today?",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showCrisisBanner, setShowCrisisBanner] = useState(false)
   const [evalContext, setEvalContext] = useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto-sync messages to localStorage whenever messages update (48h retention)
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({
+          timestamp: Date.now(),
+          messages: messages,
+        }))
+      } catch (e) {
+        console.warn('Could not persist chat messages:', e)
+      }
+    }
+  }, [messages])
 
   // Load chat history & evaluation context on page open
   useEffect(() => {
@@ -108,6 +141,24 @@ export default function AISupport() {
       }, 400)
     }
   }, [])
+
+  const handleClearChat = async () => {
+    if (window.confirm('Start a new conversation? This will clear your current chat history.')) {
+      const defaultWelcome: Message[] = [
+        {
+          id: Date.now(),
+          from: 'ai',
+          text: "Hello! I am SAHARA — your AI Student Wellbeing Companion. I'm here 24/7 to help you navigate academic pressure, sleep, focus, and emotional balance. What is on your mind today?",
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]
+      setMessages(defaultWelcome)
+      localStorage.removeItem(CHAT_STORAGE_KEY)
+      try {
+        await fetch(`${API_BASE}/api/chat/history`, { method: 'DELETE', credentials: 'include' })
+      } catch (e) {}
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -336,7 +387,30 @@ export default function AISupport() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            onClick={handleClearChat}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#F8FAFC',
+              border: '1px solid #CBD5E1',
+              color: '#475569',
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title="Start a new conversation (clears history)"
+          >
+            <Trash2 size={13} />
+            <span>New Chat</span>
+          </button>
+
           <a
             href="tel:14416"
             style={{
