@@ -1,12 +1,10 @@
-// routes/ai.js — updated to use Groq + streaming
+// routes/ai.js — updated to use Groq + streaming with dynamic student context
 const express = require("express");
 const pool = require("../db/pool");
 const { getChatReply, streamChatReply } = require("../services/groq");
 
 const router = express.Router();
 
-// Same crisis-keyword check as before - runs BEFORE any AI call, on either
-// the streaming or non-streaming path. Provider-independent on purpose.
 const CRISIS_KEYWORDS = [
   "kill myself", "suicide", "end my life", "self harm", "self-harm",
   "hurt myself", "want to die", "no reason to live", "can't go on",
@@ -28,16 +26,38 @@ const CRISIS_RESPONSE = {
   ],
 };
 
-// POST /api/chat/stream - Server-Sent Events (SSE) streaming endpoint
+async function getStudentEvaluationContext(userId) {
+  if (!userId) return null;
+  try {
+    const res = await pool.query(
+      `SELECT overall_wellbeing, anxiety_signal, academic_strain, risk_level, contributing_factors
+       FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+    if (res.rows.length === 0) return null;
+    const r = res.rows[0];
+    return {
+      overallWellbeing: r.overall_wellbeing,
+      anxietySignal: r.anxiety_signal,
+      academicStrain: r.academic_strain,
+      riskLevel: r.risk_level,
+      factors: r.contributing_factors || [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+// POST /api/chat/stream - Server-Sent Events (SSE) streaming endpoint with contextual student evaluation
 router.post("/api/chat/stream", async (req, res) => {
-  const { message } = req.body;
+  const { message, clientContext } = req.body;
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "Message is required." });
   }
 
   const userId = req.session ? req.session.userId : null;
 
-  // Crisis check happens FIRST, before opening the stream or calling Groq.
+  // Crisis check happens FIRST
   if (containsCrisisLanguage(message)) {
     if (userId) {
       await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
@@ -65,10 +85,16 @@ router.post("/api/chat/stream", async (req, res) => {
       await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
     }
 
-    const fullText = await streamChatReply(message, history, (chunk) => {
-      // SSE format: each event is "data: <json>\n\n"
-      res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
-    });
+    const studentContext = (await getStudentEvaluationContext(userId)) || clientContext || null;
+
+    const fullText = await streamChatReply(
+      message,
+      history,
+      (chunk) => {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      },
+      studentContext
+    );
 
     if (userId) {
       await pool.query(
@@ -86,9 +112,9 @@ router.post("/api/chat/stream", async (req, res) => {
   }
 });
 
-// POST /api/chat - Non-streaming fallback + used by WhatsApp bot
+// POST /api/chat - Non-streaming fallback + WhatsApp webhook router
 router.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, clientContext } = req.body;
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "Message is required." });
   }
@@ -110,7 +136,8 @@ router.post("/api/chat", async (req, res) => {
       await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
     }
 
-    const reply = await getChatReply(message, history);
+    const studentContext = (await getStudentEvaluationContext(userId)) || clientContext || null;
+    const reply = await getChatReply(message, history, studentContext);
 
     if (userId) {
       await pool.query(

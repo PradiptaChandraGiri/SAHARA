@@ -2,15 +2,8 @@ import React, { useState, useEffect } from 'react'
 import type { Page, CheckInData } from '../App'
 import RiskBadge from '../components/RiskBadge'
 import {
-  getResourcesForFactors,
-  VettedResource,
-  FOLLOWUP_REPLY_MAP,
-  ConversationalFollowupReply,
-} from '../data/resources'
-import {
   RotateCcw,
   Sparkles,
-  ExternalLink,
   ChevronDown,
   Compass,
   HeartHandshake,
@@ -22,11 +15,37 @@ import {
   MessageCircle,
   CheckCircle2,
   Info,
+  ArrowRight,
+  Zap,
+  Check,
 } from 'lucide-react'
+import ChatMessageText from '../components/ChatMessageText'
 
 interface ResultsProps {
   data: CheckInData | null
   onNavigate: (page: Page) => void
+}
+
+interface DynamicAISuggestion {
+  id: string
+  title: string
+  tag: string
+  type: 'tool' | 'video' | 'audio' | 'article'
+  duration: string
+  description: string
+  actionStep: string
+}
+
+interface AIGuidanceData {
+  aiSynthesis: string
+  suggestions: DynamicAISuggestion[]
+}
+
+interface FollowupCoachingResult {
+  headline: string
+  insight: string
+  microAction: string
+  suggestedTopic?: string
 }
 
 function CircleGauge({
@@ -102,7 +121,7 @@ function CircleGauge({
   )
 }
 
-function getResourceIcon(type: VettedResource['type']) {
+function getResourceIcon(type: string) {
   switch (type) {
     case 'video':
       return <Video size={16} color="#01575E" />
@@ -128,10 +147,17 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8080').repla
 
 export default function Results({ data, onNavigate }: ResultsProps) {
   const [serverData, setServerData] = useState<any>(null)
-  const [dbResources, setDbResources] = useState<VettedResource[]>([])
+  const [aiGuidance, setAiGuidance] = useState<AIGuidanceData | null>(null)
+  const [isLoadingGuidance, setIsLoadingGuidance] = useState(false)
+  const [activeActionModal, setActiveActionModal] = useState<DynamicAISuggestion | null>(null)
+
+  // Conversational follow-up state
+  const [followupInput, setFollowupInput] = useState('')
+  const [activeCoaching, setActiveCoaching] = useState<FollowupCoachingResult | null>(null)
+  const [isSubmittingFollowup, setIsSubmittingFollowup] = useState(false)
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
 
   useEffect(() => {
-    // If no direct data passed from immediate check-in, load latest from GET /api/results/latest
     if (!data) {
       fetch(`${API_BASE}/api/results/latest`, { credentials: 'include' })
         .then((res) => (res.ok ? res.json() : null))
@@ -164,39 +190,35 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
   const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
 
-  const resultId = (d as any).id
-
+  // Load real-time Groq dynamic guidance tailored to this evaluation
   useEffect(() => {
-    if (resultId) {
-      fetch(`${API_BASE}/api/results/${resultId}/resources`, { credentials: 'include' })
-        .then((res) => (res.ok ? res.json() : []))
-        .then((items: any[]) => {
-          if (Array.isArray(items) && items.length > 0) {
-            const mapped: VettedResource[] = items.map((it: any) => ({
-              id: it.id,
-              title: it.title,
-              description: it.description,
-              type: (it.resource_type || 'article') as any,
-              link: it.url,
-              tag: it.factor_key?.replace(/_/g, ' ') || 'Focus',
-              readTime: it.resource_type === 'video' ? '5 min watch' : '4 min read',
-            }))
-            setDbResources(mapped)
-          }
-        })
-        .catch(() => {})
-    }
-  }, [resultId])
+    setIsLoadingGuidance(true)
+    fetch(`${API_BASE}/api/results/ai-guidance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        overallWellbeing: overallScore,
+        anxietySignal: anxietyScore,
+        academicStrain: dropoutScore,
+        riskLevel: risk,
+        factors: factors,
+        sleepHours: (d as any).sleepHours || 6,
+        examPressure: (d as any).examPressure || 7,
+        studyHours: (d as any).studyHours || 5,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((guidanceData) => {
+        if (guidanceData) {
+          setAiGuidance(guidanceData)
+        }
+      })
+      .catch((err) => console.warn('Could not load AI guidance:', err))
+      .finally(() => setIsLoadingGuidance(false))
+  }, [overallScore, anxietyScore, dropoutScore, risk])
 
-  const actionableResources: VettedResource[] =
-    dbResources.length > 0 ? dbResources : getResourcesForFactors(factors, 3)
-
-  // Conversational follow-up state (Part 3)
   const primaryConcern = factors[0] || 'academic strain'
-  const [followupInput, setFollowupInput] = useState('')
-  const [activeReply, setActiveReply] = useState<ConversationalFollowupReply | null>(null)
-  const [isSubmittingFollowup, setIsSubmittingFollowup] = useState(false)
-  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
 
   const quickReplyOptions = [
     'Too much coursework',
@@ -205,39 +227,68 @@ export default function Results({ data, onNavigate }: ResultsProps) {
     'Feeling isolated or unsupported',
   ]
 
-  const handleFollowupSelect = (chipText: string) => {
-    setIsSubmittingFollowup(true)
+  const handleFollowupSelect = async (chipText: string) => {
     setFollowupInput(chipText)
-
-    setTimeout(() => {
-      const match = FOLLOWUP_REPLY_MAP[chipText] || FOLLOWUP_REPLY_MAP.default
-      setActiveReply(match)
+    setIsSubmittingFollowup(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/results/followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          concern: chipText,
+          assessmentSummary: {
+            overallWellbeing: overallScore,
+            anxietySignal: anxietyScore,
+            factors,
+          },
+        }),
+      })
+      if (res.ok) {
+        const coaching = await res.json()
+        setActiveCoaching(coaching)
+      }
+    } catch (err) {
+      console.warn('Could not load AI coaching:', err)
+    } finally {
       setIsSubmittingFollowup(false)
-    }, 250)
+    }
   }
 
-  const handleCustomFollowupSubmit = (e: React.FormEvent) => {
+  const handleCustomFollowupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!followupInput.trim()) return
+    if (!followupInput.trim() || isSubmittingFollowup) return
     setIsSubmittingFollowup(true)
-
-    setTimeout(() => {
-      const lower = followupInput.toLowerCase()
-      let match = FOLLOWUP_REPLY_MAP.default
-
-      if (lower.includes('course') || lower.includes('assign') || lower.includes('workload')) {
-        match = FOLLOWUP_REPLY_MAP['Too much coursework']
-      } else if (lower.includes('subject') || lower.includes('math') || lower.includes('grade')) {
-        match = FOLLOWUP_REPLY_MAP['Struggling with a specific subject']
-      } else if (lower.includes('sleep') || lower.includes('tired') || lower.includes('night')) {
-        match = FOLLOWUP_REPLY_MAP['Not sleeping enough before exams']
-      } else if (lower.includes('alone') || lower.includes('friend') || lower.includes('support')) {
-        match = FOLLOWUP_REPLY_MAP['Feeling isolated or unsupported']
+    try {
+      const res = await fetch(`${API_BASE}/api/results/followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          concern: followupInput,
+          assessmentSummary: {
+            overallWellbeing: overallScore,
+            anxietySignal: anxietyScore,
+            factors,
+          },
+        }),
+      })
+      if (res.ok) {
+        const coaching = await res.json()
+        setActiveCoaching(coaching)
       }
-
-      setActiveReply(match)
+    } catch (err) {
+      console.warn('Could not load custom AI coaching:', err)
+    } finally {
       setIsSubmittingFollowup(false)
-    }, 300)
+    }
+  }
+
+  const handleGoToChat = (promptText?: string) => {
+    if (promptText) {
+      sessionStorage.setItem('sahara_prefill_chat', promptText)
+    }
+    onNavigate('ai-support')
   }
 
   return (
@@ -248,146 +299,116 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           style={{
             marginBottom: 28,
             display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
             flexWrap: 'wrap',
             gap: 16,
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <h1 style={{ fontSize: 30, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0E1A2B', margin: 0, letterSpacing: '-0.02em' }}>
                 Your Wellbeing Snapshot
               </h1>
-              <RiskBadge tier={risk} score={overallScore} size="md" />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#01575E',
+                  background: '#E0F2F1',
+                  padding: '3px 10px',
+                  borderRadius: 99,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Sparkles size={12} />
+                <span>AI Evaluated</span>
+              </span>
             </div>
             <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
-              Summary of your recent check-in on{' '}
-              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+              Evaluated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Personalized for your current semester load
             </p>
           </div>
 
           <button
             onClick={() => onNavigate('checkin')}
-            className="btn-outline"
-            style={{ padding: '9px 18px', fontSize: 13.5 }}
+            className="btn-outline-dark"
+            style={{ padding: '8px 16px', fontSize: 13 }}
           >
-            <RotateCcw size={15} />
+            <RotateCcw size={14} />
             <span>Retake Check-in</span>
           </button>
         </div>
 
-        {/* 1. Overall Assessment Summary Banner */}
-        <div
-          style={{
-            background: riskBg,
-            border: `1.5px solid ${riskBorder}`,
-            borderRadius: 16,
-            padding: '24px 28px',
-            marginBottom: 24,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 20,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ maxWidth: 560 }}>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: riskColor,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Overall Assessment Summary
-            </span>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0E1A2B', margin: '4px 0 6px' }}>
-              {risk === 'high'
-                ? "Support is recommended — you're carrying elevated pressure."
-                : risk === 'medium'
-                ? 'Mild strain detected — small adjustments will help.'
-                : 'Balanced state — your daily routines look healthy.'}
-            </h2>
-            <p style={{ fontSize: 14, color: '#475569', margin: 0, lineHeight: 1.55 }}>
-              {risk === 'high'
-                ? 'Your responses reflect high exam stress and compromised rest. Connecting with a counselor or trying guided de-escalation can help you regain balance.'
-                : risk === 'medium'
-                ? 'Your workload is manageable, but fatigue indicators are beginning to build up. Prioritize screen-free breaks and steady sleep.'
-                : 'Your study rhythm, stress, and sleep are well-regulated. Continue protecting your recovery downtime.'}
-            </p>
-          </div>
-
-          <button
-            onClick={() => onNavigate('ai-support')}
-            className="btn-cta"
-            style={{ padding: '11px 20px', fontSize: 13.5 }}
-          >
-            <Sparkles size={16} />
-            <span>Chat with SAHARA AI</span>
-          </button>
-        </div>
-
-        {/* 2. Three Circular Metrics (Part 1 Relabeled with Human Meanings) */}
+        {/* 1. Human-Centered Metric Gauges */}
         <div
           style={{
             background: '#FFFFFF',
             border: '1.5px solid #E2E8F0',
             borderRadius: 16,
-            padding: '28px 24px',
+            padding: '32px 28px 24px',
             marginBottom: 24,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              Primary Wellbeing Indicators
+            </h2>
+            <RiskBadge level={risk} />
+          </div>
+
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               justifyContent: 'space-around',
               alignItems: 'flex-start',
-              flexWrap: 'wrap',
               gap: 24,
+              paddingBottom: 16,
+              borderBottom: '1px solid #F1F5F9',
             }}
           >
             <CircleGauge
               value={overallScore}
               label="Overall Wellbeing"
-              plainMeaning="Your combined balance across psychological rest and coursework progress."
-              color={riskColor}
+              color={overallScore > 65 ? '#EA580C' : overallScore > 40 ? '#D97706' : '#16A34A'}
+              plainMeaning="Your combined physiological and academic strain index. Lower is healthier."
             />
             <CircleGauge
               value={anxietyScore}
               label="Anxiety Signal"
-              plainMeaning="How much day-to-day worry, stress, and nervous energy you are carrying."
-              color="#01575E"
+              color={anxietyScore > 65 ? '#EA580C' : anxietyScore > 40 ? '#D97706' : '#16A34A'}
+              plainMeaning="Acute nervous-system pressure, driven by exam timing, sleep deficit, and perceived demands."
             />
             <CircleGauge
               value={dropoutScore}
               label="Academic Strain"
-              plainMeaning="How much your coursework and exam pressure seem to be affecting you right now."
-              color="#D99A34"
+              color={dropoutScore > 65 ? '#EA580C' : dropoutScore > 40 ? '#D97706' : '#16A34A'}
+              plainMeaning="Risk of study fatigue or coursework burnout over the upcoming term."
             />
           </div>
 
-          {/* Small Expandable for Technical / About this assessment (Part 1) */}
-          <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 24, paddingTop: 14, textAlign: 'center' }}>
+          {/* Model Transparency Accordion */}
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
             <button
               onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
               style={{
                 background: 'none',
                 border: 'none',
                 color: '#64748B',
-                cursor: 'pointer',
                 fontSize: 12.5,
                 fontWeight: 600,
+                cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
+                padding: '4px 8px',
               }}
             >
-              <Info size={14} />
-              <span>About how this assessment is computed</span>
+              <span>How are these scores calculated?</span>
               <ChevronDown
                 size={14}
                 style={{
@@ -414,6 +435,65 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 Evaluated via dual Random Forest model inference (regression for psychological anxiety index + classification for academic retention risk), fused into a weighted early-warning indicator. Anonymized per student privacy standards.
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 2. AI Personalized Clinical & Recovery Synthesis Banner */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #01575E 0%, #0E1A2B 100%)',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 24,
+            color: '#FFFFFF',
+            boxShadow: '0 4px 16px rgba(1,87,94,0.18)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Sparkles size={16} color="#FDE047" />
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+              SAHARA AI Recovery Synthesis
+            </h3>
+          </div>
+
+          <p style={{ fontSize: 14.5, lineHeight: 1.6, margin: '0 0 14px', color: '#E0F2F1' }}>
+            {aiGuidance?.aiSynthesis ||
+              'Your evaluation highlights elevated exam pressure combined with sleep adjustments. Rebalancing short study sprints with targeted restorative breaks provides your highest leverage recovery this week.'}
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleGoToChat("Can you help me break down the highest leverage point from my wellbeing assessment?")}
+              style={{
+                background: '#FFFFFF',
+                color: '#01575E',
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'transform 0.15s ease',
+              }}
+            >
+              <span>Explore Personalized Strategy in AI Chat</span>
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
 
@@ -461,7 +541,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           </div>
         </div>
 
-        {/* 4. Suggested for You (Part 2: Resource Cards Matched to Contributing Factors) */}
+        {/* 4. Suggested for You (Dynamic Groq AI-Generated Suggestions) */}
         <div
           style={{
             background: '#FFFFFF',
@@ -471,21 +551,64 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             marginBottom: 24,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <HeartHandshake size={20} color="#01575E" />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
-              Suggested for You
-            </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <HeartHandshake size={20} color="#01575E" />
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                Suggested for You
+              </h3>
+            </div>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#01575E',
+                background: '#F0FDFA',
+                padding: '3px 8px',
+                borderRadius: 6,
+                border: '1px solid #CCFBF1',
+              }}
+            >
+              {isLoadingGuidance ? 'Updating AI Suggestions...' : 'Dynamic AI Tailored'}
+            </span>
           </div>
+
           <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 20px' }}>
-            Practical, bite-sized strategies tailored to your identified factors:
+            Practical, bite-sized protocols generated dynamically for your exact assessment combination:
           </p>
 
-          {/* TODO: replace with real API call to /api/resources?factor=X */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
-            {actionableResources.map((res) => (
+            {(aiGuidance?.suggestions || [
+              {
+                id: 'sug_1',
+                title: '5-Minute Breathing Reset Before Exams',
+                tag: 'Exam Grounding',
+                type: 'tool',
+                duration: '5 min protocol',
+                description: 'Quick somatic breathing method that settles nervous system spikes before walking into an exam.',
+                actionStep: 'Do 4 cycles of 4-second box breathing with relaxed shoulders.',
+              },
+              {
+                id: 'sug_2',
+                title: 'The Pomodoro Method for Study Sessions',
+                tag: 'Focus Rhythm',
+                type: 'video',
+                duration: '4 min guide',
+                description: 'Break high-pressure revisions into manageable 25-minute sprints with 5-minute screen-free intervals.',
+                actionStep: 'Choose your top assignment and set a single 25-minute countdown.',
+              },
+              {
+                id: 'sug_3',
+                title: 'Sleep Hygiene for University Students',
+                tag: 'Sleep Optimization',
+                type: 'audio',
+                duration: '4 min read',
+                description: 'Evidence-based protocols to fall asleep faster even when study schedules are erratic.',
+                actionStep: 'Dim overhead lights and stop screen usage 30 minutes before sleep.',
+              },
+            ]).map((sug) => (
               <div
-                key={res.id}
+                key={sug.id}
                 style={{
                   border: '1.5px solid #E2E8F0',
                   borderRadius: 12,
@@ -494,14 +617,14 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  gap: 12,
+                  gap: 14,
                   transition: 'all 0.2s ease',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {getResourceIcon(res.type)}
+                      {getResourceIcon(sug.type)}
                       <span
                         style={{
                           fontSize: 11.5,
@@ -513,23 +636,24 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                           textTransform: 'uppercase',
                         }}
                       >
-                        {res.tag}
+                        {sug.tag}
                       </span>
                     </div>
-                    <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{res.readTime}</span>
+                    <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{sug.duration}</span>
                   </div>
+
                   <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px', lineHeight: 1.35 }}>
-                    {res.title}
+                    {sug.title}
                   </h4>
+
                   <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.5 }}>
-                    {res.description}
+                    {sug.description}
                   </p>
                 </div>
 
-                <a
-                  href={res.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setActiveActionModal(sug)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -541,19 +665,20 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 600,
-                    textDecoration: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
                     marginTop: 4,
                   }}
                 >
-                  <span>Open Resource</span>
-                  <ExternalLink size={13} />
-                </a>
+                  <Zap size={14} color="#FDE047" />
+                  <span>Start Micro-Action</span>
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 5. Conversational Follow-Up: "Why is this happening?" (Part 3) */}
+        {/* 5. Conversational Follow-Up with Real-Time Groq AI Coaching */}
         <div
           style={{
             background: 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)',
@@ -570,7 +695,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             </h3>
           </div>
           <p style={{ fontSize: 13.5, color: '#0F766E', margin: '0 0 16px', lineHeight: 1.5 }}>
-            Pick a reason below or type a few words to get an immediate, focused next step:
+            Pick a situation below or type your exact thoughts to receive instant, tailored AI coaching:
           </p>
 
           {/* Quick-Reply Chips */}
@@ -598,12 +723,12 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           </div>
 
           {/* Text Input */}
-          <form onSubmit={handleCustomFollowupSubmit} style={{ display: 'flex', gap: 10, marginBottom: activeReply ? 16 : 0 }}>
+          <form onSubmit={handleCustomFollowupSubmit} style={{ display: 'flex', gap: 10 }}>
             <input
               type="text"
               value={followupInput}
               onChange={(e) => setFollowupInput(e.target.value)}
-              placeholder="Or share a sentence about what feels most demanding..."
+              placeholder="Or type a specific sentence about what feels most demanding..."
               style={{
                 flex: 1,
                 padding: '10px 16px',
@@ -611,109 +736,200 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 border: '1.5px solid #CBD5E1',
                 fontSize: 13.5,
                 background: '#FFFFFF',
+                color: '#0E1A2B',
                 outline: 'none',
               }}
             />
             <button
               type="submit"
-              disabled={!followupInput.trim() || isSubmittingFollowup}
-              className="btn-teal"
+              disabled={isSubmittingFollowup || !followupInput.trim()}
               style={{
+                background: '#0F766E',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
                 padding: '10px 18px',
+                fontWeight: 600,
                 fontSize: 13.5,
-                opacity: !followupInput.trim() || isSubmittingFollowup ? 0.6 : 1,
+                cursor: isSubmittingFollowup ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                opacity: isSubmittingFollowup || !followupInput.trim() ? 0.6 : 1,
               }}
             >
-              <span>Share</span>
-              <Send size={14} />
+              <span>{isSubmittingFollowup ? 'Analyzing...' : 'Get AI Plan'}</span>
+              <Send size={13} />
             </button>
           </form>
 
-          {/* Follow-up AI Acknowledgment & Refined Suggestion (Part 3) */}
-          {/* TODO: replace this canned response logic with a real call to the AI backend once available */}
-          {activeReply && (
+          {/* Dynamic AI Coaching Card Output */}
+          {activeCoaching && (
             <div
               style={{
-                marginTop: 16,
+                marginTop: 20,
                 background: '#FFFFFF',
-                borderRadius: 12,
-                padding: '16px 20px',
                 border: '1.5px solid #99F6E4',
-                animation: 'fadeIn 0.25s ease-out',
+                borderRadius: 12,
+                padding: '20px 22px',
+                boxShadow: '0 2px 8px rgba(15,118,110,0.06)',
+                animation: 'fadeIn 0.3s ease',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <CheckCircle2 size={16} color="#0F766E" />
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase' }}>
-                  Personalized Acknowledgment
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Sparkles size={16} color="#0F766E" />
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#115E59' }}>
+                  {activeCoaching.headline}
+                </h4>
               </div>
-              <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.55, margin: '0 0 12px' }}>
-                {activeReply.acknowledgment}
-              </p>
+
+              <div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.55, marginBottom: 14 }}>
+                <ChatMessageText text={activeCoaching.insight} />
+              </div>
 
               <div
                 style={{
                   background: '#F0FDFA',
-                  border: '1px solid #CCFBF1',
-                  borderRadius: 10,
+                  borderRadius: 8,
                   padding: '12px 16px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  marginBottom: 16,
+                  border: '1px solid #CCFBF1',
                 }}
               >
+                <CheckCircle2 size={18} color="#0F766E" style={{ flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0F766E', marginBottom: 2 }}>
-                    Focused Action Step
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase', marginBottom: 2 }}>
+                    Your Immediate 5-Minute Micro-Action
                   </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0E1A2B' }}>
-                    {activeReply.suggestion.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#64748B' }}>
-                    {activeReply.suggestion.description}
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: '#0E1A2B', lineHeight: 1.4 }}>
+                    <ChatMessageText text={activeCoaching.microAction} />
                   </div>
                 </div>
-                <a
-                  href={activeReply.suggestion.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => handleGoToChat(activeCoaching.suggestedTopic || `I am dealing with ${followupInput}. Can we talk through this?`)}
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
                     background: '#01575E',
                     color: '#FFFFFF',
-                    padding: '7px 12px',
+                    border: 'none',
                     borderRadius: 8,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
+                    padding: '8px 16px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
                   }}
                 >
-                  <span>Open Tool</span>
-                  <ExternalLink size={12} />
-                </a>
+                  <span>Discuss Further with SAHARA AI</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Bottom Navigation */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
-          <button
-            onClick={() => onNavigate('student-dashboard')}
+        {/* Action Micro-Protocol Modal */}
+        {activeActionModal && (
+          <div
             style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #CBD5E1',
-              color: '#475569',
-              padding: '10px 22px',
-              borderRadius: 8,
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(14,26,43,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999,
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 480,
+                width: '100%',
+                background: '#FFFFFF',
+                borderRadius: 16,
+                padding: '28px 30px',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                border: '1.5px solid #E2E8F0',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: 99,
+                    background: '#E0F2F1',
+                    color: '#01575E',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {activeActionModal.tag}
+                </span>
+                <span style={{ fontSize: 12.5, color: '#64748B' }}>{activeActionModal.duration}</span>
+              </div>
+
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0E1A2B', margin: '0 0 10px' }}>
+                {activeActionModal.title}
+              </h3>
+
+              <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55, margin: '0 0 18px' }}>
+                {activeActionModal.description}
+              </p>
+
+              <div
+                style={{
+                  background: '#F0FDFA',
+                  border: '1.5px solid #99F6E4',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  marginBottom: 22,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#0F766E', textTransform: 'uppercase', marginBottom: 4 }}>
+                  ⚡ Immediate 2-Minute Micro-Action
+                </div>
+                <div style={{ fontSize: 14, color: '#0E1A2B', fontWeight: 600, lineHeight: 1.45 }}>
+                  {activeActionModal.actionStep}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveActionModal(null)}
+                  className="btn-teal"
+                  style={{ padding: '8px 20px', fontSize: 13.5 }}
+                >
+                  <Check size={14} />
+                  <span>Got it / Done</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <button
+            onClick={() => onNavigate('home')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#64748B',
               fontSize: 14,
               fontWeight: 600,
               cursor: 'pointer',
+              textDecoration: 'underline',
             }}
           >
             ← Return to Dashboard
@@ -725,6 +941,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             style={{ padding: '10px 22px', fontSize: 14 }}
           >
             <span>View Wellbeing Trend Over Time</span>
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>

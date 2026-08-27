@@ -61,9 +61,10 @@ export default function AISupport() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showCrisisBanner, setShowCrisisBanner] = useState(false)
+  const [evalContext, setEvalContext] = useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Load chat history from backend on page open
+  // Load chat history & evaluation context on page open
   useEffect(() => {
     fetch(`${API_BASE}/api/chat/history`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : []))
@@ -81,22 +82,50 @@ export default function AISupport() {
         }
       })
       .catch((err) => console.warn('Could not load chat history:', err))
+
+    // Fetch latest student evaluation context
+    fetch(`${API_BASE}/api/results/latest`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((row) => {
+        if (row) {
+          setEvalContext({
+            overallWellbeing: Number(row.overall_wellbeing),
+            anxietySignal: Number(row.anxiety_signal),
+            academicStrain: Number(row.academic_strain),
+            riskLevel: row.risk_level,
+            factors: row.contributing_factors || [],
+          })
+        }
+      })
+      .catch(() => {})
+
+    // Check for prefill query from Results page
+    const prefill = sessionStorage.getItem('sahara_prefill_chat')
+    if (prefill) {
+      sessionStorage.removeItem('sahara_prefill_chat')
+      setTimeout(() => {
+        handleSend(prefill)
+      }, 400)
+    }
   }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  const crisisKeywords = [
-    'suicide',
-    'kill myself',
-    'end my life',
-    'self harm',
-    'hurt myself',
-    'want to die',
-    'hopeless',
-    'cant go on',
-  ]
+  const dynamicPromptChips = evalContext?.factors?.length
+    ? [
+        `How can I lower my ${evalContext.factors[0]?.replace(/_/g, ' ') || 'exam pressure'}?`,
+        'Guide me through a 2-minute somatic reset.',
+        'Help me structure a 25/5 study session for today.',
+        'How can I fix my sleep routine before deadlines?',
+      ]
+    : [
+        'I feel overwhelmed with upcoming exams.',
+        'How can I fix my sleep routine this week?',
+        'Guide me through a 2-minute breathing exercise.',
+        'What is the Pomodoro study technique?',
+      ]
 
   const handleSend = async (textToSend?: string) => {
     const messageText = (textToSend || input).trim()
@@ -138,7 +167,7 @@ export default function AISupport() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({ message: messageText, clientContext: evalContext }),
       })
 
       const contentType = response.headers.get('content-type') || ''
@@ -281,6 +310,25 @@ export default function AISupport() {
               >
                 Online 24/7
               </span>
+              {evalContext && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    background: '#E0F2F1',
+                    color: '#01575E',
+                    border: '1px solid #CCFBF1',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}
+                >
+                  <Sparkles size={11} />
+                  <span>Personalized Context Active</span>
+                </span>
+              )}
             </div>
             <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
               Conversational support for study routines, stress, and sleep
@@ -432,7 +480,6 @@ export default function AISupport() {
                 <ChatMessageText text={m.text} />
 
                 {/* Inline Recommended Resource Card (Part 5) */}
-                {/* TODO: replace with real API call to /api/resources?factor=X */}
                 {!isUser && m.inlineResource && !m.isCrisis && (
                   <div
                     style={{
@@ -464,17 +511,17 @@ export default function AISupport() {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#01575E',
+                        background: '#FFFFFF',
+                        border: '1px solid #CCFBF1',
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        textDecoration: 'none',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        background: '#01575E',
-                        color: '#FFFFFF',
-                        padding: '6px 10px',
-                        borderRadius: 6,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        whiteSpace: 'nowrap',
                       }}
                     >
                       <span>Open</span>
@@ -488,7 +535,7 @@ export default function AISupport() {
                     fontSize: 11,
                     color: isUser ? 'rgba(255,255,255,0.7)' : '#94A3B8',
                     marginTop: 6,
-                    textAlign: isUser ? 'right' : 'left',
+                    textAlign: 'right',
                   }}
                 >
                   {m.time}
@@ -502,7 +549,7 @@ export default function AISupport() {
                     height: 32,
                     borderRadius: 8,
                     background: '#D99A34',
-                    color: '#0E1A2B',
+                    color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -551,7 +598,7 @@ export default function AISupport() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 3. Suggested Prompt Chips */}
+      {/* 3. Dynamic Suggested Prompt Chips */}
       <div
         style={{
           padding: '8px 28px',
@@ -563,7 +610,7 @@ export default function AISupport() {
           whiteSpace: 'nowrap',
         }}
       >
-        {promptChips.map((chip, idx) => (
+        {dynamicPromptChips.map((chip, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(chip)}
