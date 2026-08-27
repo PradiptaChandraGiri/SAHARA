@@ -134,8 +134,9 @@ export default function App() {
     )
   }
 
-  // Dropping page: If unauthenticated and not in guest mode, drop onto Login page
-  if (!user && !guestMode && page !== 'checkin' && page !== 'whatsapp') {
+  // Dropping page: If unauthenticated and accessing a private role page, drop onto Login page
+  const publicPages: Page[] = ['home', 'checkin', 'results', 'whatsapp', 'ai-support', 'login']
+  if (!user && !guestMode && !publicPages.includes(page)) {
     return (
       <Login
         onSuccess={() => {
