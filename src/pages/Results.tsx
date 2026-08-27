@@ -342,14 +342,82 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             </p>
           </div>
 
-          <button
-            onClick={() => onNavigate('checkin')}
-            className="btn-outline-dark"
-            style={{ padding: '8px 16px', fontSize: 13 }}
-          >
-            <RotateCcw size={14} />
-            <span>Retake Check-in</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => window.print()}
+              className="btn-outline-dark"
+              style={{ padding: '8px 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <FileText size={14} color="#01575E" />
+              <span>Export Clinical Summary</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('checkin')}
+              className="btn-outline-dark"
+              style={{ padding: '8px 14px', fontSize: 13 }}
+            >
+              <RotateCcw size={14} />
+              <span>Retake Check-in</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Clinical Triage & Urgency Assessment (Ada Health / Clinical Standard) */}
+        <div
+          style={{
+            background: overallScore > 65 ? '#FFF7ED' : overallScore > 40 ? '#FFFBEB' : '#F0FDF4',
+            border: `1.5px solid ${overallScore > 65 ? '#FED7AA' : overallScore > 40 ? '#FDE68A' : '#BBF7D0'}`,
+            borderRadius: 12,
+            padding: '14px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: overallScore > 65 ? '#EA580C' : overallScore > 40 ? '#D97706' : '#16A34A',
+              }}
+            />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: overallScore > 65 ? '#9A3412' : overallScore > 40 ? '#92400E' : '#166534', textTransform: 'uppercase' }}>
+                Clinical Triage Level: Tier {overallScore > 65 ? '3 — Priority Counselor Handover' : overallScore > 40 ? '2 — Guided Somatic & Study Protocol' : '1 — Routine Wellbeing Maintenance'}
+              </div>
+              <div style={{ fontSize: 12.5, color: overallScore > 65 ? '#C2410C' : overallScore > 40 ? '#B45309' : '#15803D' }}>
+                {overallScore > 65
+                  ? 'Elevated acute strain detected. Reviewing this clinical summary with a campus counselor or calling 14416 is strongly encouraged.'
+                  : overallScore > 40
+                  ? 'Moderate academic strain identified. The targeted sleep optimization & 25/5 focus protocols below will provide rapid relief.'
+                  : 'Positive coping indicators. Continue standard sleep hygiene and routine academic pacing.'}
+              </div>
+            </div>
+          </div>
+
+          {overallScore > 65 && (
+            <a
+              href="tel:14416"
+              style={{
+                background: '#EA580C',
+                color: '#FFFFFF',
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: 12.5,
+                fontWeight: 700,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Call 14416
+            </a>
+          )}
         </div>
 
         {/* 1. Human-Centered Metric Gauges */}

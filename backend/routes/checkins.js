@@ -3,6 +3,7 @@ const express = require("express");
 const pool = require("../db/pool");
 const { requireAuth } = require("../middleware/auth");
 const { scoreCheckin } = require("../services/model");
+const { parseSymptomsFromText } = require("../services/groq");
 
 const router = express.Router();
 
@@ -13,9 +14,23 @@ const CHECKIN_FIELDS = [
   "internet_usage", "financial_stress", "family_expectation",
 ];
 
+// POST /api/checkins/parse-symptoms - Ada Health / Claude AI style free-text NLP symptom & strain parser
+router.post("/api/checkins/parse-symptoms", async (req, res) => {
+  const { freeText } = req.body;
+  if (!freeText || typeof freeText !== "string" || freeText.trim().length === 0) {
+    return res.status(400).json({ error: "Free text symptom description is required." });
+  }
+
+  try {
+    const parsed = await parseSymptomsFromText(freeText);
+    res.json(parsed);
+  } catch (err) {
+    console.error("NLP symptom parsing failed:", err);
+    res.status(500).json({ error: "Could not parse symptoms. Please use the step-by-step form." });
+  }
+});
+
 // POST /api/checkins - submit a completed check-in (Step 5 "Submit").
-// This is the ONE endpoint the whole 5-step flow submits to at the end;
-// steps 1-4 just hold state in the frontend until Step 5 posts it all.
 router.post("/api/checkins", async (req, res) => {
   let userId = req.session ? req.session.userId : null;
   if (!userId) {
@@ -35,8 +50,6 @@ router.post("/api/checkins", async (req, res) => {
 
   const answers = req.body;
 
-  // Basic validation - reject if required fields are missing rather than
-  // silently scoring garbage data.
   const missing = CHECKIN_FIELDS.filter((f) => answers[f] === undefined || answers[f] === null);
   if (missing.length > 0) {
     return res.status(400).json({ error: "Missing required fields", missing });
@@ -63,8 +76,7 @@ router.post("/api/checkins", async (req, res) => {
     );
     const checkinId = checkinResult.rows[0].id;
 
-    // This calls the model service - per the earlier speed fix, this
-    // should resolve in well under a second.
+    // Call ML model service
     const scored = await scoreCheckin(answers);
 
     const resultRow = await client.query(

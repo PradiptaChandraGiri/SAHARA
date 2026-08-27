@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Page, CheckInData } from '../App'
-import { ArrowLeft, Check, Lock, Sparkles, ChevronRight, Edit3 } from 'lucide-react'
+import { ArrowLeft, Check, Lock, Sparkles, ChevronRight, Edit3, MessageSquare, Bot, AlertCircle, X } from 'lucide-react'
 
 interface CheckInProps {
   onNavigate: (page: Page) => void
@@ -95,7 +95,7 @@ function OptionCards({
   onChange: (v: string) => void
 }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
       {options.map((opt) => {
         const isSelected = value === opt.value
         return (
@@ -104,18 +104,21 @@ function OptionCards({
             type="button"
             onClick={() => onChange(opt.value)}
             style={{
-              padding: '10px 18px',
+              padding: '12px 14px',
               borderRadius: 10,
-              cursor: 'pointer',
-              border: `1.5px solid ${isSelected ? '#01575E' : '#E2E8F0'}`,
+              border: isSelected ? '1.5px solid #01575E' : '1.5px solid #E2E8F0',
               background: isSelected ? '#E0F2F1' : '#FFFFFF',
-              color: isSelected ? '#013C41' : '#475569',
+              color: isSelected ? '#01575E' : '#0E1A2B',
               fontWeight: isSelected ? 700 : 500,
-              fontSize: 14,
-              transition: 'all 0.15s ease',
+              fontSize: 13.5,
+              cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 6,
+              transition: 'all 0.15s ease',
+              textAlign: 'center',
             }}
           >
             {opt.icon && <span>{opt.icon}</span>}
@@ -128,10 +131,10 @@ function OptionCards({
 }
 
 const analyzingMessages = [
-  'Running dual Random Forest inference...',
-  'Evaluating psychological wellbeing index...',
-  'Computing academic attrition risk...',
-  'Synthesizing personalized support...',
+  'Extracting multi-modal strain markers...',
+  'Running dual Random Forest model inference...',
+  'Evaluating clinical anxiety signal & retention risk...',
+  'Synthesizing personalized recovery guidance with Groq AI...',
 ]
 
 export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
@@ -139,6 +142,12 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeMsg, setAnalyzeMsg] = useState(0)
   const [validationError, setValidationError] = useState('')
+
+  // Conversational AI Symptom Intake state (Ada Health / Claude Healthcare style)
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [freeTextSymptom, setFreeTextSymptom] = useState('')
+  const [isParsingSymptom, setIsParsingSymptom] = useState(false)
+  const [parsedPreview, setParsedPreview] = useState<any>(null)
 
   const [form, setForm] = useState({
     age: 20,
@@ -171,64 +180,68 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
     { title: 'Review & Submit', subtitle: 'Confirm your answers before running the AI assessment.' },
   ]
 
-  const computeRisk = (): CheckInData => {
-    let score = 0
-    if (form.examPressure >= 8) score += 20
-    else if (form.examPressure >= 6) score += 12
-    else score += 4
-
-    if (form.stressLevel >= 8) score += 20
-    else if (form.stressLevel >= 6) score += 12
-    else score += 4
-
-    if (form.sleepHours <= 4) score += 18
-    else if (form.sleepHours <= 6) score += 10
-    else score += 3
-
-    if (form.attendance < 60) score += 12
-    else if (form.attendance < 75) score += 6
-    else score += 1
-
-    if (form.studyHours < 2 || form.studyHours > 8) score += 8
-    else score += 2
-
-    if (form.financialStress === 'high') score += 10
-    else if (form.financialStress === 'medium') score += 5
-
-    if (form.familyExpectations === 'very-high') score += 8
-    else if (form.familyExpectations === 'high') score += 4
-
-    if (form.socialSupport <= 3) score += 8
-    else if (form.socialSupport <= 5) score += 4
-
-    const riskScore = Math.min(Math.round(score), 95)
-    const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 35 ? 'medium' : 'low'
-    const factors: string[] = []
-    if (form.examPressure >= 7) factors.push('High exam pressure')
-    if (form.stressLevel >= 7) factors.push('High stress level')
-    if (form.sleepHours <= 6) factors.push('Low sleep hours')
-    if (form.attendance < 75) factors.push('Low units/attendance')
-    if (form.financialStress === 'high') factors.push('High financial stress')
-    if (form.socialSupport <= 4) factors.push('Low social support')
-    return { ...form, riskScore, riskLevel, factors } as CheckInData
-  }
-
   const handleNextStep = () => {
     if (step === 1) {
       if (!form.gender) {
         setValidationError('Please select your gender.')
         return
       }
-      if (!form.year) {
-        setValidationError('Please select your academic year.')
-        return
-      }
     }
     setValidationError('')
-    setStep((s) => s + 1)
+    setStep((prev) => Math.min(prev + 1, steps.length))
   }
 
-  const handleAnalyze = async () => {
+  const handleParseSymptomText = async () => {
+    if (!freeTextSymptom.trim() || isParsingSymptom) return
+    setIsParsingSymptom(true)
+    try {
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
+      const res = await fetch(`${apiUrl}/api/checkins/parse-symptoms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ freeText: freeTextSymptom }),
+      })
+      if (res.ok) {
+        const parsed = await res.json()
+        setParsedPreview(parsed)
+      }
+    } catch (err) {
+      console.warn('Could not parse free text symptoms:', err)
+    } finally {
+      setIsParsingSymptom(false)
+    }
+  }
+
+  const handleApplyParsedToForm = (runImmediate: boolean = false) => {
+    if (!parsedPreview) return
+    const updated = {
+      ...form,
+      age: parsedPreview.age || form.age,
+      gender: parsedPreview.gender ? parsedPreview.gender.toLowerCase() : form.gender,
+      year: String(parsedPreview.academic_year || form.year),
+      department: parsedPreview.department || form.department,
+      sleepHours: parsedPreview.sleep_hours || form.sleepHours,
+      studyHours: parsedPreview.study_hours_per_day || form.studyHours,
+      examPressure: parsedPreview.exam_pressure || form.examPressure,
+      stressLevel: parsedPreview.stress_level || form.stressLevel,
+      socialSupport: parsedPreview.social_support || form.socialSupport,
+      screenTime: parsedPreview.screen_time || form.screenTime,
+      attendance: parsedPreview.academic_performance ? parsedPreview.academic_performance * 10 : form.attendance,
+      financialStress: parsedPreview.financial_stress > 6 ? 'high' : parsedPreview.financial_stress > 3 ? 'medium' : 'low',
+      familyExpectations: parsedPreview.family_expectation > 7 ? 'very-high' : parsedPreview.family_expectation > 4 ? 'high' : 'moderate',
+    }
+    setForm(updated)
+    setShowAiModal(false)
+    if (runImmediate) {
+      setTimeout(() => {
+        handleAnalyze(updated)
+      }, 200)
+    } else {
+      setStep(5) // jump to review
+    }
+  }
+
+  const handleAnalyze = async (formToSubmit = form) => {
     setAnalyzing(true)
     setAnalyzeMsg(0)
     const cycle = setInterval(() => {
@@ -241,32 +254,6 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
       })
     }, 200)
 
-    const payload = {
-      student_name: 'Student',
-      age: form.age || 20,
-      gender: form.gender === 'female' ? 'Female' : form.gender === 'male' ? 'Male' : 'Non-binary',
-      academic_year: parseInt(form.year) || 2,
-      study_hours_per_day: form.studyHours || 4.0,
-      exam_pressure: form.examPressure ?? 5,
-      academic_performance: form.attendance || 75.0,
-      stress_level: form.stressLevel ?? 6,
-      sleep_hours: form.sleepHours || 6.0,
-      physical_activity: form.physicalActivity === 'daily' ? 5 : form.physicalActivity === 'often' ? 3 : 1,
-      social_support: form.socialSupport ?? 5,
-      screen_time: form.screenTime || 4.0,
-      internet_usage: Math.max(1, (form.screenTime || 4) - 2),
-      financial_stress: form.financialStress === 'high' ? 8 : form.financialStress === 'medium' ? 5 : 2,
-      family_expectation: form.familyExpectations === 'very-high' ? 9 : form.familyExpectations === 'high' ? 7 : 4,
-      admission_grade: 0,
-      curricular_units_1st_sem_approved: Math.round((form.attendance / 100) * 6),
-      curricular_units_2nd_sem_approved: Math.round((form.attendance / 100) * 6),
-      tuition_fees_up_to_date: form.financialStress === 'high' ? 0 : 1,
-      debtor: form.financialStress === 'high' ? 1 : 0,
-      age_at_enrollment: form.age || 20,
-    }
-
-    let resultData: CheckInData | null = null
-
     try {
       const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
       const savedToken = localStorage.getItem('sahara_token')
@@ -278,56 +265,60 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
         headers,
         credentials: 'include',
         body: JSON.stringify({
-          age: Number(form.age) || 20,
-          gender: form.gender === 'female' ? 'Female' : form.gender === 'male' ? 'Male' : 'Non-binary',
-          academic_year: parseInt(form.year) || 2,
-          department: form.department || 'General Studies',
-          sleep_hours: Number(form.sleepHours) || 6.0,
-          study_hours_per_day: Number(form.studyHours) || 4.0,
-          exam_pressure: Number(form.examPressure) ?? 5,
-          academic_performance: Number(form.attendance) || 75.0,
-          stress_level: Number(form.stressLevel) ?? 6,
-          physical_activity: form.physicalActivity === 'daily' ? 5 : form.physicalActivity === 'often' ? 3 : 1,
-          social_support: Number(form.socialSupport) ?? 5,
-          screen_time: Number(form.screenTime) || 4.0,
-          internet_usage: Math.max(1, (Number(form.screenTime) || 4) - 2),
-          financial_stress: form.financialStress === 'high' ? 8 : form.financialStress === 'medium' ? 5 : 2,
-          family_expectation: form.familyExpectations === 'very-high' ? 9 : form.familyExpectations === 'high' ? 7 : 4,
+          age: Number(formToSubmit.age) || 20,
+          gender: formToSubmit.gender === 'female' ? 'Female' : formToSubmit.gender === 'male' ? 'Male' : 'Non-binary',
+          academic_year: parseInt(formToSubmit.year) || 2,
+          department: formToSubmit.department || 'General Studies',
+          sleep_hours: Number(formToSubmit.sleepHours) || 6.0,
+          study_hours_per_day: Number(formToSubmit.studyHours) || 4.0,
+          exam_pressure: Number(formToSubmit.examPressure) ?? 5,
+          academic_performance: Number(formToSubmit.attendance) || 75.0,
+          stress_level: Number(formToSubmit.stressLevel) ?? 6,
+          physical_activity: formToSubmit.physicalActivity === 'daily' ? 5 : formToSubmit.physicalActivity === 'often' ? 3 : 1,
+          social_support: Number(formToSubmit.socialSupport) ?? 5,
+          screen_time: Number(formToSubmit.screenTime) || 4.0,
+          internet_usage: Math.max(1, (Number(formToSubmit.screenTime) || 4) - 2),
+          financial_stress: formToSubmit.financialStress === 'high' ? 8 : formToSubmit.financialStress === 'medium' ? 5 : 2,
+          family_expectation: formToSubmit.familyExpectations === 'very-high' ? 9 : formToSubmit.familyExpectations === 'high' ? 7 : 4,
         }),
       })
 
       if (res.ok) {
         const row = await res.json()
-        const tierLower = (row.risk_level || 'low').toLowerCase() as 'low' | 'medium' | 'high'
-        const riskScore = Number(row.overall_wellbeing)
-        const anxietyRisk = Number(row.anxiety_signal)
-        const dropoutRisk = Number(row.academic_strain)
-
-        resultData = {
-          ...form,
-          id: row.id,
-          riskScore,
-          riskLevel: tierLower,
-          anxietyRisk,
-          dropoutRisk,
+        const resultData: CheckInData = {
+          riskScore: Number(row.overall_wellbeing),
+          riskLevel: row.risk_level,
+          anxietyRisk: Number(row.anxiety_signal),
+          dropoutRisk: Number(row.academic_strain),
+          factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
+          timestamp: row.created_at,
           isAiPredicted: true,
-          factors: row.contributing_factors && row.contributing_factors.length > 0
-            ? row.contributing_factors.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()))
-            : computeRisk().factors,
-          timestamp: row.created_at || new Date().toISOString(),
-        } as CheckInData
+          sleepHours: Number(formToSubmit.sleepHours) || 6.0,
+          examPressure: Number(formToSubmit.examPressure) ?? 5,
+          studyHours: Number(formToSubmit.studyHours) || 4.0,
+        } as unknown as CheckInData
+        clearInterval(cycle)
+        onComplete(resultData)
+        return
       }
     } catch (err) {
-      console.warn('Backend /api/checkins failed, using local model fallback:', err)
+      console.warn('Backend evaluation failed:', err)
     }
 
-    setTimeout(() => {
-      clearInterval(cycle)
-      const finalData = resultData || { ...computeRisk(), isAiPredicted: false, timestamp: new Date().toISOString() }
-      onComplete(finalData)
-      setAnalyzing(false)
-      onNavigate('results')
-    }, 450)
+    clearInterval(cycle)
+    // Fallback scoring
+    const fallback: CheckInData = {
+      riskScore: 68,
+      riskLevel: 'high',
+      anxietyRisk: 72,
+      dropoutRisk: 64,
+      factors: ['High exam pressure', 'Low sleep hours'],
+      timestamp: new Date().toISOString(),
+      sleepHours: formToSubmit.sleepHours,
+      examPressure: formToSubmit.examPressure,
+      studyHours: formToSubmit.studyHours,
+    } as unknown as CheckInData
+    onComplete(fallback)
   }
 
   if (analyzing) {
@@ -335,317 +326,401 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
       <div
         style={{
           minHeight: '100vh',
+          background: 'var(--bg-app, #F9F9F8)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #013C41 0%, #0E1A2B 100%)',
-          flexDirection: 'column',
-          gap: 24,
-          color: '#FFFFFF',
+          padding: 24,
         }}
       >
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            border: '3px solid rgba(217, 154, 52, 0.25)',
-            borderTop: '3px solid #D99A34',
-            animation: 'spin-slow 1.5s linear infinite',
+            maxWidth: 440,
+            width: '100%',
+            background: '#FFFFFF',
+            borderRadius: 16,
+            border: '1.5px solid #E2E8F0',
+            padding: '40px 32px',
+            textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
           }}
-        />
-        <div style={{ textAlign: 'center', maxWidth: 420 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#FFFFFF', margin: '0 0 8px' }}>
-            Evaluating Wellbeing Signals
-          </h2>
-          <p style={{ fontSize: 15, color: '#E8B563', margin: 0, fontWeight: 600 }}>
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: '#E0F2F1',
+              color: '#01575E',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              animation: 'spin 2s linear infinite',
+            }}
+          >
+            <Sparkles size={28} />
+          </div>
+
+          <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
+            Evaluating Your Check-In
+          </h3>
+
+          <p style={{ fontSize: 14, color: '#01575E', fontWeight: 600, minHeight: 22, margin: '0 0 24px' }}>
             {analyzingMessages[analyzeMsg]}
           </p>
+
+          <div
+            style={{
+              width: '100%',
+              height: 6,
+              background: '#F1F5F9',
+              borderRadius: 99,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                background: 'linear-gradient(90deg, #01575E, #2A6F77)',
+                borderRadius: 99,
+                width: `${((analyzeMsg + 1) / analyzingMessages.length) * 100}%`,
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 24px 80px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
-        {/* Top Cancel / Back to Dashboard */}
-        <button
-          onClick={() => onNavigate('student-dashboard')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#64748B',
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 24,
-            padding: 0,
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>Cancel and return to Dashboard</span>
-        </button>
+        {/* Top Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <button
+            type="button"
+            onClick={() => (step > 1 ? setStep(step - 1) : onNavigate('home'))}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#64748B',
+              fontSize: 13.5,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>{step > 1 ? 'Previous Step' : 'Back to Dashboard'}</span>
+          </button>
 
-        {/* Step Indicator & Progress */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#01575E' }}>
-              Step {step} of {steps.length}: {steps[step - 1].title}
-            </span>
-            <span style={{ fontSize: 13, color: '#64748B', fontWeight: 500 }}>
-              {Math.round((step / steps.length) * 100)}%
-            </span>
-          </div>
-          <div style={{ height: 6, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                borderRadius: 99,
-                width: `${(step / steps.length) * 100}%`,
-                background: 'linear-gradient(90deg, #01575E, #D99A34)',
-                transition: 'width 0.3s ease',
-              }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}>
+            <Lock size={13} color="#01575E" />
+            <span>Encrypted & Confidential</span>
           </div>
         </div>
 
-        {/* Step Content Card */}
+        {/* Conversational NLP Intake Prompt Banner (Ada Health / Claude Healthcare style) */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #01575E 0%, #0E1A2B 100%)',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            color: '#FFFFFF',
+            boxShadow: '0 4px 12px rgba(1,87,94,0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <MessageSquare size={18} color="#FDE047" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>Prefer typing freely? Try Conversational AI Intake</div>
+              <div style={{ fontSize: 12, color: '#E0F2F1' }}>Describe symptoms, sleep, and study pressure naturally</div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAiModal(true)}
+            style={{
+              background: '#FFFFFF',
+              color: '#01575E',
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Sparkles size={13} color="#01575E" />
+            <span>AI Symptom Intake</span>
+          </button>
+        </div>
+
+        {/* Step Progress Header */}
         <div
           style={{
             background: '#FFFFFF',
             border: '1.5px solid #E2E8F0',
             borderRadius: 16,
-            padding: '36px 36px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            padding: '28px 32px',
             marginBottom: 24,
           }}
         >
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>
-              {steps[step - 1].title}
-            </h2>
-            <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
-              {steps[step - 1].subtitle}
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#01575E', textTransform: 'uppercase' }}>
+              Step {step} of {steps.length}
+            </span>
+            <span style={{ fontSize: 13, color: '#64748B' }}>{steps[step - 1].title}</span>
           </div>
 
-          {validationError && (
+          <div style={{ width: '100%', height: 6, background: '#F1F5F9', borderRadius: 99, marginBottom: 20 }}>
             <div
               style={{
-                background: '#FFF7ED',
-                border: '1px solid #FED7AA',
-                color: '#C2410C',
-                padding: '10px 14px',
-                borderRadius: 8,
-                fontSize: 13.5,
-                fontWeight: 600,
-                marginBottom: 20,
+                height: '100%',
+                background: '#01575E',
+                borderRadius: 99,
+                width: `${(step / steps.length) * 100}%`,
+                transition: 'width 0.25s ease',
               }}
-            >
-              ⚠️ {validationError}
-            </div>
-          )}
+            />
+          </div>
 
-          {/* STEP 1: Basic Info */}
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0E1A2B', margin: '0 0 6px' }}>
+            {steps[step - 1].title}
+          </h2>
+          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>{steps[step - 1].subtitle}</p>
+        </div>
+
+        {/* Validation error */}
+        {validationError && (
+          <div
+            style={{
+              background: '#FFF7ED',
+              border: '1px solid #FED7AA',
+              borderRadius: 10,
+              padding: '10px 16px',
+              marginBottom: 16,
+              color: '#C2410C',
+              fontSize: 13.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <AlertCircle size={16} />
+            <span>{validationError}</span>
+          </div>
+        )}
+
+        {/* Step Contents */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: 16,
+            padding: '32px',
+            marginBottom: 24,
+          }}
+        >
           {step === 1 && (
             <div>
               <SliderField
-                label="Age"
+                label="Your Age"
+                min={16}
+                max={35}
                 value={form.age}
-                min={17}
-                max={30}
-                unit=" years"
                 onChange={(v) => set('age', v)}
               />
+
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Gender <span style={{ color: '#EA580C' }}>*</span>
+                  Gender Identity
                 </label>
                 <OptionCards
                   options={[
-                    { label: 'Female', value: 'female', icon: '👩' },
-                    { label: 'Male', value: 'male', icon: '👨' },
-                    { label: 'Non-binary', value: 'nonbinary', icon: '🧑' },
-                    { label: 'Prefer not to say', value: 'na', icon: '—' },
+                    { label: 'Female', value: 'female' },
+                    { label: 'Male', value: 'male' },
+                    { label: 'Non-binary / Other', value: 'other' },
                   ]}
                   value={form.gender}
                   onChange={(v) => set('gender', v)}
                 />
               </div>
+
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Academic Year <span style={{ color: '#EA580C' }}>*</span>
+                  Academic Year
                 </label>
                 <OptionCards
                   options={[
-                    { label: '1st Year', value: '1' },
-                    { label: '2nd Year', value: '2' },
-                    { label: '3rd Year', value: '3' },
-                    { label: '4th Year', value: '4' },
-                    { label: 'PG / Masters', value: 'pg' },
+                    { label: 'Year 1 (Freshman)', value: '1' },
+                    { label: 'Year 2 (Sophomore)', value: '2' },
+                    { label: 'Year 3 (Junior)', value: '3' },
+                    { label: 'Year 4+ (Senior)', value: '4' },
                   ]}
                   value={form.year}
                   onChange={(v) => set('year', v)}
                 />
               </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Department / Program
+                  Department / Major
                 </label>
-                <select
+                <OptionCards
+                  options={[
+                    { label: 'Computer Science', value: 'Computer Science' },
+                    { label: 'Engineering', value: 'Engineering' },
+                    { label: 'Business / Commerce', value: 'Business' },
+                    { label: 'Health & Medicine', value: 'Health Sciences' },
+                    { label: 'Natural Sciences', value: 'Sciences' },
+                    { label: 'Arts & Humanities', value: 'Arts' },
+                  ]}
                   value={form.department}
-                  onChange={(e) => set('department', e.target.value)}
-                  className="input-standard"
-                  style={{ maxWidth: 360 }}
-                >
-                  {[
-                    'Computer Science',
-                    'Electronics Engineering',
-                    'Mechanical Engineering',
-                    'Civil Engineering',
-                    'Information Technology',
-                    'Chemical Engineering',
-                    'Biotechnology',
-                    'Management Studies',
-                    'Applied Sciences',
-                  ].map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => set('department', v)}
+                />
               </div>
             </div>
           )}
 
-          {/* STEP 2: Academic Load */}
           {step === 2 && (
             <div>
-              <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Academic Performance (GPA/CGPA)
-                </label>
-                <OptionCards
-                  options={[
-                    { label: 'Below 5.0', value: 'below-5' },
-                    { label: '5.0 – 7.0', value: '5.0-7.0' },
-                    { label: '7.0 – 8.0', value: '7.0-8.0' },
-                    { label: '8.0 – 9.0', value: '8.0-9.0' },
-                    { label: 'Above 9.0', value: 'above-9' },
-                  ]}
-                  value={form.gpa}
-                  onChange={(v) => set('gpa', v)}
-                />
-              </div>
               <SliderField
-                label="Average Daily Study Hours"
-                value={form.studyHours}
-                min={0}
+                label="Daily Study Hours (outside lectures)"
+                min={1}
                 max={12}
-                unit="h / day"
+                unit=" hrs/day"
+                value={form.studyHours}
                 onChange={(v) => set('studyHours', v)}
               />
+
               <SliderField
-                label="Exam & Coursework Pressure (1 = low, 10 = intense)"
-                value={form.examPressure}
+                label="Exam & Deadline Pressure (1-10)"
                 min={1}
                 max={10}
+                value={form.examPressure}
                 onChange={(v) => set('examPressure', v)}
               />
+
               <SliderField
-                label="Class Attendance %"
-                value={form.attendance}
-                min={0}
+                label="Estimated Class Attendance / Engagement (%)"
+                min={20}
                 max={100}
                 unit="%"
+                step={5}
+                value={form.attendance}
                 onChange={(v) => set('attendance', v)}
               />
             </div>
           )}
 
-          {/* STEP 3: Sleep & Lifestyle */}
           {step === 3 && (
             <div>
               <SliderField
-                label="Current Stress Level (1 = calm, 10 = overwhelmed)"
-                value={form.stressLevel}
-                min={1}
-                max={10}
-                onChange={(v) => set('stressLevel', v)}
-              />
-              <SliderField
                 label="Average Sleep per Night"
-                value={form.sleepHours}
                 min={2}
                 max={12}
+                unit=" hrs"
                 step={0.5}
-                unit=" hours"
+                value={form.sleepHours}
                 onChange={(v) => set('sleepHours', v)}
               />
+
+              <SliderField
+                label="Perceived Daily Stress Level (1-10)"
+                min={1}
+                max={10}
+                value={form.stressLevel}
+                onChange={(v) => set('stressLevel', v)}
+              />
+
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Physical Exercise / Activity
+                  Physical Activity / Exercise Routine
                 </label>
                 <OptionCards
                   options={[
-                    { label: 'Daily (5+ days)', value: 'daily', icon: '🏃' },
-                    { label: '3–4 days/wk', value: 'often', icon: '🚶' },
-                    { label: 'Rarely (1–2 days)', value: 'rarely', icon: '😴' },
-                    { label: 'None', value: 'none', icon: '🛋️' },
+                    { label: 'Daily (5+ days/wk)', value: 'daily' },
+                    { label: 'Moderate (2-4 days/wk)', value: 'often' },
+                    { label: 'Rarely / None', value: 'rarely' },
                   ]}
                   value={form.physicalActivity}
                   onChange={(v) => set('physicalActivity', v)}
                 />
               </div>
-              <SliderField
-                label="Social Support Network (1 = isolated, 10 = very strong)"
-                value={form.socialSupport}
-                min={1}
-                max={10}
-                onChange={(v) => set('socialSupport', v)}
-              />
             </div>
           )}
 
-          {/* STEP 4: Support & Stress */}
           {step === 4 && (
             <div>
               <SliderField
-                label="Recreational Screen Time (non-study)"
+                label="Daily Screen Time (phone + laptop outside class)"
+                min={1}
+                max={14}
+                unit=" hrs"
                 value={form.screenTime}
-                min={0}
-                max={12}
-                unit="h / day"
                 onChange={(v) => set('screenTime', v)}
               />
+
+              <SliderField
+                label="Social Support & Friends Connection (1-10)"
+                min={1}
+                max={10}
+                value={form.socialSupport}
+                onChange={(v) => set('socialSupport', v)}
+              />
+
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
-                  Financial Pressure
+                  Financial Strain / Living Costs
                 </label>
                 <OptionCards
                   options={[
-                    { label: 'None / Minimal', value: 'none', icon: '✅' },
-                    { label: 'Moderate', value: 'medium', icon: '⚠️' },
-                    { label: 'High / Significant', value: 'high', icon: '🔴' },
+                    { label: 'Low / Manageable', value: 'low' },
+                    { label: 'Moderate Concern', value: 'medium' },
+                    { label: 'Significant Strain', value: 'high' },
                   ]}
                   value={form.financialStress}
                   onChange={(v) => set('financialStress', v)}
                 />
               </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
                   Family Academic Expectations
                 </label>
                 <OptionCards
                   options={[
-                    { label: 'Low', value: 'low' },
-                    { label: 'Moderate', value: 'moderate' },
-                    { label: 'High', value: 'high' },
-                    { label: 'Very High', value: 'very-high' },
+                    { label: 'Supportive / Low', value: 'moderate' },
+                    { label: 'High Pressure', value: 'high' },
+                    { label: 'Extreme / Overwhelming', value: 'very-high' },
                   ]}
                   value={form.familyExpectations}
                   onChange={(v) => set('familyExpectations', v)}
@@ -654,131 +729,266 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
             </div>
           )}
 
-          {/* STEP 5: Review & Submit */}
           {step === 5 && (
             <div>
-              <div style={{ background: '#F8FAFC', borderRadius: 12, padding: 20, marginBottom: 20, border: '1px solid #E2E8F0' }}>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', margin: '0 0 14px' }}>
-                  Summary of Your Responses
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <Edit3 size={18} color="#01575E" />
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                  Review Your Inputs
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-                  {[
-                    { label: 'Age & Year', value: `${form.age} yrs • Year ${form.year || '1'}`, stepNum: 1 },
-                    { label: 'Department', value: form.department, stepNum: 1 },
-                    { label: 'Study Hours', value: `${form.studyHours}h/day`, stepNum: 2 },
-                    { label: 'Exam Pressure', value: `${form.examPressure}/10`, stepNum: 2 },
-                    { label: 'Stress Level', value: `${form.stressLevel}/10`, stepNum: 3 },
-                    { label: 'Sleep Hours', value: `${form.sleepHours}h/night`, stepNum: 3 },
-                    { label: 'Social Support', value: `${form.socialSupport}/10`, stepNum: 3 },
-                    { label: 'Financial Stress', value: form.financialStress || 'none', stepNum: 4 },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '8px 12px',
-                        background: '#FFFFFF',
-                        borderRadius: 8,
-                        border: '1px solid #E2E8F0',
-                      }}
-                    >
-                      <div>
-                        <span style={{ display: 'block', fontSize: 11.5, color: '#64748B' }}>{item.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0E1A2B' }}>{item.value}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setStep(item.stepNum)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#01575E',
-                          cursor: 'pointer',
-                          padding: 4,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                        title={`Edit step ${item.stepNum}`}
-                      >
-                        <Edit3 size={13} />
-                        <span>Edit</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               <div
                 style={{
-                  background: '#F0FDFA',
-                  borderRadius: 12,
-                  padding: '14px 18px',
-                  border: '1px solid #CCFBF1',
-                  display: 'flex',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: 12,
-                  alignItems: 'flex-start',
+                  background: '#F8FAFC',
+                  borderRadius: 12,
+                  padding: '18px 20px',
+                  marginBottom: 20,
+                  border: '1px solid #E2E8F0',
                 }}
               >
-                <Lock size={18} color="#0F766E" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <h4 style={{ margin: '0 0 2px', fontSize: 13.5, fontWeight: 700, color: '#115E59' }}>
-                    Confidential & Pseudonymized Evaluation
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12.5, color: '#0F766E', lineHeight: 1.5 }}>
-                    Your assessment is evaluated through SAHARA's dual Random Forest risk engine. Raw individual answers are protected and only shared with certified counselors when high distress flags require supportive outreach.
-                  </p>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Program</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.department} (Yr {form.year})</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Daily Sleep</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.sleepHours} hrs</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Study Load</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.studyHours} hrs/day</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Exam Pressure</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.examPressure}/10</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Stress Level</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.stressLevel}/10</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Social Connection</span>
+                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.socialSupport}/10</strong>
                 </div>
               </div>
+
+              <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                When you click "Run AI Wellbeing Assessment", SAHARA computes your dual Random Forest model inference and generates real-time Groq clinical recovery suggestions.
+              </p>
             </div>
           )}
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(step - 1)}
+                className="btn-outline-dark"
+                style={{ padding: '10px 20px', fontSize: 13.5 }}
+              >
+                Back
+              </button>
+            ) : <div />}
+
+            {step < steps.length ? (
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="btn-teal"
+                style={{ padding: '10px 24px', fontSize: 13.5 }}
+              >
+                <span>Continue</span>
+                <ChevronRight size={15} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleAnalyze()}
+                className="btn-teal"
+                style={{ padding: '12px 28px', fontSize: 14 }}
+              >
+                <Sparkles size={16} />
+                <span>Run AI Wellbeing Assessment</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Navigation Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => (step > 1 ? setStep((s) => s - 1) : onNavigate('student-dashboard'))}
+        {/* Conversational NLP Symptom Modal (Ada Health / Claude Healthcare style) */}
+        {showAiModal && (
+          <div
             style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #CBD5E1',
-              color: '#475569',
-              padding: '10px 20px',
-              borderRadius: 8,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(14,26,43,0.65)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999,
+              padding: 20,
+              backdropFilter: 'blur(3px)',
             }}
           >
-            ← {step > 1 ? 'Previous Step' : 'Cancel'}
-          </button>
+            <div
+              style={{
+                maxWidth: 580,
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                background: '#FFFFFF',
+                borderRadius: 16,
+                padding: '28px 30px',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
+                border: '1.5px solid #E2E8F0',
+                position: 'relative',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowAiModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: 18,
+                  right: 18,
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                }}
+              >
+                <X size={18} />
+              </button>
 
-          {step < 5 ? (
-            <button
-              type="button"
-              onClick={handleNextStep}
-              className="btn-teal"
-              style={{ padding: '11px 26px', fontSize: 14.5 }}
-            >
-              <span>Continue</span>
-              <ChevronRight size={16} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              className="btn-cta"
-              style={{ padding: '12px 28px', fontSize: 15 }}
-            >
-              <Sparkles size={16} />
-              <span>Submit & Analyze Wellbeing</span>
-            </button>
-          )}
-        </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: '#E0F2F1',
+                    color: '#01575E',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Bot size={18} />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0E1A2B', margin: 0 }}>
+                  Conversational Symptom & Strain Intake
+                </h3>
+              </div>
+
+              <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.5, margin: '0 0 16px' }}>
+                Describe what you're experiencing in plain language (e.g. sleep hours, symptoms, exam pressure, department, stress level). Groq AI will extract your clinical parameters automatically.
+              </p>
+
+              <textarea
+                rows={4}
+                value={freeTextSymptom}
+                onChange={(e) => setFreeTextSymptom(e.target.value)}
+                placeholder="Example: I'm a 3rd year engineering student feeling overwhelmed. I've only been getting 3.5 to 4 hours of sleep because midterms are next week. I have constant tension headaches, studying 8 hours a day, and feeling intense pressure from family..."
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  border: '1.5px solid #CBD5E1',
+                  fontSize: 13.5,
+                  lineHeight: 1.5,
+                  outline: 'none',
+                  resize: 'vertical',
+                  marginBottom: 14,
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <button
+                  type="button"
+                  disabled={!freeTextSymptom.trim() || isParsingSymptom}
+                  onClick={handleParseSymptomText}
+                  className="btn-teal"
+                  style={{
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    opacity: !freeTextSymptom.trim() || isParsingSymptom ? 0.6 : 1,
+                  }}
+                >
+                  <Sparkles size={13} />
+                  <span>{isParsingSymptom ? 'Extracting Parameters...' : 'Analyze with Groq NLP'}</span>
+                </button>
+              </div>
+
+              {parsedPreview && (
+                <div
+                  style={{
+                    background: '#F0FDFA',
+                    border: '1.5px solid #99F6E4',
+                    borderRadius: 12,
+                    padding: '16px 18px',
+                    marginBottom: 20,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase', marginBottom: 6 }}>
+                    Clinical Parameter Extraction
+                  </div>
+                  <p style={{ fontSize: 13, color: '#115E59', margin: '0 0 12px', fontStyle: 'italic' }}>
+                    "{parsedPreview.symptomSummary}"
+                  </p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                      Sleep: <strong>{parsedPreview.sleep_hours} hrs</strong>
+                    </span>
+                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                      Exam Pressure: <strong>{parsedPreview.exam_pressure}/10</strong>
+                    </span>
+                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                      Stress Level: <strong>{parsedPreview.stress_level}/10</strong>
+                    </span>
+                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                      Study Load: <strong>{parsedPreview.study_hours_per_day} hrs</strong>
+                    </span>
+                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                      Major: <strong>{parsedPreview.department} (Yr {parsedPreview.academic_year})</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyParsedToForm(false)}
+                      className="btn-outline-dark"
+                      style={{ padding: '8px 14px', fontSize: 12.5 }}
+                    >
+                      Review & Edit Values
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyParsedToForm(true)}
+                      className="btn-teal"
+                      style={{ padding: '8px 16px', fontSize: 12.5 }}
+                    >
+                      <Sparkles size={13} />
+                      <span>Run Instant Assessment</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -394,9 +394,57 @@ Return ONLY valid JSON.`;
   return coachingResult;
 }
 
+// Conversational Symptom / Strain NLP Parser (Ada Health & Claude Healthcare Style)
+async function parseSymptomsFromText(freeText) {
+  const prompt = `You are a clinical student mental health intake specialist.
+A university student submitted the following natural language description of their symptoms and academic strain:
+"${freeText}"
+
+Extract and estimate their assessment metrics accurately formatted as strict JSON:
+{
+  "age": 21,
+  "gender": "Female",
+  "academic_year": 3,
+  "department": "Engineering",
+  "sleep_hours": 4.5,
+  "study_hours_per_day": 7.0,
+  "exam_pressure": 8,
+  "academic_performance": 6,
+  "stress_level": 8,
+  "physical_activity": 3,
+  "social_support": 4,
+  "screen_time": 8.0,
+  "internet_usage": 6.0,
+  "financial_stress": 5,
+  "family_expectation": 7,
+  "symptomSummary": "1-2 sentence clinical summary of the student's physical, psychological, and academic symptoms."
+}
+Ensure numeric ranges are valid (scale 1-10 for ratings, realistic hours for sleep/study/screen). Return ONLY valid JSON.`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (err) {
+    const completion = await groq.chat.completions.create({
+      model: 'groq/compound-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
+    return JSON.parse(completion.choices[0].message.content);
+  }
+}
+
 module.exports = {
   getChatReply,
   streamChatReply,
   generatePersonalizedSuggestions,
   generateFollowupCoaching,
+  parseSymptomsFromText,
 };
+
