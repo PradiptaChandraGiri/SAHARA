@@ -17,6 +17,21 @@ const BASE_SYSTEM_PROMPT =
   "Use minimal markdown - **bold** for emphasis, concise bullet points for study notes. Keep formatting clean and supportive.";
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
+const FALLBACK_MODEL = "groq/compound-mini";
+
+function logGroqError(context, err) {
+  if (err?.status === 429) {
+    console.error(`[Groq Rate Limit (429)] ${context}: Rate limit or TPM quota reached.`, err.message);
+  } else if (err?.status === 401) {
+    console.error(`[Groq Auth Error (401)] ${context}: API key invalid or missing.`, err.message);
+  } else if (err?.status === 404) {
+    console.error(`[Groq Model Not Found (404)] ${context}: Model ${GROQ_MODEL} unavailable.`, err.message);
+  } else if (err?.status >= 500) {
+    console.error(`[Groq Server Error (${err.status})] ${context}:`, err.message);
+  } else {
+    console.error(`[Groq Error] ${context}:`, err?.message || err);
+  }
+}
 
 // Verified YouTube resources catalog for university students
 const VERIFIED_YT_MAP = {
@@ -127,13 +142,23 @@ async function getChatReply(userMessage, conversationHistory = [], studentContex
     });
     return { text: completion.choices[0].message.content, flaggedCrisis: false };
   } catch (err) {
-    const completion = await groq.chat.completions.create({
-      model: "groq/compound-mini",
-      messages,
-      temperature: 0.7,
-      max_tokens: 300,
-    });
-    return { text: completion.choices[0].message.content, flaggedCrisis: false };
+    logGroqError("getChatReply (primary)", err);
+    try {
+      const completion = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 300,
+      });
+      return { text: completion.choices[0].message.content, flaggedCrisis: false };
+    } catch (e2) {
+      logGroqError("getChatReply (fallback)", e2);
+      return {
+        text: "I hear you. Academic pressure can feel overwhelming, but taking a 5-minute break and organizing your top priority into a 25/5 Pomodoro sprint will help you regain focus. Let me know what subject you want to work on next!",
+        flaggedCrisis: false,
+        isFallback: true
+      };
+    }
   }
 }
 
@@ -165,13 +190,24 @@ async function streamChatReply(userMessage, conversationHistory = [], onChunk, s
       stream: true,
     });
   } catch (err) {
-    stream = await groq.chat.completions.create({
-      model: "groq/compound-mini",
-      messages,
-      temperature: 0.7,
-      max_tokens: 320,
-      stream: true,
-    });
+    logGroqError("streamChatReply (primary)", err);
+    try {
+      stream = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 320,
+        stream: true,
+      });
+    } catch (e2) {
+      logGroqError("streamChatReply (fallback)", e2);
+      const fallbackReply = "I hear you. 💚 When study demands peak, try a 25-minute Pomodoro focus block followed by 5 minutes of restorative breathing. What subject or task feels heaviest today?";
+      for (const word of fallbackReply.split(" ")) {
+        onChunk(word + " ");
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      return fallbackReply;
+    }
   }
 
   let fullText = "";
@@ -261,17 +297,19 @@ Ensure every suggestion provides high-value educational/wellbeing notes for univ
     });
     rawResult = JSON.parse(completion.choices[0].message.content);
   } catch (err) {
-    console.error('Groq generatePersonalizedSuggestions failed, trying fallback:', err);
+    logGroqError("generatePersonalizedSuggestions (primary)", err);
     try {
       const completion = await groq.chat.completions.create({
-        model: 'groq/compound-mini',
+        model: FALLBACK_MODEL,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.75,
         response_format: { type: 'json_object' }
       });
       rawResult = JSON.parse(completion.choices[0].message.content);
     } catch (e2) {
+      logGroqError("generatePersonalizedSuggestions (fallback)", e2);
       rawResult = {
+        isFallback: true,
         aiSynthesis: `Based on your evaluation, your high exam pressure and current sleep patterns are the main contributors to your strain level. Focusing on a structured wind-down routine and 25-minute Pomodoro study sprints will provide the quickest relief this week.`,
         suggestions: [
           {
@@ -363,17 +401,30 @@ Return ONLY valid JSON.`;
     });
     coachingResult = JSON.parse(completion.choices[0].message.content);
   } catch (err) {
-    coachingResult = {
-      headline: "Navigating Your Current Workload",
-      insight: "When exams and coursework pile up simultaneously, our working memory gets saturated, creating a freeze response. This is a normal neurochemical reaction to prolonged stress, not a lack of capability.",
-      microAction: "Pick just ONE assignment, open it, and spend exactly 5 minutes outlining the first small paragraph without judging the quality.",
-      suggestedTopic: `Help me break down my study plan for ${concern}`,
-      studyNotes: [
-        "Reduce friction: Break overwhelming tasks into 5-minute atomic micro-actions.",
-        "Use active recall instead of passive re-reading to maximize study efficiency.",
-        "Take a mandatory 5-minute walk between study blocks to clear working memory."
-      ]
-    };
+    logGroqError("generateFollowupCoaching (primary)", err);
+    try {
+      const completion = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      });
+      coachingResult = JSON.parse(completion.choices[0].message.content);
+    } catch (e2) {
+      logGroqError("generateFollowupCoaching (fallback)", e2);
+      coachingResult = {
+        isFallback: true,
+        headline: "Navigating Your Current Workload",
+        insight: "When exams and coursework pile up simultaneously, our working memory gets saturated, creating a freeze response. This is a normal neurochemical reaction to prolonged stress, not a lack of capability.",
+        microAction: "Pick just ONE assignment, open it, and spend exactly 5 minutes outlining the first small paragraph without judging the quality.",
+        suggestedTopic: `Help me break down my study plan for ${concern}`,
+        studyNotes: [
+          "Reduce friction: Break overwhelming tasks into 5-minute atomic micro-actions.",
+          "Use active recall instead of passive re-reading to maximize study efficiency.",
+          "Take a mandatory 5-minute walk between study blocks to clear working memory."
+        ]
+      };
+    }
   }
 
   // Attach relevant video recommendation

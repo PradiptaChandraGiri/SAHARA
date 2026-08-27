@@ -200,9 +200,12 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
   const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
 
-  // Load real-time Groq dynamic guidance & video notes tailored to this evaluation
-  useEffect(() => {
+  const [guidanceNotice, setGuidanceNotice] = useState<string | null>(null)
+  const [followupError, setFollowupError] = useState<string | null>(null)
+
+  const loadGuidance = () => {
     setIsLoadingGuidance(true)
+    setGuidanceNotice(null)
     fetch(`${API_BASE}/api/results/ai-guidance`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -218,14 +221,34 @@ export default function Results({ data, onNavigate }: ResultsProps) {
         studyHours: (d as any).studyHours || 5,
       }),
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 429) {
+            setGuidanceNotice('SAHARA AI reached a transient rate limit. Displaying verified high-yield protocols.')
+          } else {
+            setGuidanceNotice('Having trouble connecting to SAHARA AI. Displaying verified recovery protocols.')
+          }
+          return res.json().catch(() => null)
+        }
+        return res.json()
+      })
       .then((guidanceData) => {
         if (guidanceData) {
           setAiGuidance(guidanceData)
+          if (guidanceData.isFallback) {
+            setGuidanceNotice('⚡ High-Yield Resilience & Pacing Protocols Active')
+          }
         }
       })
-      .catch((err) => console.warn('Could not load AI guidance:', err))
+      .catch(() => {
+        setGuidanceNotice('Live AI connectivity limited. Displaying verified recovery protocols.')
+      })
       .finally(() => setIsLoadingGuidance(false))
+  }
+
+  // Load real-time Groq dynamic guidance & video notes tailored to this evaluation
+  useEffect(() => {
+    loadGuidance()
   }, [overallScore, anxietyScore, dropoutScore, risk])
 
   const primaryConcern = factors[0] || 'academic strain'
@@ -240,6 +263,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const handleFollowupSelect = async (chipText: string) => {
     setFollowupInput(chipText)
     setIsSubmittingFollowup(true)
+    setFollowupError(null)
     try {
       const res = await fetch(`${API_BASE}/api/results/followup`, {
         method: 'POST',
@@ -257,9 +281,11 @@ export default function Results({ data, onNavigate }: ResultsProps) {
       if (res.ok) {
         const coaching = await res.json()
         setActiveCoaching(coaching)
+      } else {
+        setFollowupError("Couldn't reach live coaching right now. Please try again in a moment.")
       }
     } catch (err) {
-      console.warn('Could not load AI coaching:', err)
+      setFollowupError("Couldn't reach live coaching right now. Please try again in a moment.")
     } finally {
       setIsSubmittingFollowup(false)
     }
@@ -268,30 +294,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const handleCustomFollowupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!followupInput.trim() || isSubmittingFollowup) return
-    setIsSubmittingFollowup(true)
-    try {
-      const res = await fetch(`${API_BASE}/api/results/followup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          concern: followupInput,
-          assessmentSummary: {
-            overallWellbeing: overallScore,
-            anxietySignal: anxietyScore,
-            factors,
-          },
-        }),
-      })
-      if (res.ok) {
-        const coaching = await res.json()
-        setActiveCoaching(coaching)
-      }
-    } catch (err) {
-      console.warn('Could not load custom AI coaching:', err)
-    } finally {
-      setIsSubmittingFollowup(false)
-    }
+    handleFollowupSelect(followupInput.trim())
   }
 
   const handleGoToChat = (promptText?: string) => {
@@ -651,9 +654,47 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             </span>
           </div>
 
-          <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 20px' }}>
+          <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 16px' }}>
             Practical, bite-sized protocols with verified video breakdowns & study notes generated dynamically for your exact assessment:
           </p>
+
+          {guidanceNotice && (
+            <div
+              style={{
+                background: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                borderRadius: 8,
+                padding: '10px 14px',
+                marginBottom: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#92400E' }}>
+                <AlertTriangle size={15} color="#D97706" />
+                <span>{guidanceNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={loadGuidance}
+                style={{
+                  background: '#F59E0B',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Refresh AI
+              </button>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
             {(aiGuidance?.suggestions || [
@@ -883,6 +924,27 @@ export default function Results({ data, onNavigate }: ResultsProps) {
               <Send size={13} />
             </button>
           </form>
+
+          {/* Error Notice */}
+          {followupError && (
+            <div
+              style={{
+                marginTop: 12,
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 8,
+                padding: '8px 14px',
+                fontSize: 13,
+                color: '#991B1B',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <AlertTriangle size={14} color="#DC2626" />
+              <span>{followupError}</span>
+            </div>
+          )}
 
           {/* Dynamic AI Coaching Card Output with Notes & Video */}
           {activeCoaching && (

@@ -287,13 +287,11 @@ export default function AISupport() {
         }
       }
     } catch (err: any) {
-      console.warn('Streaming error, using fallback if empty:', err)
-      let fallbackText =
-        "I hear you. 💚 Academic pressure can feel intense, but breaking your tasks into 25-minute Pomodoro focus blocks with 5-minute screen-free breaks makes a meaningful difference. What subject feels most urgent right now?"
-      if (isLocalCrisis) {
-        fallbackText =
-          "I hear how much pain you're in, and your safety is the #1 priority. Please connect with free, confidential 24/7 help right now: Call Tele-MANAS at 14416 or KIRAN at 1800-599-0019. You do not have to carry this alone. 💚"
-      }
+      console.warn('Chat streaming error:', err)
+      let fallbackText = isLocalCrisis
+        ? "I hear how much pain you're in, and your safety is the #1 priority. Please connect with free, confidential 24/7 help right now: Call Tele-MANAS at 14416 or KIRAN at 1800-599-0019. You do not have to carry this alone. 💚"
+        : "⚠️ Having trouble connecting to SAHARA AI right now (High traffic / Rate limit). Please wait a moment and try asking again, or try one of the guided wellbeing strategies below.";
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMsgId && !msg.text
