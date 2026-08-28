@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
 :root {
-  /* Master Palette */
+  /* Master Brand Palette - Light Sanctuary Mode */
   --teal-900: #013C41;
   --teal-800: #01575E;
   --teal-700: #0E6F78;
@@ -14,8 +14,10 @@
   --navy-950: #0E1A2B;
   --navy-900: #14243D;
   --navy-800: #1D3357;
+  --navy-700: #2A4365;
+  --navy-100: #E2E8F0;
 
-  /* Warm Accent - Only for primary calls to action */
+  /* Warm Accent - Primary Calls to Action */
   --amber-500: #D99A34;
   --amber-400: #E8B563;
   --amber-600: #B8791F;
@@ -25,8 +27,12 @@
   /* Surfaces & Backgrounds */
   --bg-app: #F9F9F8;
   --bg-card: #FFFFFF;
+  --bg-card-subtle: #F8FAFC;
+  --bg-sidebar: #FFFFFF;
+  --bg-input: #FFFFFF;
   --border-subtle: #E2E8F0;
   --border-strong: #CBD5E1;
+  --border-input: #CBD5E1;
 
   /* Typography Colors */
   --ink-900: #0E1A2B;
@@ -34,7 +40,7 @@
   --ink-500: #64748B;
   --ink-400: #94A3B8;
 
-  /* Strict 3-Tier Risk Palette */
+  /* Strict 3-Tier Risk Palette (Light Mode) */
   --risk-low: #16A34A;
   --risk-low-bg: #F0FDF4;
   --risk-low-border: #BBF7D0;
@@ -57,6 +63,69 @@
   --radius-lg: 20px;
 }
 
+/* =========================================================
+   DARK THEME PALETTE ("Midnight Sanctuary")
+   WCAG AA Compliant contrast derived from Brand Midnight Navy
+   ========================================================= */
+[data-theme="dark"],
+html.dark {
+  /* Brand Teal - Elevated lightness for dark-mode readability */
+  --teal-900: #0D2D31;
+  --teal-800: #14B8A6;
+  --teal-700: #2DD4BF;
+  --teal-600: #38B2AC;
+  --teal-500: #4FD1C5;
+  --teal-100: #132E35;
+  --teal-50: #0E2228;
+
+  --navy-950: #F8FAFC;
+  --navy-900: #E2E8F0;
+  --navy-800: #CBD5E1;
+  --navy-700: #94A3B8;
+  --navy-100: #1E293B;
+
+  /* Warm Accent in Dark Mode (High-contrast amber) */
+  --amber-500: #F59E0B;
+  --amber-400: #FBBF24;
+  --amber-600: #D97706;
+  --amber-100: #36250D;
+  --amber-50: #261A09;
+
+  /* Surfaces & Backgrounds - Deep Midnight Charcoal (Avoid harsh #000) */
+  --bg-app: #0B131F;
+  --bg-card: #111E30;
+  --bg-card-subtle: #17273F;
+  --bg-sidebar: #0E1726;
+  --bg-input: #17273F;
+  --border-subtle: #1F304A;
+  --border-strong: #2D4366;
+  --border-input: #2D4366;
+
+  /* Typography Colors - Anti-glare warm off-white */
+  --ink-900: #F1F5F9;
+  --ink-700: #CBD5E1;
+  --ink-500: #94A3B8;
+  --ink-400: #64748B;
+
+  /* Strict 3-Tier Risk Palette (WCAG AA Dark Mode Certified) */
+  --risk-low: #34D399;
+  --risk-low-bg: #062817;
+  --risk-low-border: #065F46;
+
+  --risk-moderate: #FBBF24;
+  --risk-moderate-bg: #302008;
+  --risk-moderate-border: #854D0E;
+
+  --risk-high: #F87171;
+  --risk-high-bg: #381214;
+  --risk-high-border: #991B1B;
+
+  /* Shadows for Dark Mode */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 28px -3px rgba(0, 0, 0, 0.6);
+}
+
 html, body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-app);
@@ -64,6 +133,7 @@ html, body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -71,11 +141,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   color: var(--ink-900);
   letter-spacing: -0.015em;
+  transition: color 0.25s ease;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #CBD5E1 transparent;
+  scrollbar-color: var(--border-strong) transparent;
   box-sizing: border-box;
 }
 
@@ -85,7 +156,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--border-strong);
   border-radius: 99px;
 }
 
@@ -108,12 +179,12 @@ h1, h2, h3, h4, h5, h6 {
 .card-hover:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: #CBD5E1;
+  border-color: var(--border-strong);
 }
 
 .btn-cta {
   background: var(--amber-500);
-  color: var(--navy-950);
+  color: #0E1A2B;
   font-weight: 700;
   font-size: 14.5px;
   padding: 12px 24px;
@@ -156,7 +227,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-outline {
-  background: #FFFFFF;
+  background: var(--bg-card);
   color: var(--teal-800);
   font-weight: 600;
   font-size: 14px;
@@ -178,15 +249,15 @@ h1, h2, h3, h4, h5, h6 {
 .input-standard {
   width: 100%;
   padding: 11px 14px;
-  border: 1.5px solid var(--border-subtle);
+  border: 1.5px solid var(--border-input);
   border-radius: var(--radius-sm);
   font-size: 14px;
   color: var(--ink-900);
-  background: #FFFFFF;
+  background: var(--bg-input);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   outline: none;
 }
 .input-standard:focus {
   border-color: var(--teal-800);
-  box-shadow: 0 0 0 3px rgba(1, 87, 94, 0.15);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
 }

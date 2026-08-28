@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Page } from '../App'
 import { useAuth } from '../context/AuthContext'
+import ThemeToggle from './ThemeToggle'
 
 interface SidebarProps {
   currentPage: Page
@@ -49,26 +50,31 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
   return (
     <aside style={{
-      width: 240, minWidth: 240, background: '#fff', borderRight: '1px solid var(--border)',
-      display: 'flex', flexDirection: 'column', height: '100vh',
+      width: 240, minWidth: 240, background: 'var(--bg-sidebar, #FFFFFF)', borderRight: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column', height: '100vh', transition: 'background 0.25s ease, border-color 0.25s ease',
     }}>
-      {/* Logo */}
-      <div style={{ padding: '22px 20px 18px', borderBottom: '1px solid var(--slate-100)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8, background: 'var(--navy-950)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
-            </svg>
+      {/* Logo & Brand Header */}
+      <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8, background: 'var(--navy-950)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div>
+              <span className="display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)' }}>SAHARA</span>
+              <span style={{ display: 'block', fontSize: 10.5, color: 'var(--amber-600)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {role} View
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)' }}>SAHARA</span>
-            <span style={{ display: 'block', fontSize: 10.5, color: 'var(--amber-600)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {role} View
-            </span>
-          </div>
+
+          {/* Compact Theme Switcher in Brand Header */}
+          <ThemeToggle compact />
         </div>
       </div>
 
@@ -108,12 +114,12 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Footer / account */}
-      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--slate-100)' }}>
+      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 34, height: 34, borderRadius: '50%', background: 'var(--navy-100)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12.5, fontWeight: 700, color: 'var(--navy-800)',
+            fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)',
           }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -135,7 +141,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             <button
               onClick={() => onNavigate('login')}
               title="Sign in"
-              style={{ background: 'none', border: 'none', color: 'var(--navy-700)', cursor: 'pointer', padding: 4, fontWeight: 600, fontSize: 12 }}
+              style={{ background: 'none', border: 'none', color: 'var(--teal-800)', cursor: 'pointer', padding: 4, fontWeight: 600, fontSize: 12 }}
             >
               Login
             </button>
@@ -144,10 +150,10 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </div>
 
       {/* Developer Attribution */}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid #F1F5F9', background: '#FAFAFA' }}>
-        <div style={{ fontSize: 10.5, color: '#64748B', lineHeight: 1.4 }}>
+      <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-card-subtle, #FAFAFA)' }}>
+        <div style={{ fontSize: 10.5, color: 'var(--ink-500)', lineHeight: 1.4 }}>
           Lead Developer:{' '}
-          <strong style={{ color: '#0E1A2B', fontWeight: 600 }}>Pradipta Chandra Giri</strong>
+          <strong style={{ color: 'var(--ink-900)', fontWeight: 600 }}>Pradipta Chandra Giri</strong>
         </div>
       </div>
     </aside>
@@ -167,7 +173,8 @@ function NavButton({ item, active, onNavigate }: {
         padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
         fontSize: 13.5, fontWeight: 500, marginBottom: 2,
         background: active ? 'var(--navy-100)' : 'transparent',
-        color: active ? 'var(--navy-800)' : 'var(--ink-500)',
+        color: active ? 'var(--ink-900)' : 'var(--ink-500)',
+        transition: 'all 0.15s ease',
       }}
     >
       {item.icon}
@@ -180,3 +187,5 @@ const sectionLabel: React.CSSProperties = {
   fontSize: 10.5, fontWeight: 700, color: 'var(--ink-400)', letterSpacing: '0.07em',
   textTransform: 'uppercase', padding: '6px 12px 6px',
 }
+
+
