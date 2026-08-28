@@ -36,8 +36,44 @@ function logGroqError(context, err) {
   }
 }
 
-// Verified YouTube resources catalog for university students
+// Verified YouTube resources catalog for university students across mental wellbeing & core disciplines
 const VERIFIED_YT_MAP = {
+  dsa_coding: {
+    youtubeId: "8hly31xKli0",
+    videoTitle: "Dynamic Programming & Algorithmic Problem Breakdown - freeCodeCamp",
+    fallbackNotes: [
+      "Identify the recursive subproblem structure and recognize overlapping subproblems.",
+      "Draw the recursion state tree on paper to visualize base cases and branching.",
+      "Apply a memoization hash/array table to collapse exponential time O(2^n) to polynomial O(n)."
+    ]
+  },
+  calculus_math: {
+    youtubeId: "WUvTyaaNkzM",
+    videoTitle: "Calculus & Visual Intuition Problem Breakdown - 3Blue1Brown",
+    fallbackNotes: [
+      "Build geometric intuition for equations before memorizing mechanical steps.",
+      "Work backward from sample questions to isolate prerequisite algebra gaps.",
+      "Use spaced flashcard sprints to drill standard derivative/integral forms."
+    ]
+  },
+  chemistry_science: {
+    youtubeId: "Qp3xR7kYj34",
+    videoTitle: "Organic Chemistry Mechanisms & Problem Solving - Professor Dave",
+    fallbackNotes: [
+      "Focus on electron density flow: track electron-rich nucleophiles attacking electrophiles.",
+      "Practice drawing curved-arrow mechanisms on a whiteboard from memory.",
+      "Test yourself on synthesis pathways without referencing textbook answer keys."
+    ]
+  },
+  coursework_triage: {
+    youtubeId: "4x7MkLDGnu8",
+    videoTitle: "How to Manage Heavy University Coursework & Deadlines - College Info Geek",
+    fallbackNotes: [
+      "Triage assignments by grading percentage and immediate deadline priority.",
+      "Dedicate the first 45 minutes of each day to the highest-weight deliverable.",
+      "Eliminate decision fatigue by scheduling specific calendar slots for each module."
+    ]
+  },
   sleep: {
     youtubeId: "pL02HRFk2vo",
     videoTitle: "10-Minute Non-Sleep Deep Rest (NSDR) Protocol - Dr. Andrew Huberman",
@@ -98,7 +134,15 @@ function enrichSuggestionWithVideo(sug) {
   const text = `${sug.title} ${sug.tag} ${sug.description}`.toLowerCase();
   let match = VERIFIED_YT_MAP.pomodoro;
 
-  if (text.includes("sleep") || text.includes("night") || text.includes("insomnia") || text.includes("rest")) {
+  if (text.includes("dynamic programming") || text.includes("recursion") || text.includes("algorithm") || text.includes("dsa") || text.includes("coding") || text.includes("code") || text.includes("data structure")) {
+    match = VERIFIED_YT_MAP.dsa_coding;
+  } else if (text.includes("calculus") || text.includes("math") || text.includes("integral") || text.includes("derivative") || text.includes("algebra")) {
+    match = VERIFIED_YT_MAP.calculus_math;
+  } else if (text.includes("chemistry") || text.includes("organic") || text.includes("reaction") || text.includes("physics") || text.includes("biology")) {
+    match = VERIFIED_YT_MAP.chemistry_science;
+  } else if (text.includes("coursework") || text.includes("assignment") || text.includes("deadline") || text.includes("essay")) {
+    match = VERIFIED_YT_MAP.coursework_triage;
+  } else if (text.includes("sleep") || text.includes("night") || text.includes("insomnia") || text.includes("rest")) {
     match = VERIFIED_YT_MAP.sleep;
   } else if (text.includes("breath") || text.includes("sigh") || text.includes("panic") || text.includes("nervous")) {
     match = VERIFIED_YT_MAP.breathing;
@@ -431,13 +475,29 @@ Return ONLY valid JSON.`;
     }
   }
 
-  // Attach relevant video recommendation
-  const text = `${concern} ${coachingResult.headline}`.toLowerCase();
+  // Attach relevant domain & topic video recommendation dynamically
+  const text = `${concern} ${coachingResult.headline} ${(coachingResult.studyNotes || []).join(' ')}`.toLowerCase();
   let videoMatch = VERIFIED_YT_MAP.pomodoro;
-  if (text.includes("sleep") || text.includes("tired")) videoMatch = VERIFIED_YT_MAP.sleep;
-  else if (text.includes("panic") || text.includes("breath") || text.includes("anxious")) videoMatch = VERIFIED_YT_MAP.breathing;
-  else if (text.includes("exam") || text.includes("midterm") || text.includes("test")) videoMatch = VERIFIED_YT_MAP.exam_stress;
-  else if (text.includes("subject") || text.includes("math") || text.includes("understand")) videoMatch = VERIFIED_YT_MAP.active_recall;
+
+  if (text.includes("dynamic programming") || text.includes("recursion") || text.includes("algorithm") || text.includes("dsa") || text.includes("coding") || text.includes("code") || text.includes("data structure") || text.includes("tree")) {
+    videoMatch = VERIFIED_YT_MAP.dsa_coding;
+  } else if (text.includes("calculus") || text.includes("math") || text.includes("integral") || text.includes("derivative") || text.includes("algebra") || text.includes("matrix")) {
+    videoMatch = VERIFIED_YT_MAP.calculus_math;
+  } else if (text.includes("chemistry") || text.includes("organic") || text.includes("reaction") || text.includes("physics") || text.includes("biology") || text.includes("science")) {
+    videoMatch = VERIFIED_YT_MAP.chemistry_science;
+  } else if (text.includes("coursework") || text.includes("assignment") || text.includes("deadline") || text.includes("essay") || text.includes("project")) {
+    videoMatch = VERIFIED_YT_MAP.coursework_triage;
+  } else if (text.includes("sleep") || text.includes("tired") || text.includes("insomnia") || text.includes("wake")) {
+    videoMatch = VERIFIED_YT_MAP.sleep;
+  } else if (text.includes("panic") || text.includes("breath") || text.includes("anxious") || text.includes("heart") || text.includes("nervous")) {
+    videoMatch = VERIFIED_YT_MAP.breathing;
+  } else if (text.includes("exam") || text.includes("midterm") || text.includes("test") || text.includes("finals")) {
+    videoMatch = VERIFIED_YT_MAP.exam_stress;
+  } else if (text.includes("subject") || text.includes("memor") || text.includes("notes") || text.includes("study") || text.includes("understand")) {
+    videoMatch = VERIFIED_YT_MAP.active_recall;
+  } else if (text.includes("procrastinat") || text.includes("focus") || text.includes("distraction")) {
+    videoMatch = VERIFIED_YT_MAP.pomodoro;
+  }
 
   coachingResult.recommendedVideo = {
     youtubeId: videoMatch.youtubeId,
