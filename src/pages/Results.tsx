@@ -438,7 +438,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
               Primary Wellbeing Indicators
             </h2>
-            <RiskBadge level={risk} />
+            <RiskBadge tier={risk} />
           </div>
 
           <div

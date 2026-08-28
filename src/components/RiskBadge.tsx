@@ -3,13 +3,18 @@ import React from 'react'
 export type RiskTier = 'low' | 'medium' | 'moderate' | 'high'
 
 interface RiskBadgeProps {
-  tier: RiskTier | string
+  tier?: RiskTier | string
+  level?: RiskTier | string
   score?: number
   size?: 'sm' | 'md' | 'lg'
 }
 
-export default function RiskBadge({ tier, score, size = 'md' }: RiskBadgeProps) {
-  const normTier = (tier || 'low').toLowerCase()
+export default function RiskBadge({ tier, level, score, size = 'md' }: RiskBadgeProps) {
+  let rawTier = tier || level
+  if (!rawTier && score !== undefined) {
+    rawTier = score > 65 ? 'high' : score > 35 ? 'medium' : 'low'
+  }
+  const normTier = (rawTier || 'low').toLowerCase()
   const isHigh = normTier === 'high'
   const isMed = normTier === 'medium' || normTier === 'moderate'
   
