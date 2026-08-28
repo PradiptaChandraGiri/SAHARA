@@ -5,8 +5,9 @@
 // 3. In production (e.g. Vercel deployment), use relative '' path to call /api/* serverless endpoints.
 
 export const API_BASE = (() => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl && !envUrl.includes('your-backend-name') && !envUrl.includes('placeholder') && !envUrl.includes('example.com')) {
+    return envUrl.replace(/\/$/, '')
   }
   if (typeof window !== 'undefined') {
     const host = window.location.hostname
