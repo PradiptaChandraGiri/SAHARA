@@ -42,30 +42,32 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
         })
         if (res.ok) {
           const row = await res.json()
-          setLatestAssessment({
-            id: row.id,
-            riskLevel: row.risk_level,
-            overall_wellbeing: Number(row.overall_wellbeing),
-            anxiety_signal: Number(row.anxiety_signal),
-            academic_strain: Number(row.academic_strain),
-            timestamp: row.created_at,
-            factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
-          })
+          if (row && row.id) {
+            setLatestAssessment({
+              id: row.id,
+              riskLevel: row.risk_level,
+              overall_wellbeing: Number(row.overall_wellbeing),
+              anxiety_signal: Number(row.anxiety_signal),
+              academic_strain: Number(row.academic_strain),
+              timestamp: row.created_at,
+              factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
+            })
 
-          // Fetch real curated resources for the week
-          const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include' })
-          if (resRes.ok) {
-            const resources = await resRes.json()
-            if (Array.isArray(resources) && resources.length > 0) {
-              setDbSuggestion({
-                id: resources[0].id,
-                title: resources[0].title,
-                description: resources[0].description,
-                type: (resources[0].resource_type || 'video') as any,
-                link: resources[0].url,
-                tag: resources[0].factor_key?.replace(/_/g, ' ') || 'Focus',
-                readTime: resources[0].resource_type === 'video' ? '5 min watch' : '4 min read',
-              })
+            // Fetch real curated resources for the week
+            const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include' })
+            if (resRes.ok) {
+              const resources = await resRes.json()
+              if (Array.isArray(resources) && resources.length > 0) {
+                setDbSuggestion({
+                  id: resources[0].id,
+                  title: resources[0].title,
+                  description: resources[0].description,
+                  type: (resources[0].resource_type || 'video') as any,
+                  link: resources[0].url,
+                  tag: resources[0].factor_key?.replace(/_/g, ' ') || 'Focus',
+                  readTime: resources[0].resource_type === 'video' ? '5 min watch' : '4 min read',
+                })
+              }
             }
           }
         } else if (res.status === 404) {

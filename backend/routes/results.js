@@ -9,14 +9,19 @@ const router = express.Router();
 router.get("/api/results/latest", async (req, res) => {
   const userId = req.session ? req.session.userId : null;
   if (!userId) {
-    return res.status(404).json({ error: "No check-ins yet." });
+    return res.json(null);
   }
-  const result = await pool.query(
-    `SELECT * FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
-    [userId]
-  );
-  if (result.rows.length === 0) return res.status(404).json({ error: "No check-ins yet." });
-  res.json(result.rows[0]);
+  try {
+    const result = await pool.query(
+      `SELECT * FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+    if (result.rows.length === 0) return res.json(null);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.warn("results/latest query error:", err.message);
+    res.json(null);
+  }
 });
 
 // GET /api/results/history - powers the Profile page trend chart
