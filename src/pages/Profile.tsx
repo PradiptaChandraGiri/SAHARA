@@ -24,7 +24,7 @@ interface ProfileProps {
 import { API_BASE } from '../config'
 
 export default function Profile({ onNavigate }: ProfileProps) {
-  const { user, token } = useAuth()
+  const { user, token, logout } = useAuth()
   const [history, setHistory] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -34,8 +34,13 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const fetchHistory = async () => {
     setIsLoading(true)
     try {
+      const savedToken = token || localStorage.getItem('sahara_token')
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
       const res = await fetch(`${API_BASE}/api/results/history`, {
         credentials: 'include',
+        headers,
       })
       if (res.ok) {
         const rows = await res.json()
@@ -48,8 +53,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
               combined_score: Number(r.overall_wellbeing || 0) / 100,
               anxiety_score: (Number(r.anxiety_signal || 0) / 100) * 10,
               dropout_probability: Number(r.academic_strain || 0) / 100,
-              risk_tier: r.risk_level || 'low',
-              risk_level: r.risk_level || 'low',
+              risk_tier: r.risk_level || (Number(r.overall_wellbeing) > 65 ? 'high' : Number(r.overall_wellbeing) > 35 ? 'medium' : 'low'),
+              risk_level: r.risk_level || (Number(r.overall_wellbeing) > 65 ? 'high' : Number(r.overall_wellbeing) > 35 ? 'medium' : 'low'),
+              factors: Array.isArray(r.contributing_factors) ? r.contributing_factors : [],
               timestamp: r.created_at,
             }))
           : []
@@ -69,8 +75,13 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const handleDownloadData = async () => {
     setExporting(true)
     try {
+      const savedToken = token || localStorage.getItem('sahara_token')
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
       const res = await fetch(`${API_BASE}/api/me/export`, {
         credentials: 'include',
+        headers,
       })
       let exportPayload: any
       if (res.ok) {
@@ -105,9 +116,14 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
     setDeleting(true)
     try {
+      const savedToken = token || localStorage.getItem('sahara_token')
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
       await fetch(`${API_BASE}/api/me`, {
         method: 'DELETE',
         credentials: 'include',
+        headers,
       })
 
       setHistory([])

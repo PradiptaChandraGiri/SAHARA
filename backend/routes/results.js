@@ -1,13 +1,25 @@
-// routes/results.js
 const express = require("express");
 const pool = require("../db/pool");
 const { generatePersonalizedSuggestions, generateFollowupCoaching } = require("../services/groq");
+const { verifyToken } = require("../helpers/token");
 
 const router = express.Router();
 
+// Helper to resolve user ID from session or Bearer authorization header
+function getUserIdFromReq(req) {
+  if (req.session && req.session.userId) return req.session.userId;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const tokenStr = authHeader.substring(7).trim();
+    const verified = verifyToken(tokenStr);
+    if (verified && verified.userId) return verified.userId;
+  }
+  return null;
+}
+
 // GET /api/results/latest - powers the Dashboard status card + Results page
 router.get("/api/results/latest", async (req, res) => {
-  const userId = req.session ? req.session.userId : null;
+  const userId = getUserIdFromReq(req);
   if (!userId) {
     return res.json(null);
   }
@@ -26,13 +38,13 @@ router.get("/api/results/latest", async (req, res) => {
 
 // GET /api/results/history - powers the Profile page trend chart
 router.get("/api/results/history", async (req, res) => {
-  const userId = req.session ? req.session.userId : null;
+  const userId = getUserIdFromReq(req);
   if (!userId) {
     return res.json([]);
   }
   const result = await pool.query(
-    `SELECT overall_wellbeing, anxiety_signal, academic_strain, risk_level, created_at
-     FROM results WHERE user_id = $1 ORDER BY created_at ASC`,
+    `SELECT id, overall_wellbeing, anxiety_signal, academic_strain, risk_level, contributing_factors, created_at
+     FROM results WHERE user_id = $1 ORDER BY created_at DESC`,
     [userId]
   );
   res.json(result.rows);
