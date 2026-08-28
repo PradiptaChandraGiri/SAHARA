@@ -38,7 +38,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: "/auth/google/callback",
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback",
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
@@ -63,7 +63,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
       {
         clientID: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        callbackURL: "/auth/github/callback",
+        callbackURL: process.env.GITHUB_CALLBACK_URL || "/auth/github/callback",
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
@@ -83,7 +83,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
 }
 
 // --- Routes ---
-router.get("/auth/google", (req, res, next) => {
+const handleGoogleAuth = (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID.startsWith("mock_")) {
     findOrCreateUser({
       email: "student.google@sahara.app",
@@ -99,22 +99,25 @@ router.get("/auth/google", (req, res, next) => {
     return;
   }
   passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
-});
+};
 
-router.get(
-  "/auth/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=1` }),
-  (req, res) => {
+router.get("/auth/google", handleGoogleAuth);
+router.get("/api/auth/google", handleGoogleAuth);
+
+const handleGoogleCallback = (req, res, next) => {
+  passport.authenticate("google", { session: false, failureRedirect: `${process.env.FRONTEND_URL || ""}/login?error=1` })(req, res, () => {
+    if (!req.user) return res.redirect(`${process.env.FRONTEND_URL || ""}/login?error=1`);
     req.session.userId = req.user.id;
     req.session.role = req.user.role;
-    // Role-based redirect, per the auto-routing spec - never send anyone
-    // to a generic page after login.
     const dest = { student: "/dashboard", counselor: "/counselor", admin: "/admin" }[req.user.role] || "/dashboard";
-    res.redirect(`${process.env.FRONTEND_URL}${dest}`);
-  }
-);
+    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}`);
+  });
+};
 
-router.get("/auth/github", (req, res, next) => {
+router.get("/auth/google/callback", handleGoogleCallback);
+router.get("/api/auth/google/callback", handleGoogleCallback);
+
+const handleGitHubAuth = (req, res, next) => {
   if (!process.env.GITHUB_CLIENT_ID || process.env.GITHUB_CLIENT_ID.startsWith("mock_")) {
     findOrCreateUser({
       email: "developer.github@sahara.app",
@@ -130,18 +133,23 @@ router.get("/auth/github", (req, res, next) => {
     return;
   }
   passport.authenticate("github", { scope: ["user:email"] })(req, res, next);
-});
+};
 
-router.get(
-  "/auth/github/callback",
-  passport.authenticate("github", { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=1` }),
-  (req, res) => {
+router.get("/auth/github", handleGitHubAuth);
+router.get("/api/auth/github", handleGitHubAuth);
+
+const handleGitHubCallback = (req, res, next) => {
+  passport.authenticate("github", { session: false, failureRedirect: `${process.env.FRONTEND_URL || ""}/login?error=1` })(req, res, () => {
+    if (!req.user) return res.redirect(`${process.env.FRONTEND_URL || ""}/login?error=1`);
     req.session.userId = req.user.id;
     req.session.role = req.user.role;
     const dest = { student: "/dashboard", counselor: "/counselor", admin: "/admin" }[req.user.role] || "/dashboard";
-    res.redirect(`${process.env.FRONTEND_URL}${dest}`);
-  }
-);
+    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}`);
+  });
+};
+
+router.get("/auth/github/callback", handleGitHubCallback);
+router.get("/api/auth/github/callback", handleGitHubCallback);
 
 router.post("/auth/logout", (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
