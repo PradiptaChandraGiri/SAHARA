@@ -4,6 +4,7 @@ const pool = require("../db/pool");
 const { requireAuth } = require("../middleware/auth");
 const { scoreCheckin } = require("../services/model");
 const { parseSymptomsFromText } = require("../services/groq");
+const { verifyToken } = require("../helpers/token");
 
 const router = express.Router();
 
@@ -33,6 +34,15 @@ router.post("/api/checkins/parse-symptoms", async (req, res) => {
 // POST /api/checkins - submit a completed check-in (Step 5 "Submit").
 router.post("/api/checkins", async (req, res) => {
   let userId = req.session ? req.session.userId : null;
+  const authHeader = req.headers.authorization;
+  if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
+    const tokenStr = authHeader.substring(7).trim();
+    const verified = verifyToken(tokenStr);
+    if (verified && verified.userId) {
+      userId = verified.userId;
+    }
+  }
+
   if (!userId) {
     // Automatically provision a guest student record in DB
     const guestUser = await pool.query(
