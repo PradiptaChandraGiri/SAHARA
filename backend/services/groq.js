@@ -223,7 +223,8 @@ async function streamChatReply(userMessage, conversationHistory = [], onChunk, s
 
 // Generates dynamic, real-time AI guidance & custom suggestions + full video & notes analysis
 async function generatePersonalizedSuggestions(assessmentSummary) {
-  const prompt = `You are SAHARA AI, an elite university academic wellbeing and mental resilience specialist.
+  const prompt = `Provide your response as a valid JSON object.
+You are SAHARA AI, an elite university academic wellbeing and mental resilience specialist.
 A student just completed their wellbeing check-in with these exact metrics:
 - Overall Wellbeing Score: ${assessmentSummary.overallWellbeing || 65}%
 - Anxiety Signal: ${assessmentSummary.anxietySignal || 60}%
@@ -242,8 +243,8 @@ Generate an individualized guidance package formatted as strict JSON with this e
       "id": "sug_1",
       "title": "Creative, compelling, actionable title",
       "tag": "Category (e.g. Sleep Optimization, Exam Grounding, Focus Rhythm, Nervous System Reset, Academic Pacing)",
-      "type": "video" | "tool" | "audio",
-      "duration": "e.g. 5 min protocol",
+      "type": "video",
+      "duration": "5 min protocol",
       "description": "2-sentence practical explanation tailored precisely to their metrics.",
       "actionStep": "One concrete physical or cognitive micro-action they can do in the next 2 minutes.",
       "videoTitle": "Recommended educational/mindfulness video title",
@@ -257,8 +258,8 @@ Generate an individualized guidance package formatted as strict JSON with this e
       "id": "sug_2",
       "title": "Second compelling title",
       "tag": "Category",
-      "type": "video" | "tool" | "audio",
-      "duration": "e.g. 4 min reset",
+      "type": "video",
+      "duration": "4 min reset",
       "description": "2-sentence practical explanation.",
       "actionStep": "One concrete micro-action.",
       "videoTitle": "Video or Protocol Title",
@@ -272,8 +273,8 @@ Generate an individualized guidance package formatted as strict JSON with this e
       "id": "sug_3",
       "title": "Third compelling title",
       "tag": "Category",
-      "type": "video" | "tool" | "audio",
-      "duration": "e.g. 3 min guide",
+      "type": "video",
+      "duration": "3 min guide",
       "description": "2-sentence practical explanation.",
       "actionStep": "One concrete micro-action.",
       "videoTitle": "Video or Protocol Title",
@@ -292,7 +293,7 @@ Ensure every suggestion provides high-value educational/wellbeing notes for univ
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.75,
+      temperature: 0.3,
       response_format: { type: 'json_object' }
     });
     rawResult = JSON.parse(completion.choices[0].message.content);

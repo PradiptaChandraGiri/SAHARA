@@ -150,11 +150,16 @@ router.post("/auth/logout", (req, res) => {
 // Frontend calls this on load to check "am I logged in, and as what role"
 router.get("/auth/me", async (req, res) => {
   if (!req.session?.userId) return res.status(401).json({ error: "Not signed in." });
-  const result = await pool.query(`SELECT id, email, display_name, role FROM users WHERE id = $1`, [
-    req.session.userId,
-  ]);
-  if (result.rows.length === 0) return res.status(401).json({ error: "Not signed in." });
-  res.json(result.rows[0]);
+  try {
+    const result = await pool.query(`SELECT id, email, display_name, role FROM users WHERE id = $1`, [
+      req.session.userId,
+    ]);
+    if (result.rows.length === 0) return res.status(401).json({ error: "Not signed in." });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.warn("/auth/me DB error:", err.message);
+    res.status(500).json({ error: "Authentication lookup error." });
+  }
 });
 
 module.exports = router;

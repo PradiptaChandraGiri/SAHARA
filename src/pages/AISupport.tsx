@@ -286,6 +286,34 @@ export default function AISupport() {
           }
         }
       }
+
+      if (!accumulatedText.trim()) {
+        try {
+          const fallbackRes = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ message: messageText, clientContext: evalContext }),
+          })
+          if (fallbackRes.ok) {
+            const data = await fallbackRes.json()
+            if (data.flaggedCrisis) setShowCrisisBanner(true)
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === aiMsgId
+                  ? {
+                      ...msg,
+                      text: data.text || data.response || 'I am here to support you.',
+                      isCrisis: Boolean(data.flaggedCrisis),
+                    }
+                  : msg
+              )
+            )
+            return
+          }
+        } catch (e) {}
+        throw new Error('No content received from AI stream')
+      }
     } catch (err: any) {
       console.warn('Chat streaming error:', err)
       let fallbackText = isLocalCrisis
@@ -549,7 +577,15 @@ export default function AISupport() {
                   whiteSpace: 'pre-wrap',
                 }}
               >
-                <ChatMessageText text={m.text} />
+                {m.text ? (
+                  <ChatMessageText text={m.text} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 2px', minHeight: 20 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
+                  </div>
+                )}
 
                 {/* Inline Recommended Resource Card (Part 5) */}
                 {!isUser && m.inlineResource && !m.isCrisis && (
