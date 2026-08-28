@@ -1,10 +1,27 @@
 // middleware/auth.js
 const pool = require("../db/pool");
 
-// Reads the logged-in user from the session (set during OAuth callback -
-// see routes/auth.js). Rejects if there's no valid session.
+const { verifyToken } = require("../helpers/token");
+
+// Reads the logged-in user from Bearer header or session.
 function requireAuth(req, res, next) {
-  if (!req.session || !req.session.userId) {
+  let userId = req.session ? req.session.userId : null;
+  let role = req.session ? req.session.role : null;
+
+  const authHeader = req.headers.authorization;
+  if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
+    const tokenStr = authHeader.substring(7).trim();
+    const verified = verifyToken(tokenStr);
+    if (verified && verified.userId) {
+      userId = verified.userId;
+      role = verified.role;
+      if (!req.session) req.session = {};
+      req.session.userId = userId;
+      req.session.role = role;
+    }
+  }
+
+  if (!userId) {
     return res.status(401).json({ error: "Not signed in." });
   }
   next();
