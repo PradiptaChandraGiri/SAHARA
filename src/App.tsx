@@ -110,6 +110,8 @@ export default function App() {
     const dropoutRisk = Math.max(Math.round(data.riskScore * 0.92), 5)
     const enriched = { ...data, anxietyRisk, dropoutRisk, timestamp: new Date().toISOString() }
     setCheckInData(enriched)
+    setPage('results')
+    window.scrollTo(0, 0)
   }
 
   const handleUpdateStatus = (id: string, status: string) => {
