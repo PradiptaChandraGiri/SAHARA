@@ -7,6 +7,7 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const GitHubStrategy = require("passport-github2").Strategy;
 const pool = require("../db/pool");
+const { signToken, verifyToken } = require("../helpers/token");
 
 const router = express.Router();
 
@@ -115,10 +116,19 @@ router.get("/api/auth/google", handleGoogleAuth);
 const handleGoogleCallback = (req, res, next) => {
   passport.authenticate("google", { session: false, failureRedirect: `${process.env.FRONTEND_URL || ""}/login?error=1` })(req, res, () => {
     if (!req.user) return res.redirect(`${process.env.FRONTEND_URL || ""}/login?error=1`);
-    req.session.userId = req.user.id;
-    req.session.role = req.user.role;
+    const token = signToken({
+      userId: req.user.id,
+      role: req.user.role,
+      email: req.user.email,
+      name: req.user.display_name,
+    });
+    if (req.session) {
+      req.session.userId = req.user.id;
+      req.session.role = req.user.role;
+    }
     const dest = { student: "/dashboard", counselor: "/counselor", admin: "/admin" }[req.user.role] || "/dashboard";
-    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}`);
+    const separator = dest.includes("?") ? "&" : "?";
+    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}${separator}auth_token=${token}`);
   });
 };
 
@@ -133,10 +143,19 @@ const handleGitHubAuth = (req, res, next) => {
       provider: "github",
       oauthId: "github_dev_user_456",
     }).then((user) => {
-      req.session.userId = user.id;
-      req.session.role = user.role;
+      const token = signToken({
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        name: user.display_name,
+      });
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.role = user.role;
+      }
       const dest = { student: "/dashboard", counselor: "/counselor", admin: "/admin" }[user.role] || "/dashboard";
-      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:8443"}${dest}`);
+      const separator = dest.includes("?") ? "&" : "?";
+      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:8443"}${dest}${separator}auth_token=${token}`);
     }).catch(next);
     return;
   }
@@ -149,10 +168,19 @@ router.get("/api/auth/github", handleGitHubAuth);
 const handleGitHubCallback = (req, res, next) => {
   passport.authenticate("github", { session: false, failureRedirect: `${process.env.FRONTEND_URL || ""}/login?error=1` })(req, res, () => {
     if (!req.user) return res.redirect(`${process.env.FRONTEND_URL || ""}/login?error=1`);
-    req.session.userId = req.user.id;
-    req.session.role = req.user.role;
+    const token = signToken({
+      userId: req.user.id,
+      role: req.user.role,
+      email: req.user.email,
+      name: req.user.display_name,
+    });
+    if (req.session) {
+      req.session.userId = req.user.id;
+      req.session.role = req.user.role;
+    }
     const dest = { student: "/dashboard", counselor: "/counselor", admin: "/admin" }[req.user.role] || "/dashboard";
-    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}`);
+    const separator = dest.includes("?") ? "&" : "?";
+    res.redirect(`${process.env.FRONTEND_URL || ""}${dest}${separator}auth_token=${token}`);
   });
 };
 
@@ -160,15 +188,27 @@ router.get("/auth/github/callback", handleGitHubCallback);
 router.get("/api/auth/github/callback", handleGitHubCallback);
 
 router.post("/auth/logout", (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
+  if (req.session) req.session.destroy(() => {});
+  res.json({ ok: true });
 });
 
 // Frontend calls this on load to check "am I logged in, and as what role"
 router.get("/auth/me", async (req, res) => {
-  if (!req.session?.userId) return res.status(401).json({ error: "Not signed in." });
+  let userId = req.session?.userId;
+
+  const authHeader = req.headers.authorization;
+  if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
+    const tokenStr = authHeader.substring(7).trim();
+    const verified = verifyToken(tokenStr);
+    if (verified && verified.userId) {
+      userId = verified.userId;
+    }
+  }
+
+  if (!userId) return res.status(401).json({ error: "Not signed in." });
   try {
     const result = await pool.query(`SELECT id, email, display_name, role FROM users WHERE id = $1`, [
-      req.session.userId,
+      userId,
     ]);
     if (result.rows.length === 0) return res.status(401).json({ error: "Not signed in." });
     res.json(result.rows[0]);

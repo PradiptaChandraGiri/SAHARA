@@ -27,14 +27,41 @@ export const API_BASE_URL = API_BASE
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('sahara_token')
+    } catch {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
 
   const refreshUser = async () => {
     try {
+      // Check if URL contains auth_token from OAuth callback
+      let activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search)
+        const urlToken = urlParams.get('auth_token')
+        if (urlToken) {
+          activeToken = urlToken
+          setToken(urlToken)
+          localStorage.setItem('sahara_token', urlToken)
+          // Clean up the URL parameter without page reload
+          urlParams.delete('auth_token')
+          const cleanSearch = urlParams.toString() ? `?${urlParams.toString()}` : ''
+          window.history.replaceState({}, document.title, window.location.pathname + cleanSearch)
+        }
+      }
+
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (activeToken) {
+        headers['Authorization'] = `Bearer ${activeToken}`
+      }
+
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
         credentials: 'include',
-        headers: { 'Accept': 'application/json' },
+        headers,
       })
       if (res.ok) {
         const data = await res.json()
