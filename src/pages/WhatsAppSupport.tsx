@@ -190,24 +190,42 @@ export default function WhatsAppSupport() {
               textAlign: 'center',
             }}
           >
-            <div
+            <a
+              href="https://wa.me/14155238886?text=join%20no-different"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Scan with phone or click to open WhatsApp"
               style={{
-                width: 120,
-                height: 120,
-                margin: '0 auto 10px',
-                background: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: 'block',
+                textDecoration: 'none',
               }}
             >
-              <QrCode size={90} color="#0E1A2B" />
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>
-              Scan with Phone Camera
-            </span>
+              <div
+                style={{
+                  width: 136,
+                  height: 136,
+                  margin: '0 auto 10px',
+                  background: '#FFFFFF',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: 12,
+                  padding: 6,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fwa.me%2F14155238886%3Ftext%3Djoin%2520no-different&color=0E1A2B&bgcolor=FFFFFF"
+                  alt="Scan to open SAHARA on WhatsApp"
+                  style={{ width: '100%', height: '100%', borderRadius: 6, objectFit: 'contain' }}
+                />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <ExternalLink size={12} /> Scan or Click QR Code
+              </span>
+            </a>
           </div>
         </div>
 
