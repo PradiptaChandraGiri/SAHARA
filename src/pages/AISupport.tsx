@@ -60,6 +60,18 @@ const promptChips = [
   'What is the Pomodoro study technique?',
 ]
 
+const CRISIS_KEYWORDS = [
+  'kill myself',
+  'suicide',
+  'end my life',
+  'self harm',
+  'self-harm',
+  'hurt myself',
+  'want to die',
+  'no reason to live',
+  "can't go on",
+]
+
 function getResourceIcon(type?: VettedResource['type']) {
   switch (type) {
     case 'video':
@@ -189,7 +201,7 @@ export default function AISupport() {
     setInput('')
     setIsTyping(true)
 
-    const isLocalCrisis = crisisKeywords.some((k) => messageText.toLowerCase().includes(k))
+    const isLocalCrisis = CRISIS_KEYWORDS.some((k) => messageText.toLowerCase().includes(k))
     if (isLocalCrisis) {
       setShowCrisisBanner(true)
     }
