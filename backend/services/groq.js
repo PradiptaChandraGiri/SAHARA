@@ -420,14 +420,14 @@ Ensure every suggestion provides high-value educational/wellbeing notes for univ
 
 // Generates dynamic AI coaching for specific student concerns (Results page follow-up)
 async function generateFollowupCoaching(concern, assessmentSummary = {}) {
-  const prompt = `You are SAHARA AI, a compassionate and expert university student counselor.
+  const prompt = `You are SAHARA AI, a compassionate and expert university academic & mental wellbeing specialist.
 A student just reviewed their wellbeing results (Score: ${assessmentSummary.overallWellbeing || 65}%, Factors: ${(assessmentSummary.factors || []).join(', ') || 'Academic pressure'}).
-They shared this specific concern about what's going on:
+They shared this specific concern or academic difficulty:
 "${concern}"
 
 Generate an empathetic, immediate, professional action response as strict JSON:
 {
-  "headline": "A validating 4-8 word title (e.g. Breaking Down Overwhelming Coursework)",
+  "headline": "A validating 4-8 word title (e.g. Mastering Dynamic Programming Recursion Trees)",
   "insight": "2 sentences of warm psychological validation explaining why this happens under college strain.",
   "microAction": "1 clear, highly actionable 5-minute step they can take right now to regain control.",
   "suggestedTopic": "A prompt they can click to continue talking to SAHARA AI in chat",
@@ -435,7 +435,8 @@ Generate an empathetic, immediate, professional action response as strict JSON:
     "1st concise high-yield note/strategy for dealing with this specific difficulty",
     "2nd memory/revision pacing takeaway",
     "3rd actionable mindset shift"
-  ]
+  ],
+  "videoTitle": "Exact video guide title tailored specifically to their problem"
 }
 Return ONLY valid JSON.`;
 
@@ -470,13 +471,14 @@ Return ONLY valid JSON.`;
           "Reduce friction: Break overwhelming tasks into 5-minute atomic micro-actions.",
           "Use active recall instead of passive re-reading to maximize study efficiency.",
           "Take a mandatory 5-minute walk between study blocks to clear working memory."
-        ]
+        ],
+        videoTitle: "How to Focus & Study Deeply with the 25/5 Pomodoro Method"
       };
     }
   }
 
   // Attach relevant domain & topic video recommendation dynamically
-  const text = `${concern} ${coachingResult.headline} ${(coachingResult.studyNotes || []).join(' ')}`.toLowerCase();
+  const text = `${concern} ${coachingResult.headline} ${(coachingResult.studyNotes || []).join(' ')} ${coachingResult.videoTitle || ''}`.toLowerCase();
   let videoMatch = VERIFIED_YT_MAP.pomodoro;
 
   if (text.includes("dynamic programming") || text.includes("recursion") || text.includes("algorithm") || text.includes("dsa") || text.includes("coding") || text.includes("code") || text.includes("data structure") || text.includes("tree")) {
@@ -501,7 +503,7 @@ Return ONLY valid JSON.`;
 
   coachingResult.recommendedVideo = {
     youtubeId: videoMatch.youtubeId,
-    videoTitle: videoMatch.videoTitle,
+    videoTitle: coachingResult.videoTitle || videoMatch.videoTitle,
   };
 
   return coachingResult;
