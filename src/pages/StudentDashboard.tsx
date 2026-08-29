@@ -22,9 +22,8 @@ interface StudentDashboardProps {
 
 export default function StudentDashboard({ onNavigate, lastCheckInData }: StudentDashboardProps) {
   const { user } = useAuth()
-  const [latestAssessment, setLatestAssessment] = useState<any>(null)
-  const [dbSuggestion, setDbSuggestion] = useState<VettedResource | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [retentionAlert, setRetentionAlert] = useState<string | null>(null)
+  const [retentionDaysRemaining, setRetentionDaysRemaining] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchLatest = async () => {
@@ -34,10 +33,19 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
         const headers: Record<string, string> = { 'Accept': 'application/json' }
         if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
-        const res = await fetch(`${API_BASE}/api/results/latest`, {
-          credentials: 'include',
-          headers,
-        })
+        const [res, retRes] = await Promise.all([
+          fetch(`${API_BASE}/api/results/latest`, { credentials: 'include', headers }),
+          fetch(`${API_BASE}/api/me/retention`, { credentials: 'include', headers }),
+        ])
+
+        if (retRes.ok) {
+          const retData = await retRes.json()
+          if (retData && retData.isExpiringSoon && retData.notificationAlert) {
+            setRetentionAlert(retData.notificationAlert)
+            setRetentionDaysRemaining(retData.daysRemainingUntilCleanup)
+          }
+        }
+
         if (res.ok) {
           const row = await res.json()
           if (row && row.id) {
@@ -80,6 +88,23 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
 
     fetchLatest()
   }, [user])
+
+  const handleQuickExtend = async () => {
+    try {
+      const savedToken = typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      await fetch(`${API_BASE}/api/me/retention/extend`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+      })
+      setRetentionAlert(null)
+    } catch (e) {
+      console.warn('Quick extend error:', e)
+    }
+  }
 
   const activeData = lastCheckInData || latestAssessment
   const hasCompletedCheckIn = !!activeData
@@ -139,6 +164,63 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 36px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
+        {/* Scheduled Data Retention Notice */}
+        {retentionAlert && (
+          <div
+            style={{
+              background: 'var(--color-accent-subtle)',
+              border: '1.5px solid var(--color-accent)',
+              borderRadius: 12,
+              padding: '12px 18px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>⏱️</span>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                {retentionAlert}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={handleQuickExtend}
+                style={{
+                  background: 'var(--color-primary)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Extend +30 Days
+              </button>
+              <button
+                onClick={() => onNavigate('profile')}
+                style={{
+                  background: 'transparent',
+                  color: 'var(--color-primary)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                View Retention Settings
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Header */}
         <div
           style={{

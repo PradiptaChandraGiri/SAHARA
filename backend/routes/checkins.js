@@ -69,19 +69,31 @@ router.post("/api/checkins", async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    // Fetch user's active retention duration (default 30 days)
+    let retentionDays = 30;
+    try {
+      const uRes = await client.query(`SELECT retention_days FROM users WHERE id = $1`, [userId]);
+      if (uRes.rows.length > 0 && uRes.rows[0].retention_days) {
+        retentionDays = Number(uRes.rows[0].retention_days);
+      }
+    } catch (e) {
+      console.warn("Could not fetch user retention_days:", e.message);
+    }
+    const retentionInterval = `${retentionDays} days`;
+
     const checkinResult = await client.query(
       `INSERT INTO checkins (user_id, age, gender, academic_year, department, sleep_hours,
          study_hours_per_day, exam_pressure, academic_performance, stress_level,
          physical_activity, social_support, screen_time, internet_usage,
-         financial_stress, family_expectation)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         financial_stress, family_expectation, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, now() + ($17 || ' days')::INTERVAL)
        RETURNING id`,
       [
         userId, answers.age, answers.gender, answers.academic_year, answers.department,
         answers.sleep_hours, answers.study_hours_per_day, answers.exam_pressure,
         answers.academic_performance, answers.stress_level, answers.physical_activity,
         answers.social_support, answers.screen_time, answers.internet_usage,
-        answers.financial_stress, answers.family_expectation,
+        answers.financial_stress, answers.family_expectation, retentionDays,
       ]
     );
     const checkinId = checkinResult.rows[0].id;
@@ -91,12 +103,13 @@ router.post("/api/checkins", async (req, res) => {
 
     const resultRow = await client.query(
       `INSERT INTO results (checkin_id, user_id, overall_wellbeing, anxiety_signal,
-         academic_strain, risk_level, contributing_factors)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+         academic_strain, risk_level, contributing_factors, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, now() + ($8 || ' days')::INTERVAL)
        RETURNING *`,
       [
         checkinId, userId, scored.overallWellbeing, scored.anxietySignal,
         scored.academicStrain, scored.riskLevel, scored.contributingFactors,
+        retentionDays,
       ]
     );
 

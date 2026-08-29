@@ -13,7 +13,8 @@ const router = express.Router();
 
 // --- Shared logic: find or create a user, assign default role ---
 async function findOrCreateUser({ email, displayName, provider, oauthId }) {
-  const existing = await pool.query(
+  // 1. Check by exact provider + oauthId
+  let existing = await pool.query(
     `SELECT * FROM users WHERE oauth_provider = $1 AND oauth_id = $2`,
     [provider, oauthId]
   );
@@ -21,12 +22,43 @@ async function findOrCreateUser({ email, displayName, provider, oauthId }) {
     await pool.query(`UPDATE users SET last_login_at = now() WHERE id = $1`, [existing.rows[0].id]);
     return existing.rows[0];
   }
-  // New accounts always default to 'student'. Counselor/Admin access is
-  // granted separately by an existing admin via the admin panel - never
-  // self-assigned at sign-up.
+
+  // 2. Check by email (e.g. user logged in via different provider or guest email)
+  if (email && !email.includes('.local')) {
+    const byEmail = await pool.query(
+      `SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email]
+    );
+    if (byEmail.rows.length > 0) {
+      const user = byEmail.rows[0];
+      await pool.query(
+        `UPDATE users SET oauth_provider = $1, oauth_id = $2, display_name = COALESCE($3, display_name), last_login_at = now() WHERE id = $4`,
+        [provider, oauthId, displayName, user.id]
+      );
+      return { ...user, oauth_provider: provider, oauth_id: oauthId, display_name: displayName || user.display_name };
+    }
+  }
+
+  // 3. Check by display name (e.g. Pradipta Chandra Giri linking accounts)
+  if (displayName && displayName !== 'Student' && displayName !== 'Student (Guest)') {
+    const byName = await pool.query(
+      `SELECT * FROM users WHERE LOWER(display_name) = LOWER($1) LIMIT 1`,
+      [displayName]
+    );
+    if (byName.rows.length > 0) {
+      const user = byName.rows[0];
+      await pool.query(
+        `UPDATE users SET email = COALESCE($1, email), oauth_provider = $2, oauth_id = $3, last_login_at = now() WHERE id = $4`,
+        [email, provider, oauthId, user.id]
+      );
+      return { ...user, email: email || user.email, oauth_provider: provider, oauth_id: oauthId };
+    }
+  }
+
+  // 4. New user registration
   const inserted = await pool.query(
-    `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, last_login_at)
-     VALUES ($1, $2, $3, $4, 'student', now())
+    `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, retention_days, last_login_at)
+     VALUES ($1, $2, $3, $4, 'student', 30, now())
      RETURNING *`,
     [email, displayName, provider, oauthId]
   );

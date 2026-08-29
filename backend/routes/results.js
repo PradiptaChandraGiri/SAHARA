@@ -25,7 +25,7 @@ router.get("/api/results/latest", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT * FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      `SELECT * FROM results WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > now()) ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );
     if (result.rows.length === 0) return res.json(null);
@@ -42,12 +42,171 @@ router.get("/api/results/history", async (req, res) => {
   if (!userId) {
     return res.json([]);
   }
-  const result = await pool.query(
-    `SELECT id, overall_wellbeing, anxiety_signal, academic_strain, risk_level, contributing_factors, created_at
-     FROM results WHERE user_id = $1 ORDER BY created_at DESC`,
-    [userId]
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      `SELECT id, overall_wellbeing, anxiety_signal, academic_strain, risk_level, contributing_factors, created_at, expires_at
+       FROM results WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > now()) ORDER BY created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.warn("results/history query error:", err.message);
+    res.json([]);
+  }
+});
+
+// GET /api/me/retention - retrieves data retention policy status, next expiration date, and alert notice
+router.get("/api/me/retention", async (req, res) => {
+  const userId = getUserIdFromReq(req);
+  if (!userId) {
+    return res.json({
+      retentionDays: 30,
+      totalAssessments: 0,
+      nextScheduledCleanupDate: null,
+      daysRemainingUntilCleanup: 30,
+      expiringCount: 0,
+      isExpiringSoon: false,
+      notificationAlert: null,
+    });
+  }
+
+  try {
+    const userRes = await pool.query(
+      `SELECT id, email, display_name, retention_days, retention_extended_at, created_at FROM users WHERE id = $1`,
+      [userId]
+    );
+    const user = userRes.rows[0];
+    const retentionDays = user?.retention_days || 30;
+
+    const assessmentsRes = await pool.query(
+      `SELECT id, created_at, expires_at FROM results WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > now()) ORDER BY created_at ASC`,
+      [userId]
+    );
+    const totalAssessments = assessmentsRes.rows.length;
+
+    let nextCleanup = null;
+    let daysRemaining = retentionDays;
+    let expiringCount = 0;
+
+    if (totalAssessments > 0) {
+      const earliestExpiry = assessmentsRes.rows.reduce((earliest, r) => {
+        const exp = r.expires_at ? new Date(r.expires_at).getTime() : new Date(r.created_at).getTime() + retentionDays * 86400000;
+        return exp < earliest ? exp : earliest;
+      }, Infinity);
+
+      if (earliestExpiry !== Infinity) {
+        nextCleanup = new Date(earliestExpiry).toISOString();
+        daysRemaining = Math.max(0, Math.ceil((earliestExpiry - Date.now()) / (1000 * 60 * 60 * 24)));
+      }
+
+      expiringCount = assessmentsRes.rows.filter((r) => {
+        const exp = r.expires_at ? new Date(r.expires_at).getTime() : new Date(r.created_at).getTime() + retentionDays * 86400000;
+        const diffDays = (exp - Date.now()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      }).length;
+    }
+
+    const isExpiringSoon = totalAssessments > 0 && (expiringCount > 0 || daysRemaining <= 7);
+
+    res.json({
+      retentionDays,
+      totalAssessments,
+      nextScheduledCleanupDate: nextCleanup,
+      daysRemainingUntilCleanup: daysRemaining,
+      expiringCount,
+      isExpiringSoon,
+      notificationAlert: isExpiringSoon
+        ? `⚠️ Privacy & Data Retention Notice: ${expiringCount > 0 ? `${expiringCount} of your` : 'Your'} assessment record(s) will be automatically deleted in ${daysRemaining} days per your ${retentionDays}-day retention policy. You can extend retention or export your data anytime.`
+        : null,
+      lastExtendedAt: user?.retention_extended_at || null,
+    });
+  } catch (err) {
+    console.error("Failed to fetch retention status:", err);
+    res.status(500).json({ error: "Could not fetch retention details." });
+  }
+});
+
+// POST /api/me/retention/extend - extends retention duration for all active assessments
+router.post("/api/me/retention/extend", async (req, res) => {
+  const userId = getUserIdFromReq(req);
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
+
+  try {
+    const userRes = await pool.query(`SELECT retention_days FROM users WHERE id = $1`, [userId]);
+    const retentionDays = userRes.rows[0]?.retention_days || 30;
+
+    await pool.query(
+      `UPDATE results SET expires_at = now() + ($2 || ' days')::INTERVAL WHERE user_id = $1`,
+      [userId, retentionDays]
+    );
+    await pool.query(
+      `UPDATE checkins SET expires_at = now() + ($2 || ' days')::INTERVAL WHERE user_id = $1`,
+      [userId, retentionDays]
+    );
+    await pool.query(
+      `UPDATE users SET retention_extended_at = now() WHERE id = $1`,
+      [userId]
+    );
+
+    res.json({
+      ok: true,
+      message: `Your assessment data retention has been successfully extended by ${retentionDays} days from today.`,
+      newExpiryDate: new Date(Date.now() + retentionDays * 86400000).toISOString(),
+    });
+  } catch (err) {
+    console.error("Failed to extend retention:", err);
+    res.status(500).json({ error: "Could not extend retention timeline." });
+  }
+});
+
+// PATCH /api/me/retention/settings - updates user's preferred retention timeline
+router.patch("/api/me/retention/settings", async (req, res) => {
+  const userId = getUserIdFromReq(req);
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
+
+  const { retentionDays } = req.body;
+  const validDays = [14, 30, 60, 90, 180, 365].includes(Number(retentionDays)) ? Number(retentionDays) : 30;
+
+  try {
+    await pool.query(
+      `UPDATE users SET retention_days = $1, retention_extended_at = now() WHERE id = $2`,
+      [validDays, userId]
+    );
+    await pool.query(
+      `UPDATE results SET expires_at = now() + ($1 || ' days')::INTERVAL WHERE user_id = $2`,
+      [validDays, userId]
+    );
+    await pool.query(
+      `UPDATE checkins SET expires_at = now() + ($1 || ' days')::INTERVAL WHERE user_id = $2`,
+      [validDays, userId]
+    );
+
+    res.json({
+      ok: true,
+      retentionDays: validDays,
+      message: `Retention policy successfully updated to ${validDays} days.`,
+    });
+  } catch (err) {
+    console.error("Failed to update retention setting:", err);
+    res.status(500).json({ error: "Could not update retention settings." });
+  }
+});
+
+// POST /api/me/retention/cleanup - purges expired assessment records
+router.post("/api/me/retention/cleanup", async (req, res) => {
+  try {
+    const delResults = await pool.query(`DELETE FROM results WHERE expires_at IS NOT NULL AND expires_at < now()`);
+    const delCheckins = await pool.query(`DELETE FROM checkins WHERE expires_at IS NOT NULL AND expires_at < now()`);
+    res.json({
+      ok: true,
+      purgedResults: delResults.rowCount,
+      purgedCheckins: delCheckins.rowCount,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Retention cleanup error:", err);
+    res.status(500).json({ error: "Retention cleanup failed." });
+  }
 });
 
 // POST /api/results/ai-guidance - Generates real-time AI guidance & dynamic tailored suggestions using Groq
@@ -70,7 +229,7 @@ router.get("/api/results/:id/ai-guidance", async (req, res) => {
       return res.status(404).json({ error: "Result not found." });
     }
     const r = resultRow.rows[0];
-    
+
     // Check if there's linked check-in data for granular inputs
     let checkin = {};
     if (r.checkin_id) {

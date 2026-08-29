@@ -15,11 +15,26 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
+  RefreshCw,
+  Sliders,
+  Bell,
+  Check,
 } from 'lucide-react'
 import { API_BASE } from '../config'
 
 interface ProfileProps {
   onNavigate: (page: Page) => void
+}
+
+interface RetentionInfo {
+  retentionDays: number
+  totalAssessments: number
+  nextScheduledCleanupDate: string | null
+  daysRemainingUntilCleanup: number
+  expiringCount: number
+  isExpiringSoon: boolean
+  notificationAlert: string | null
+  lastExtendedAt: string | null
 }
 
 export default function Profile({ onNavigate }: ProfileProps) {
@@ -29,6 +44,21 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [exporting, setExporting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteSuccess, setDeleteSuccess] = useState(false)
+
+  // Data Retention State
+  const [retention, setRetention] = useState<RetentionInfo>({
+    retentionDays: 30,
+    totalAssessments: 0,
+    nextScheduledCleanupDate: null,
+    daysRemainingUntilCleanup: 30,
+    expiringCount: 0,
+    isExpiringSoon: false,
+    notificationAlert: null,
+    lastExtendedAt: null,
+  })
+  const [isExtending, setIsExtending] = useState(false)
+  const [extendSuccess, setExtendSuccess] = useState(false)
+  const [updatingDays, setUpdatingDays] = useState(false)
 
   const fetchHistory = async () => {
     setIsLoading(true)
@@ -57,6 +87,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
               factors: Array.isArray(r.contributing_factors) ? r.contributing_factors : [],
               top_factors: Array.isArray(r.contributing_factors) ? r.contributing_factors : [],
               timestamp: r.created_at || new Date().toISOString(),
+              expires_at: r.expires_at || null,
             }))
           : []
         setHistory(mapped)
@@ -68,9 +99,78 @@ export default function Profile({ onNavigate }: ProfileProps) {
     }
   }
 
+  const fetchRetentionStatus = async () => {
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/me/retention`, {
+        credentials: 'include',
+        headers,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRetention(data)
+      }
+    } catch (err) {
+      console.warn('Error fetching retention status:', err)
+    }
+  }
+
   useEffect(() => {
     fetchHistory()
+    fetchRetentionStatus()
   }, [user])
+
+  const handleExtendRetention = async () => {
+    setIsExtending(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/me/retention/extend`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+      })
+      if (res.ok) {
+        setExtendSuccess(true)
+        await fetchRetentionStatus()
+        await fetchHistory()
+        setTimeout(() => setExtendSuccess(false), 4000)
+      }
+    } catch (err) {
+      console.warn('Error extending retention:', err)
+    } finally {
+      setIsExtending(false)
+    }
+  }
+
+  const handleUpdateRetentionDays = async (days: number) => {
+    setUpdatingDays(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/me/retention/settings`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ retentionDays: days }),
+      })
+      if (res.ok) {
+        await fetchRetentionStatus()
+        await fetchHistory()
+      }
+    } catch (err) {
+      console.warn('Error updating retention timeline:', err)
+    } finally {
+      setUpdatingDays(false)
+    }
+  }
 
   const handleDownloadData = async () => {
     setExporting(true)
@@ -90,6 +190,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
         exportPayload = {
           exported_at: new Date().toISOString(),
           user: user || { role: 'student' },
+          retention_policy: `${retention.retentionDays} days`,
           assessments: history,
         }
       }
@@ -128,6 +229,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
       })
       if (res.ok) {
         setHistory([])
+        await fetchRetentionStatus()
         setDeleteSuccess(true)
         setTimeout(() => setDeleteSuccess(false), 5000)
       }
@@ -143,18 +245,138 @@ export default function Profile({ onNavigate }: ProfileProps) {
   )
   const hasTrend = sortedChronological.length >= 2
 
+  const formatExpiryDisplay = (expiresAtStr?: string, createdStr?: string) => {
+    if (!expiresAtStr && !createdStr) return 'Active'
+    const targetDate = expiresAtStr ? new Date(expiresAtStr) : new Date(new Date(createdStr!).getTime() + retention.retentionDays * 86400000)
+    const diffMs = targetDate.getTime() - Date.now()
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays <= 0) return 'Expired'
+    if (diffDays === 1) return 'Expires tomorrow'
+    if (diffDays <= 7) return `Expires in ${diffDays} days`
+    return `Retained until ${targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
-      <div style={{ maxWidth: 880, margin: '0 auto' }}>
+      <div style={{ maxWidth: 920, margin: '0 auto' }}>
         {/* Top Header */}
-        <div style={{ marginBottom: 28 }}>
+        <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
             Account &amp; Wellbeing Longitudinal Record
           </h1>
           <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', marginTop: 4, margin: '4px 0 0' }}>
-            Manage your student profile, track changes over time, and exercise data sovereignty.
+            Manage your student profile, track timeline progress, and control your data retention lifecycle.
           </p>
         </div>
+
+        {/* Expiry Warning Notification Banner (When approaching expiration) */}
+        {retention.notificationAlert && (
+          <div
+            style={{
+              background: 'var(--color-accent-subtle)',
+              border: '1.5px solid var(--color-accent)',
+              borderRadius: 14,
+              padding: '16px 20px',
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'var(--color-accent)',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Bell size={18} />
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 2px', fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Scheduled Data Retention Notice
+                </h4>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                  {retention.notificationAlert}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleExtendRetention}
+                disabled={isExtending}
+                style={{
+                  background: 'var(--color-primary)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <RefreshCw size={14} className={isExtending ? 'animate-spin' : ''} />
+                <span>{isExtending ? 'Extending...' : `Extend +${retention.retentionDays} Days`}</span>
+              </button>
+              <button
+                onClick={handleDownloadData}
+                disabled={exporting}
+                style={{
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <Download size={14} />
+                <span>Export JSON</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Extend Success Banner */}
+        {extendSuccess && (
+          <div
+            style={{
+              background: 'var(--color-risk-low-bg)',
+              border: '1px solid var(--color-risk-low-border)',
+              color: 'var(--color-risk-low-text)',
+              padding: '12px 18px',
+              borderRadius: 12,
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13.5,
+              fontWeight: 600,
+            }}
+          >
+            <CheckCircle2 size={18} />
+            <span>Your assessment retention has been extended for another {retention.retentionDays} days from today.</span>
+          </div>
+        )}
 
         {/* 1. Profile Identity Card */}
         <div
@@ -187,12 +409,12 @@ export default function Profile({ onNavigate }: ProfileProps) {
                 fontWeight: 800,
               }}
             >
-              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'ST'}
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'PR'}
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  {user?.name || 'Explorer Student'}
+                  {user?.name || 'Pradipta Chandra Giri'}
                 </h2>
                 <span
                   style={{
@@ -210,7 +432,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                 </span>
               </div>
               <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
-                {user?.email || 'Anonymous / Guest Session'} •{' '}
+                {user?.email || 'giripradiptachandra@gmail.com'} •{' '}
                 <span style={{ color: 'var(--color-risk-low)', fontWeight: 600 }}>🔒 Cryptographic ID: STU-Protected</span>
               </p>
             </div>
@@ -247,7 +469,132 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
         )}
 
-        {/* 2. Longitudinal Trend View (If 2+ Check-ins Exist) */}
+        {/* 2. Data Retention Policy & Automated Cleanup Timeline Card */}
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 16,
+            padding: '24px 28px',
+            marginBottom: 28,
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Clock size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Data Retention &amp; Automatic Expiration Timeline
+                </h3>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
+                  Your records remain safe across logouts for your active retention window before privacy cleanup.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleExtendRetention}
+              disabled={isExtending || history.length === 0}
+              className="btn-teal"
+              style={{
+                padding: '8px 16px',
+                fontSize: 13,
+                opacity: history.length === 0 ? 0.6 : 1,
+                cursor: history.length === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <RefreshCw size={14} className={isExtending ? 'animate-spin' : ''} />
+              <span>{isExtending ? 'Extending...' : 'Extend Retention Timeline'}</span>
+            </button>
+          </div>
+
+          {/* Retention Stats Bar */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 16,
+              background: 'var(--color-surface-raised)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 20,
+            }}
+          >
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>Active Retention Period</span>
+              <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0 0' }}>
+                {retention.retentionDays} Days
+              </p>
+            </div>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>Active Records Preserved</span>
+              <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-primary)', margin: '4px 0 0' }}>
+                {history.length} {history.length === 1 ? 'Check-in' : 'Check-ins'}
+              </p>
+            </div>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>Next Scheduled Cleanup</span>
+              <p style={{ fontSize: 18, fontWeight: 800, color: retention.daysRemainingUntilCleanup <= 7 ? 'var(--color-accent)' : 'var(--color-text-primary)', margin: '4px 0 0' }}>
+                {history.length > 0 && retention.nextScheduledCleanupDate
+                  ? `${retention.daysRemainingUntilCleanup} days remaining`
+                  : 'No pending cleanup'}
+              </p>
+            </div>
+          </div>
+
+          {/* Selectable Retention Options */}
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 10 }}>
+              Adjust Your Preferred Data Retention Timeline:
+            </span>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                { days: 14, label: '14 Days (Minimal)' },
+                { days: 30, label: '30 Days (Standard)' },
+                { days: 60, label: '60 Days' },
+                { days: 90, label: '90 Days (Academic Term)' },
+                { days: 180, label: '180 Days (Semester)' },
+                { days: 365, label: '1 Year (Annual)' },
+              ].map((opt) => (
+                <button
+                  key={opt.days}
+                  onClick={() => handleUpdateRetentionDays(opt.days)}
+                  disabled={updatingDays}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: retention.retentionDays === opt.days ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    background: retention.retentionDays === opt.days ? 'var(--color-primary-subtle)' : 'var(--color-surface)',
+                    color: retention.retentionDays === opt.days ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Longitudinal Trend View (If 2+ Check-ins Exist) */}
         {hasTrend && (
           <div
             style={{
@@ -272,7 +619,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
               </span>
             </div>
 
-            {/* Simple Responsive SVG Trend Chart */}
+            {/* Responsive SVG Trend Chart */}
             <div style={{ height: 160, width: '100%', position: 'relative', marginTop: 10 }}>
               <svg viewBox="0 0 500 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
                 {/* Horizontal reference lines */}
@@ -319,7 +666,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
         )}
 
-        {/* 3. Historical Check-in Logs Table */}
+        {/* 4. Historical Check-in Logs Table */}
         <div
           style={{
             background: 'var(--color-surface)',
@@ -329,11 +676,19 @@ export default function Profile({ onNavigate }: ProfileProps) {
             marginBottom: 28,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Clock size={18} color="var(--color-primary)" />
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-              Past Check-in History
-            </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Clock size={18} color="var(--color-primary)" />
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                Past Check-in History ({history.length})
+              </h3>
+            </div>
+
+            {history.length > 0 && (
+              <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+                Protected by {retention.retentionDays}-day retention policy
+              </span>
+            )}
           </div>
 
           {isLoading ? (
@@ -362,11 +717,12 @@ export default function Profile({ onNavigate }: ProfileProps) {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
                 <thead>
                   <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-raised)' }}>
-                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Date & Time</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Date &amp; Time</th>
                     <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Wellbeing Status</th>
                     <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Anxiety Scale</th>
                     <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Retention Risk</th>
                     <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Contributing Factors</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Retention Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -377,6 +733,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
                       : typeof row.top_factors === 'string'
                       ? JSON.parse(row.top_factors || '[]')
                       : []
+
+                    const expiryText = formatExpiryDisplay(row.expires_at, row.timestamp)
 
                     return (
                       <tr key={idx} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
@@ -397,7 +755,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                           {row.dropout_probability !== null ? `${Math.round(row.dropout_probability * 100)}%` : '—'}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 300 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 260 }}>
                             {factorsList.slice(0, 2).map((f: string, fIdx: number) => (
                               <span
                                 key={fIdx}
@@ -415,6 +773,24 @@ export default function Profile({ onNavigate }: ProfileProps) {
                             ))}
                           </div>
                         </td>
+                        <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--color-text-muted)' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              background: 'var(--color-surface-raised)',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              border: '1px solid var(--color-border)',
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-primary)' }} />
+                            {expiryText}
+                          </span>
+                        </td>
                       </tr>
                     )
                   })}
@@ -424,7 +800,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           )}
         </div>
 
-        {/* 4. Student Data Privacy Controls (Download & Delete) */}
+        {/* 5. Student Data Privacy Controls (Download & Delete) */}
         <div
           style={{
             background: 'var(--color-surface)',
@@ -436,11 +812,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Shield size={18} color="var(--color-primary)" />
             <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-              Your Data Rights & Privacy Controls
+              Your Data Rights &amp; Privacy Controls
             </h3>
           </div>
           <p style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
-            Under SAHARA's student privacy charter, you have full sovereignty over your assessment history. You may download a portable JSON copy or permanently purge your check-in records at any time.
+            Under SAHARA's student privacy charter, you have full sovereignty over your assessment history. You may download a portable JSON copy, adjust your automated retention timeline, or immediately delete your records at any time.
           </p>
 
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -480,7 +856,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
         {/* System & Developer Metadata */}
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-          SAHARA — Student Academic Health & Attrition Risk Assessment Platform · Lead Developer: <strong style={{ color: 'var(--color-text-primary)' }}>Pradipta Chandra Giri</strong>
+          SAHARA — Student Academic Health &amp; Attrition Risk Assessment Platform · Lead Developer: <strong style={{ color: 'var(--color-text-primary)' }}>Pradipta Chandra Giri</strong>
         </div>
       </div>
     </div>
