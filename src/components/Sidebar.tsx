@@ -49,10 +49,19 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const currentNav = role === 'admin' ? adminNav : role === 'counselor' ? counselorNav : studentNav
 
   return (
-    <aside style={{
-      width: 244, minWidth: 244, background: 'var(--color-surface)', borderRight: '1px solid var(--color-border)',
-      display: 'flex', flexDirection: 'column', height: '100vh', transition: 'background-color 0.25s ease, border-color 0.25s ease',
-    }}>
+    <aside
+      className="desktop-sidebar"
+      style={{
+        width: 244,
+        minWidth: 244,
+        background: 'var(--color-surface)',
+        borderRight: '1px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        transition: 'background-color 0.25s ease, border-color 0.25s ease',
+      }}
+    >
       {/* Logo & Header */}
       <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid var(--color-border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>

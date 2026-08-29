@@ -165,7 +165,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
   const weeklySuggestion = dbSuggestion || weeklySuggestions[0]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 36px 80px', transition: 'background-color 0.25s ease' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: 'clamp(20px, 4vw, 40px) clamp(16px, 4vw, 36px) 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
         {/* Scheduled Data Retention Notice */}
         {retentionAlert && (

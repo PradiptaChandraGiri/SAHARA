@@ -46,7 +46,7 @@ export default function CrisisButton() {
   return (
     <>
       {/* Floating Crisis Button */}
-      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div className="floating-crisis-container" style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', gap: 10, alignItems: 'center' }}>
         <button
           id="persistent-crisis-button"
           onClick={() => setIsOpen(true)}

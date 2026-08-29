@@ -98,35 +98,35 @@
   --color-text-primary: #EDEFEF;
   --color-text-secondary: #A8B0B1;
   --color-text-muted: #838E90;
-  --color-border: #384042;
-  --color-border-subtle: #2D3436;
+  --color-border: #333A3C;
+  --color-border-subtle: #272E30;
   --color-border-strong: #454E50;
 
-  --color-primary: #5DCAA5; /* lightened for high dark-mode contrast */
-  --color-primary-hover: #72DAB7;
-  --color-primary-container: #2A6F77;
-  --color-primary-subtle: #1E3A3A;
-  --color-primary-surface: #172B2B;
+  --color-primary: #5DCAA5; /* calm, minty seafoam teal */
+  --color-primary-hover: #72D8B5;
+  --color-primary-container: #1C483D;
+  --color-primary-subtle: #1C332E;
+  --color-primary-surface: #172B26;
 
-  --color-accent: #E8B968; /* slightly desaturated amber for dark surfaces */
-  --color-accent-hover: #F3CA85;
-  --color-accent-subtle: #3A2F1B;
+  --color-accent: #E8B563; /* soft glowing warm amber */
+  --color-accent-hover: #F2C77E;
+  --color-accent-subtle: #3A2E19;
   --color-accent-text: #14181A;
 
-  /* Strict 3-Tier Risk Palette (Luminous Dark Variants) */
+  /* Strict 3-Tier Risk Palette (Dark Theme Contrast Safe) */
   --color-risk-low: #4ADE80;
-  --color-risk-low-bg: #132E1D;
-  --color-risk-low-border: #1B4D2B;
+  --color-risk-low-bg: #142E1F;
+  --color-risk-low-border: #16532B;
   --color-risk-low-text: #86EFAC;
 
   --color-risk-moderate: #FBBF24;
-  --color-risk-moderate-bg: #35260C;
-  --color-risk-moderate-border: #523B13;
-  --color-risk-moderate-text: #FDE047;
+  --color-risk-moderate-bg: #35260F;
+  --color-risk-moderate-border: #6B4912;
+  --color-risk-moderate-text: #FDE68A;
 
   --color-risk-high: #F87171;
-  --color-risk-high-bg: #361515;
-  --color-risk-high-border: #572222;
+  --color-risk-high-bg: #361717;
+  --color-risk-high-border: #6E2222;
   --color-risk-high-text: #FCA5A5;
 
   /* Backwards-Compatibility Aliases */
@@ -140,59 +140,61 @@
   --ink-900: var(--color-text-primary);
   --ink-700: var(--color-text-secondary);
   --ink-500: var(--color-text-muted);
-  --ink-400: #717D80;
+  --ink-400: #838E90;
 
-  --teal-900: #1B3537;
-  --teal-800: var(--color-primary);
-  --teal-700: var(--color-primary-hover);
-  --teal-600: var(--color-primary-container);
-  --teal-500: #48B693;
+  --teal-900: #14181A;
+  --teal-800: var(--color-primary-container);
+  --teal-700: #184F43;
+  --teal-600: var(--color-primary);
+  --teal-500: var(--color-primary-hover);
   --teal-100: var(--color-primary-subtle);
   --teal-50: var(--color-primary-surface);
 
-  --navy-950: var(--color-text-primary);
-  --navy-900: #EDEFEF;
-  --navy-800: #A8B0B1;
-  --navy-100: #262C2E;
+  --navy-950: #101416;
+  --navy-900: #14181A;
+  --navy-800: #1C2224;
+  --navy-100: #2C3538;
 
-  --amber-600: #D4A359;
+  --amber-600: #8A5D19;
   --amber-500: var(--color-accent);
   --amber-400: var(--color-accent-hover);
   --amber-100: var(--color-accent-subtle);
-  --amber-50: #282115;
+  --amber-50: #292012;
 
   --slate-50: var(--color-background);
   --slate-100: var(--color-border-subtle);
 
-  /* Shadows on dark surfaces are subtle; elevation is communicated via surface lightness */
+  /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.6);
-}
-
-html, body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.015em;
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.7);
 }
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -315,4 +317,81 @@ h1, h2, h3, h4, h5, h6 {
 .input-standard:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(1, 87, 94, 0.15);
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS & TOUCH OPTIMIZATIONS
+   ========================================================================== */
+@media (min-width: 769px) {
+  .mobile-header-bar,
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .mobile-main-container {
+    padding-bottom: 76px !important;
+  }
+
+  .floating-crisis-container {
+    bottom: 74px !important;
+    right: 14px !important;
+  }
+  .floating-crisis-container button span {
+    display: none;
+  }
+  .floating-crisis-container button {
+    padding: 12px !important;
+    border-radius: 50% !important;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+
+  /* Prevent iOS input auto-zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="time"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Responsive touch targets */
+  button, 
+  a, 
+  input[type="checkbox"], 
+  input[type="radio"] {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  /* Responsive container padding adjustments */
+  .mobile-p-4 {
+    padding: 16px 14px !important;
+  }
+
+  /* Horizontal scrolling tables momentum */
+  table {
+    min-width: 600px;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

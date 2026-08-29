@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
+import MobileNav from './components/MobileNav'
 import Home from './pages/Home'
 import StudentDashboard from './pages/StudentDashboard'
 import CheckIn from './pages/CheckIn'
@@ -166,47 +167,51 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--color-background)' }}>
-      <Sidebar currentPage={page} onNavigate={navigate} />
+    <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', background: 'var(--color-background)', flexDirection: 'column' }}>
+      <MobileNav currentPage={page} onNavigate={navigate} />
 
-      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        <ErrorBoundary fallbackTitle="Could not load page view">
-          {/* Logged-out Visitor Home */}
-          {page === 'home' && <Home onNavigate={navigate} />}
+      <div style={{ display: 'flex', flex: 1, height: '100%', overflow: 'hidden', width: '100%' }}>
+        <Sidebar currentPage={page} onNavigate={navigate} />
 
-          {/* Student Dashboard */}
-          {page === 'student-dashboard' && (
-            <StudentDashboard onNavigate={navigate} lastCheckInData={checkInData} />
-          )}
+        <main className="mobile-main-container" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+          <ErrorBoundary fallbackTitle="Could not load page view">
+            {/* Logged-out Visitor Home */}
+            {page === 'home' && <Home onNavigate={navigate} />}
 
-          {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
-          {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
-          {page === 'ai-support' && <AISupport />}
-          {page === 'whatsapp' && <WhatsAppSupport />}
-          
-          {/* Counselor Triage Workspace */}
-          {page === 'counselor' && (
-            <CounselorDashboard
-              onNavigate={navigate}
-              onSelectStudent={setSelectedStudentId}
-              studentStatuses={studentStatuses}
-            />
-          )}
+            {/* Student Dashboard */}
+            {page === 'student-dashboard' && (
+              <StudentDashboard onNavigate={navigate} lastCheckInData={checkInData} />
+            )}
 
-          {/* Admin Governance Dashboard */}
-          {page === 'admin' && <AdminDashboard onNavigate={navigate} />}
+            {page === 'checkin' && <CheckIn onNavigate={navigate} onComplete={handleCheckInComplete} />}
+            {page === 'results' && <Results data={checkInData} onNavigate={navigate} />}
+            {page === 'ai-support' && <AISupport />}
+            {page === 'whatsapp' && <WhatsAppSupport />}
+            
+            {/* Counselor Triage Workspace */}
+            {page === 'counselor' && (
+              <CounselorDashboard
+                onNavigate={navigate}
+                onSelectStudent={setSelectedStudentId}
+                studentStatuses={studentStatuses}
+              />
+            )}
 
-          {page === 'student-profile' && (
-            <StudentProfile
-              studentId={selectedStudentId || ''}
-              onNavigate={navigate}
-              studentStatuses={studentStatuses}
-              onUpdateStatus={handleUpdateStatus}
-            />
-          )}
-          {page === 'profile' && <Profile onNavigate={navigate} />}
-        </ErrorBoundary>
-      </main>
+            {/* Admin Governance Dashboard */}
+            {page === 'admin' && <AdminDashboard onNavigate={navigate} />}
+
+            {page === 'student-profile' && (
+              <StudentProfile
+                studentId={selectedStudentId || ''}
+                onNavigate={navigate}
+                studentStatuses={studentStatuses}
+                onUpdateStatus={handleUpdateStatus}
+              />
+            )}
+            {page === 'profile' && <Profile onNavigate={navigate} />}
+          </ErrorBoundary>
+        </main>
+      </div>
 
       {/* Persistent Crisis & 24/7 Helpline Support (One-tap on all views) */}
       <CrisisButton />

@@ -69,7 +69,7 @@ export default function Home({ onNavigate }: HomeProps) {
       <section
         style={{
           background: 'linear-gradient(135deg, var(--color-primary-container) 0%, var(--navy-950) 100%)',
-          padding: '80px 48px 72px',
+          padding: 'clamp(48px, 8vw, 80px) clamp(18px, 5vw, 48px) clamp(40px, 6vw, 72px)',
           position: 'relative',
           overflow: 'hidden',
           color: '#FFFFFF',
@@ -106,20 +106,21 @@ export default function Home({ onNavigate }: HomeProps) {
               borderRadius: 99,
               padding: '6px 16px',
               background: 'rgba(14, 26, 43, 0.4)',
+              maxWidth: '100%',
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-accent)' }} />
-            <span style={{ fontSize: 13, color: 'var(--color-accent)', fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-accent)', flexShrink: 0 }} />
+            <span style={{ fontSize: 'clamp(11.5px, 2.5vw, 13px)', color: 'var(--color-accent)', fontWeight: 600 }}>
               AI-Driven Student Wellbeing &amp; Academic Risk Early-Warning Platform
             </span>
           </div>
 
           <h1
             style={{
-              fontSize: 48,
+              fontSize: 'clamp(28px, 6vw, 48px)',
               fontWeight: 800,
               color: '#FFFFFF',
-              lineHeight: 1.15,
+              lineHeight: 1.18,
               margin: '0 0 20px',
               letterSpacing: '-0.02em',
             }}
@@ -129,7 +130,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
           <p
             style={{
-              fontSize: 17,
+              fontSize: 'clamp(15px, 3.5vw, 17px)',
               color: 'rgba(255, 255, 255, 0.85)',
               lineHeight: 1.65,
               margin: '0 auto 36px',

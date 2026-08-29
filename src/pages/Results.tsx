@@ -305,7 +305,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: 'clamp(20px, 4vw, 40px) clamp(16px, 4vw, 32px) 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
         {/* Top Header */}
         <div

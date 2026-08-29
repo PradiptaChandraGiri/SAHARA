@@ -361,7 +361,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 24px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: 'clamp(20px, 4vw, 40px) clamp(14px, 4vw, 24px) 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         {/* Top Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
