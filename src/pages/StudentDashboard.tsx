@@ -4,28 +4,21 @@ import { useAuth } from '../context/AuthContext'
 import RiskBadge from '../components/RiskBadge'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
 import {
-  HeartHandshake,
   Bot,
   BarChart3,
-  Calendar,
   ArrowRight,
-  Shield,
   PhoneCall,
-  Sparkles,
-  CheckCircle2,
   Clock,
   ExternalLink,
   MessageSquare,
-  Compass,
   Lightbulb,
 } from 'lucide-react'
+import { API_BASE } from '../config'
 
 interface StudentDashboardProps {
   onNavigate: (page: Page) => void
   lastCheckInData: CheckInData | null
 }
-
-import { API_BASE } from '../config'
 
 export default function StudentDashboard({ onNavigate, lastCheckInData }: StudentDashboardProps) {
   const { user } = useAuth()
@@ -37,8 +30,13 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
     const fetchLatest = async () => {
       setIsLoading(true)
       try {
+        const savedToken = typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null
+        const headers: Record<string, string> = { 'Accept': 'application/json' }
+        if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
         const res = await fetch(`${API_BASE}/api/results/latest`, {
           credentials: 'include',
+          headers,
         })
         if (res.ok) {
           const row = await res.json()
@@ -54,7 +52,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
             })
 
             // Fetch real curated resources for the week
-            const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include' })
+            const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include', headers })
             if (resRes.ok) {
               const resources = await resRes.json()
               if (Array.isArray(resources) && resources.length > 0) {
@@ -94,29 +92,29 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
         title: "We think it's worth talking to someone",
         subtitle:
           'Your recent responses indicate heavy study pressure and disrupted rest. Support is here to help you decompress.',
-        color: '#EA580C',
-        bg: '#FFF7ED',
-        borderColor: '#FED7AA',
+        color: 'var(--color-risk-high)',
+        bg: 'var(--color-risk-high-bg)',
+        borderColor: 'var(--color-risk-high-border)',
         icon: '🌱',
       }
     }
-    if (t === 'medium') {
+    if (t === 'medium' || t === 'moderate') {
       return {
         title: 'Some signals to pay attention to',
         subtitle:
           "You're managing a busy workload, but fatigue is starting to build up. Taking small breaks now makes a big difference.",
-        color: '#D97706',
-        bg: '#FFFBEB',
-        borderColor: '#FDE68A',
+        color: 'var(--color-risk-moderate)',
+        bg: 'var(--color-risk-moderate-bg)',
+        borderColor: 'var(--color-risk-moderate-border)',
         icon: '🌤️',
       }
     }
     return {
       title: "You're doing okay",
       subtitle: 'Your sleep and daily routines look balanced right now. Keep protecting your downtime.',
-      color: '#16A34A',
-      bg: '#F0FDF4',
-      borderColor: '#BBF7D0',
+      color: 'var(--color-risk-low)',
+      bg: 'var(--color-risk-low-bg)',
+      borderColor: 'var(--color-risk-low-border)',
       icon: '✨',
     }
   }
@@ -139,7 +137,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
   const weeklySuggestion = dbSuggestion || weeklySuggestions[0]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 36px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 36px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
         {/* Welcome Header */}
         <div
@@ -158,7 +156,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 style={{
                   fontSize: 12.5,
                   fontWeight: 700,
-                  color: '#01575E',
+                  color: 'var(--color-primary)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                 }}
@@ -166,10 +164,10 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 Student Wellbeing Space
               </span>
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               Welcome back, {user?.name ? user.name.split(' ')[0] : 'Student'}
             </h1>
-            <p style={{ fontSize: 14, color: '#64748B', marginTop: 4, margin: '4px 0 0' }}>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4, margin: '4px 0 0' }}>
               Here is your current wellbeing balance and tailored strategies for the week.
             </p>
           </div>
@@ -184,9 +182,9 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               gap: 8,
               padding: '9px 16px',
               borderRadius: 99,
-              background: '#FFF7ED',
-              border: '1.5px solid #FED7AA',
-              color: '#C2410C',
+              background: 'var(--color-risk-high-bg)',
+              border: '1.5px solid var(--color-risk-high-border)',
+              color: 'var(--color-risk-high-text)',
               fontWeight: 700,
               fontSize: 13,
               textDecoration: 'none',
@@ -203,12 +201,12 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
           /* Empty State for Brand New Student */
           <div
             style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #E2E8F0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: 16,
               padding: '36px 36px',
               marginBottom: 24,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              boxShadow: 'var(--shadow-sm)',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -220,7 +218,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  background: '#E0F2F1',
+                  background: 'var(--color-primary-subtle)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -230,16 +228,16 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 ✨
               </div>
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Take your first 3-minute check-in
                 </h2>
-                <p style={{ fontSize: 13.5, color: '#64748B', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
                   A short, private snapshot to understand your study stress, sleep, and routines.
                 </p>
               </div>
             </div>
 
-            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
               SAHARA looks at everyday indicators like exam pressure and rest rhythms to catch academic burnout before it impacts your semester. Your responses are strictly confidential.
             </p>
 
@@ -258,12 +256,12 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
           /* Returning Student Status Card */
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--color-surface)',
               border: `1.5px solid ${summary.borderColor}`,
               borderRadius: 16,
               padding: '28px 32px',
               marginBottom: 20,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+              boxShadow: 'var(--shadow-sm)',
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -271,19 +269,19 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 24 }}>{summary.icon}</span>
-                <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   {summary.title}
                 </h2>
               </div>
               <RiskBadge tier={riskTier} size="md" />
             </div>
 
-            <p style={{ fontSize: 14.5, color: '#475569', lineHeight: 1.6, margin: '0 0 20px', maxWidth: 680 }}>
+            <p style={{ fontSize: 14.5, color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: '0 0 20px', maxWidth: 680 }}>
               {summary.subtitle}
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: '1px solid #F1F5F9', paddingTop: 16 }}>
-              <span style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderTop: '1px solid var(--color-border-subtle)', paddingTop: 16 }}>
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Clock size={14} />
                 <span>Last evaluated: {checkInDate}</span>
               </span>
@@ -304,8 +302,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
         {hasCompletedCheckIn && weeklySuggestion && (
           <div
             style={{
-              background: 'linear-gradient(135deg, #F0FDFA 0%, #FFFFFF 100%)',
-              border: '1.5px solid #CCFBF1',
+              background: 'var(--color-surface-raised)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: 14,
               padding: '18px 24px',
               marginBottom: 24,
@@ -316,19 +314,18 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               flexWrap: 'wrap',
             }}
           >
-            {/* TODO: replace with real API call to /api/recommendations/weekly */}
             <div style={{ maxWidth: 580 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <Lightbulb size={16} color="#0F766E" />
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase' }}>
+                <Lightbulb size={16} color="var(--color-primary)" />
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
                   This Week's Focus Strategy
                 </span>
-                <span style={{ fontSize: 11.5, color: '#64748B' }}>• Matched to your check-in</span>
+                <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>• Matched to your check-in</span>
               </div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', margin: '0 0 2px' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 2px' }}>
                 {weeklySuggestion.title}
               </h3>
-              <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.45 }}>
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.45 }}>
                 {weeklySuggestion.description}
               </p>
             </div>
@@ -348,7 +345,7 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
 
         {/* 3. THREE NEXT-STEP TILES */}
         <div style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 14px' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px' }}>
             What would you like to do next?
           </h3>
 
@@ -358,8 +355,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               onClick={() => onNavigate('ai-support')}
               className="card-hover"
               style={{
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: 14,
                 padding: '22px 22px',
                 cursor: 'pointer',
@@ -374,8 +371,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: '#E0F2F1',
-                    color: '#01575E',
+                    background: 'var(--color-primary-subtle)',
+                    color: 'var(--color-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -384,14 +381,14 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 >
                   <Bot size={20} />
                 </div>
-                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
                   Talk to SAHARA AI
                 </h4>
-                <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5, margin: 0 }}>
                   24/7 conversational support for exam worries, sleep hygiene, and quick breathing resets.
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#01575E', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-primary)', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
                 <span>Start chat</span>
                 <ArrowRight size={14} />
               </div>
@@ -402,8 +399,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               onClick={() => onNavigate('results')}
               className="card-hover"
               style={{
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: 14,
                 padding: '22px 22px',
                 cursor: 'pointer',
@@ -418,8 +415,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: '#FEF3C7',
-                    color: '#D99A34',
+                    background: 'var(--color-accent-subtle)',
+                    color: 'var(--color-accent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -428,14 +425,14 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 >
                   <BarChart3 size={20} />
                 </div>
-                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
                   See What's Affecting Your Results
                 </h4>
-                <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5, margin: 0 }}>
                   Review your plain-language wellbeing breakdown and explore recommended study strategies.
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#D99A34', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-accent)', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
                 <span>View breakdown</span>
                 <ArrowRight size={14} />
               </div>
@@ -446,8 +443,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               onClick={() => onNavigate('whatsapp')}
               className="card-hover"
               style={{
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: 14,
                 padding: '22px 22px',
                 cursor: 'pointer',
@@ -462,8 +459,8 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: '#F0FDF4',
-                    color: '#16A34A',
+                    background: 'var(--color-risk-low-bg)',
+                    color: 'var(--color-risk-low)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -472,14 +469,14 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
                 >
                   <MessageSquare size={20} />
                 </div>
-                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
                   WhatsApp Wellbeing Bot
                 </h4>
-                <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5, margin: 0 }}>
                   Check in directly from your phone anytime by sending a quick text on WhatsApp.
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#16A34A', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-risk-low)', fontWeight: 600, fontSize: 13, marginTop: 16 }}>
                 <span>Open WhatsApp bot</span>
                 <ArrowRight size={14} />
               </div>

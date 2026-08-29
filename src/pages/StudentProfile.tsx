@@ -16,6 +16,7 @@ import {
   Shield,
   Save,
 } from 'lucide-react'
+import { API_BASE } from '../config'
 
 interface StudentProfileProps {
   studentId: string
@@ -24,14 +25,12 @@ interface StudentProfileProps {
   onUpdateStatus: (id: string, status: string) => void
 }
 
-import { API_BASE } from '../config'
-
 export default function StudentProfile({
   studentId,
   onNavigate,
   onUpdateStatus,
 }: StudentProfileProps) {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [assessment, setAssessment] = useState<any>(null)
   const [caseNotesHistory, setCaseNotesHistory] = useState<any[]>([])
   const [status, setStatus] = useState<'New' | 'In progress' | 'Contacted'>('New')
@@ -48,8 +47,13 @@ export default function StudentProfile({
       }
       setIsLoading(true)
       try {
+        const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+        const headers: Record<string, string> = { 'Accept': 'application/json' }
+        if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
         const res = await fetch(`${API_BASE}/api/counselor/students/${studentId}`, {
           credentials: 'include',
+          headers,
         })
         if (res.ok) {
           const data = await res.json()
@@ -58,12 +62,14 @@ export default function StudentProfile({
             setAssessment({
               student_name: latest.display_name || 'Student',
               student_id: studentId,
+              assessment_id: latest.id || studentId,
               risk_tier: latest.risk_level === 'high' ? 'High' : latest.risk_level === 'moderate' ? 'Medium' : 'Low',
-              combined_score: Number(latest.overall_wellbeing) / 100,
-              anxiety_score: (Number(latest.anxiety_signal) / 100) * 10,
-              dropout_probability: Number(latest.academic_strain) / 100,
-              top_factors: latest.contributing_factors || [],
-              timestamp: latest.created_at,
+              combined_score: Number(latest.overall_wellbeing || 0) / 100,
+              anxiety_score: (Number(latest.anxiety_signal || 0) / 100) * 10,
+              dropout_probability: Number(latest.academic_strain || 0) / 100,
+              top_factors: latest.contributing_factors || ['Study stress', 'Sleep deficit'],
+              timestamp: latest.created_at || new Date().toISOString(),
+              raw_input: latest.raw_input,
             })
           }
           setCaseNotesHistory(data.notes || [])
@@ -83,9 +89,13 @@ export default function StudentProfile({
     setStatus(newStatus)
     onUpdateStatus(studentId, newStatus)
     try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
       await fetch(`${API_BASE}/api/counselor/students/${studentId}/notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ status: newStatus.toLowerCase(), note: notes || `Status updated to ${newStatus}` }),
       })
@@ -100,21 +110,21 @@ export default function StudentProfile({
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#64748B', fontSize: 14 }}>Loading student assessment case...</p>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Loading student assessment case...</p>
       </div>
     )
   }
 
   if (!assessment) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px' }}>
         <button
           onClick={() => onNavigate('counselor')}
           style={{
             background: 'none',
             border: 'none',
-            color: '#01575E',
+            color: 'var(--color-primary)',
             cursor: 'pointer',
             fontSize: 14,
             fontWeight: 600,
@@ -128,10 +138,10 @@ export default function StudentProfile({
           <ArrowLeft size={16} />
           <span>Back to Counselor Dashboard</span>
         </button>
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: '36px', textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
-          <AlertTriangle size={36} color="#D99A34" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>Case Record Not Found</h3>
-          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>Please select an active student case from the triage queue.</p>
+        <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, padding: '36px', textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
+          <AlertTriangle size={36} color="var(--color-accent)" style={{ margin: '0 auto 12px' }} />
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>Case Record Not Found</h3>
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>Please select an active student case from the triage queue.</p>
         </div>
       </div>
     )
@@ -146,7 +156,7 @@ export default function StudentProfile({
     : []
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '36px 32px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '36px 32px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 940, margin: '0 auto' }}>
         {/* Back navigation */}
         <button
@@ -154,7 +164,7 @@ export default function StudentProfile({
           style={{
             background: 'none',
             border: 'none',
-            color: '#01575E',
+            color: 'var(--color-primary)',
             cursor: 'pointer',
             fontSize: 14,
             fontWeight: 600,
@@ -172,8 +182,8 @@ export default function StudentProfile({
         {/* Case Header Banner */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '24px 28px',
             marginBottom: 24,
@@ -186,12 +196,12 @@ export default function StudentProfile({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: 0, fontFamily: 'monospace' }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, fontFamily: 'monospace' }}>
                 Case: {assessment.student_id || 'STU-ANON'}
               </h1>
               <RiskBadge tier={tier} size="md" />
             </div>
-            <p style={{ fontSize: 13.5, color: '#64748B', margin: 0 }}>
+            <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: 0 }}>
               Assessment ID: <span style={{ fontFamily: 'monospace' }}>{assessment.assessment_id}</span> • Taken on{' '}
               {new Date(assessment.timestamp).toLocaleString()}
             </p>
@@ -209,9 +219,9 @@ export default function StudentProfile({
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
-                  border: status === s ? '1.5px solid #01575E' : '1px solid #CBD5E1',
-                  background: status === s ? '#01575E' : '#FFFFFF',
-                  color: status === s ? '#FFFFFF' : '#475569',
+                  border: status === s ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: status === s ? 'var(--color-primary)' : 'var(--color-surface)',
+                  color: status === s ? '#FFFFFF' : 'var(--color-text-secondary)',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -224,9 +234,9 @@ export default function StudentProfile({
         {saveSuccess && (
           <div
             style={{
-              background: '#F0FDF4',
-              border: '1px solid #BBF7D0',
-              color: '#166534',
+              background: 'var(--color-risk-low-bg)',
+              border: '1px solid var(--color-risk-low-border)',
+              color: 'var(--color-risk-low-text)',
               padding: '10px 16px',
               borderRadius: 8,
               marginBottom: 20,
@@ -240,34 +250,34 @@ export default function StudentProfile({
 
         {/* 3 Metric Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
-          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Anxiety Score</span>
-            <p style={{ fontSize: 26, fontWeight: 800, color: '#01575E', margin: '4px 0 2px' }}>
-              {assessment.anxiety_score !== null ? `${assessment.anxiety_score}/10` : '—'}
+          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Anxiety Score</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: 'var(--color-primary)', margin: '4px 0 2px' }}>
+              {assessment.anxiety_score !== null ? `${Math.round(assessment.anxiety_score * 10) / 10}/10` : '—'}
             </p>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>RF Regression Model</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>RF Regression Model</p>
           </div>
 
-          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Academic Dropout Risk</span>
-            <p style={{ fontSize: 26, fontWeight: 800, color: '#D99A34', margin: '4px 0 2px' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Academic Dropout Risk</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: 'var(--color-accent)', margin: '4px 0 2px' }}>
               {assessment.dropout_probability !== null ? `${Math.round(assessment.dropout_probability * 100)}%` : '—'}
             </p>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>RF Classifier Model</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>RF Classifier Model</p>
           </div>
 
-          <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Combined Wellbeing Index</span>
-            <p style={{ fontSize: 26, fontWeight: 800, color: '#0E1A2B', margin: '4px 0 2px' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: '18px 20px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Combined Wellbeing Index</span>
+            <p style={{ fontSize: 26, fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0 2px' }}>
               {assessment.combined_score !== null ? `${Math.round(assessment.combined_score * 100)}%` : '—'}
             </p>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>Fused Dual Signal</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>Fused Dual Signal</p>
           </div>
         </div>
 
         {/* Contributing Drivers & Raw Inputs */}
-        <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '24px 28px', marginBottom: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 12px' }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: '24px 28px', marginBottom: 24 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 12px' }}>
             Flagged Contributing Factors
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
@@ -275,9 +285,9 @@ export default function StudentProfile({
               <span
                 key={idx}
                 style={{
-                  background: '#FFF7ED',
-                  border: '1px solid #FED7AA',
-                  color: '#9A3412',
+                  background: 'var(--color-risk-high-bg)',
+                  border: '1px solid var(--color-risk-high-border)',
+                  color: 'var(--color-risk-high-text)',
                   padding: '4px 12px',
                   borderRadius: 8,
                   fontSize: 13,
@@ -289,24 +299,24 @@ export default function StudentProfile({
             ))}
           </div>
 
-          <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 10px' }}>
             Intake Context Attributes
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
             {Object.entries(rawInput).slice(0, 12).map(([k, v]) => (
-              <div key={k} style={{ background: '#F8FAFC', padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-                <span style={{ display: 'block', color: '#64748B', fontSize: 11.5 }}>{k.replace(/_/g, ' ')}</span>
-                <span style={{ fontWeight: 600, color: '#0E1A2B' }}>{String(v)}</span>
+              <div key={k} style={{ background: 'var(--color-surface-raised)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                <span style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: 11.5 }}>{k.replace(/_/g, ' ')}</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{String(v)}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Counselor Clinical Notes */}
-        <div style={{ background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '24px 28px' }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 16, padding: '24px 28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <FileText size={18} color="#01575E" />
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <FileText size={18} color="var(--color-primary)" />
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               Counselor Case Notes & Follow-up Log
             </h3>
           </div>
@@ -320,9 +330,11 @@ export default function StudentProfile({
               width: '100%',
               padding: '12px 14px',
               borderRadius: 8,
-              border: '1.5px solid #CBD5E1',
+              border: '1.5px solid var(--color-border)',
               fontSize: 14,
               fontFamily: 'inherit',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-primary)',
               marginBottom: 14,
               outline: 'none',
             }}

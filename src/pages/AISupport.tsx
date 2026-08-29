@@ -350,14 +350,15 @@ export default function AISupport() {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        background: 'var(--bg-app, #F9F9F8)',
+        background: 'var(--color-background)',
+        transition: 'background-color 0.25s ease',
       }}
     >
       {/* 1. Header & Honest Disclaimer */}
       <div
         style={{
-          background: '#FFFFFF',
-          borderBottom: '1.5px solid #E2E8F0',
+          background: 'var(--color-surface)',
+          borderBottom: '1.5px solid var(--color-border)',
           padding: '16px 28px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -372,7 +373,7 @@ export default function AISupport() {
               width: 38,
               height: 38,
               borderRadius: 10,
-              background: '#01575E',
+              background: 'var(--color-primary)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
@@ -383,7 +384,7 @@ export default function AISupport() {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                 SAHARA AI Wellbeing Companion
               </h2>
               <span
@@ -392,9 +393,9 @@ export default function AISupport() {
                   fontWeight: 700,
                   padding: '2px 8px',
                   borderRadius: 99,
-                  background: '#F0FDF4',
-                  color: '#166534',
-                  border: '1px solid #BBF7D0',
+                  background: 'var(--color-risk-low-bg)',
+                  color: 'var(--color-risk-low)',
+                  border: '1px solid var(--color-risk-low-border)',
                 }}
               >
                 Online 24/7
@@ -406,9 +407,9 @@ export default function AISupport() {
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: 99,
-                    background: '#E0F2F1',
-                    color: '#01575E',
-                    border: '1px solid #CCFBF1',
+                    background: 'var(--color-primary-subtle)',
+                    color: 'var(--color-primary)',
+                    border: '1px solid var(--color-border)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 3,
@@ -419,7 +420,7 @@ export default function AISupport() {
                 </span>
               )}
             </div>
-            <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-muted)' }}>
               Conversational support for study routines, stress, and sleep
             </p>
           </div>
@@ -429,19 +430,13 @@ export default function AISupport() {
           <button
             type="button"
             onClick={handleClearChat}
+            className="btn-outline"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
-              background: '#F8FAFC',
-              border: '1px solid #CBD5E1',
-              color: '#475569',
               padding: '6px 12px',
-              borderRadius: 8,
               fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
             }}
             title="Start a new conversation (clears history)"
           >
@@ -455,9 +450,9 @@ export default function AISupport() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: '#FFF7ED',
-              border: '1px solid #FED7AA',
-              color: '#C2410C',
+              background: 'var(--color-risk-high-bg)',
+              border: '1px solid var(--color-risk-high-border)',
+              color: 'var(--color-risk-high-text)',
               padding: '6px 12px',
               borderRadius: 8,
               fontSize: 12.5,
@@ -474,14 +469,14 @@ export default function AISupport() {
       {/* Honest Disclaimer Ribbon */}
       <div
         style={{
-          background: '#F0FDFA',
-          borderBottom: '1px solid #CCFBF1',
+          background: 'var(--color-primary-subtle)',
+          borderBottom: '1px solid var(--color-border-subtle)',
           padding: '8px 28px',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           fontSize: 12.5,
-          color: '#0F766E',
+          color: 'var(--color-primary)',
         }}
       >
         <Info size={14} style={{ flexShrink: 0 }} />
@@ -494,8 +489,8 @@ export default function AISupport() {
       {showCrisisBanner && (
         <div
           style={{
-            background: '#FFF7ED',
-            borderBottom: '1.5px solid #FED7AA',
+            background: 'var(--color-risk-high-bg)',
+            borderBottom: '1.5px solid var(--color-risk-high-border)',
             padding: '12px 28px',
             display: 'flex',
             alignItems: 'center',
@@ -504,12 +499,12 @@ export default function AISupport() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ShieldAlert size={20} color="#EA580C" />
+            <ShieldAlert size={20} color="var(--color-risk-high)" />
             <div>
-              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#9A3412' }}>
+              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--color-risk-high-text)' }}>
                 Immediate Emotional Support Available
               </h4>
-              <p style={{ margin: 0, fontSize: 12.5, color: '#C2410C' }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-risk-high-text)', opacity: 0.9 }}>
                 You are not alone. Free, confidential counselors are ready to speak with you right now at 14416.
               </p>
             </div>
@@ -517,7 +512,7 @@ export default function AISupport() {
           <a
             href="tel:14416"
             style={{
-              background: '#EA580C',
+              background: 'var(--color-risk-high)',
               color: '#FFFFFF',
               padding: '7px 14px',
               borderRadius: 8,
@@ -562,7 +557,7 @@ export default function AISupport() {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: '#01575E',
+                    background: 'var(--color-primary)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -578,12 +573,12 @@ export default function AISupport() {
               <div
                 style={{
                   maxWidth: '75%',
-                  background: isUser ? '#01575E' : m.isCrisis ? '#FFF7ED' : '#FFFFFF',
-                  color: isUser ? '#FFFFFF' : '#0E1A2B',
-                  border: isUser ? 'none' : m.isCrisis ? '1.5px solid #FED7AA' : '1.5px solid #E2E8F0',
+                  background: isUser ? 'var(--color-primary)' : m.isCrisis ? 'var(--color-risk-high-bg)' : 'var(--color-surface)',
+                  color: isUser ? '#FFFFFF' : m.isCrisis ? 'var(--color-risk-high-text)' : 'var(--color-text-primary)',
+                  border: isUser ? 'none' : m.isCrisis ? '1.5px solid var(--color-risk-high-border)' : '1.5px solid var(--color-border)',
                   borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   padding: '14px 18px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  boxShadow: 'var(--shadow-sm)',
                   fontSize: 14.5,
                   lineHeight: 1.6,
                   whiteSpace: 'pre-wrap',
@@ -593,9 +588,9 @@ export default function AISupport() {
                   <ChatMessageText text={m.text} />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 2px', minHeight: 20 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#01575E', opacity: 0.6 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
                   </div>
                 )}
 
@@ -604,8 +599,8 @@ export default function AISupport() {
                   <div
                     style={{
                       marginTop: 12,
-                      background: '#F0FDFA',
-                      border: '1px solid #CCFBF1',
+                      background: 'var(--color-surface-raised)',
+                      border: '1px solid var(--color-border)',
                       borderRadius: 10,
                       padding: '10px 14px',
                       display: 'flex',
@@ -617,10 +612,10 @@ export default function AISupport() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {getResourceIcon(m.inlineResource.type)}
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F766E' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)' }}>
                           {m.inlineResource.title}
                         </div>
-                        <div style={{ fontSize: 11.5, color: '#64748B' }}>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
                           {m.inlineResource.readTime}
                         </div>
                       </div>
@@ -630,12 +625,9 @@ export default function AISupport() {
                       href={m.inlineResource.link}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="btn-teal"
                       style={{
                         fontSize: 12,
-                        fontWeight: 700,
-                        color: '#01575E',
-                        background: '#FFFFFF',
-                        border: '1px solid #CCFBF1',
                         padding: '4px 10px',
                         borderRadius: 6,
                         textDecoration: 'none',
@@ -653,7 +645,7 @@ export default function AISupport() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: isUser ? 'rgba(255,255,255,0.7)' : '#94A3B8',
+                    color: isUser ? 'rgba(255,255,255,0.8)' : 'var(--color-text-muted)',
                     marginTop: 6,
                     textAlign: 'right',
                   }}
@@ -668,7 +660,7 @@ export default function AISupport() {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: '#D99A34',
+                    background: 'var(--color-accent)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -691,7 +683,7 @@ export default function AISupport() {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: '#01575E',
+                background: 'var(--color-primary)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
@@ -702,12 +694,12 @@ export default function AISupport() {
             </div>
             <div
               style={{
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: '16px 16px 16px 4px',
                 padding: '10px 16px',
                 fontSize: 13.5,
-                color: '#64748B',
+                color: 'var(--color-text-muted)',
                 fontStyle: 'italic',
               }}
             >
@@ -722,8 +714,8 @@ export default function AISupport() {
       <div
         style={{
           padding: '8px 28px',
-          background: '#FFFFFF',
-          borderTop: '1px solid #F1F5F9',
+          background: 'var(--color-surface)',
+          borderTop: '1px solid var(--color-border-subtle)',
           display: 'flex',
           gap: 8,
           overflowX: 'auto',
@@ -737,22 +729,14 @@ export default function AISupport() {
             style={{
               padding: '6px 14px',
               borderRadius: 99,
-              border: '1px solid #CBD5E1',
-              background: '#F8FAFC',
-              color: '#334155',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-secondary)',
               fontSize: 12.5,
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
               flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#E0F2F1'
-              e.currentTarget.style.borderColor = '#01575E'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#F8FAFC'
-              e.currentTarget.style.borderColor = '#CBD5E1'
             }}
           >
             {chip}
@@ -763,8 +747,8 @@ export default function AISupport() {
       {/* 4. Message Input Bar */}
       <div
         style={{
-          background: '#FFFFFF',
-          borderTop: '1.5px solid #E2E8F0',
+          background: 'var(--color-surface)',
+          borderTop: '1.5px solid var(--color-border)',
           padding: '16px 28px',
         }}
       >
@@ -790,8 +774,10 @@ export default function AISupport() {
               flex: 1,
               padding: '12px 18px',
               borderRadius: 10,
-              border: '1.5px solid #CBD5E1',
+              border: '1.5px solid var(--color-border)',
               fontSize: 14.5,
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-primary)',
               outline: 'none',
             }}
           />

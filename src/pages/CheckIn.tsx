@@ -31,8 +31,8 @@ function SliderField({
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <label style={{ fontSize: 14, fontWeight: 600, color: '#0E1A2B' }}>{label}</label>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#01575E' }}>
+        <label style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{label}</label>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-primary)' }}>
           {value}
           {unit}
         </span>
@@ -45,7 +45,7 @@ function SliderField({
             left: 0,
             height: 6,
             width: `${pct}%`,
-            background: 'linear-gradient(90deg, #01575E, #2A6F77)',
+            background: 'var(--color-primary)',
             borderRadius: 99,
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
@@ -64,7 +64,7 @@ function SliderField({
             width: '100%',
             height: 6,
             borderRadius: 99,
-            background: '#E2E8F0',
+            background: 'var(--color-surface-raised)',
             outline: 'none',
             cursor: 'pointer',
             position: 'relative',
@@ -73,11 +73,11 @@ function SliderField({
         />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-        <span style={{ fontSize: 11.5, color: '#94A3B8' }}>
+        <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
           {min}
           {unit}
         </span>
-        <span style={{ fontSize: 11.5, color: '#94A3B8' }}>
+        <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
           {max}
           {unit}
         </span>
@@ -107,9 +107,9 @@ function OptionCards({
             style={{
               padding: '12px 14px',
               borderRadius: 10,
-              border: isSelected ? '1.5px solid #01575E' : '1.5px solid #E2E8F0',
-              background: isSelected ? '#E0F2F1' : '#FFFFFF',
-              color: isSelected ? '#01575E' : '#0E1A2B',
+              border: isSelected ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+              background: isSelected ? 'var(--color-primary-subtle)' : 'var(--color-surface)',
+              color: isSelected ? 'var(--color-primary)' : 'var(--color-text-primary)',
               fontWeight: isSelected ? 700 : 500,
               fontSize: 13.5,
               cursor: 'pointer',

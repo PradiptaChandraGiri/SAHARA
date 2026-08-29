@@ -12,7 +12,6 @@ import {
   Sparkles,
   ChevronDown,
 } from 'lucide-react'
-
 import { API_BASE } from '../config'
 
 export default function WhatsAppSupport() {
@@ -87,7 +86,7 @@ export default function WhatsAppSupport() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 940, margin: '0 auto' }}>
         {/* Top Header */}
         <div style={{ marginBottom: 32 }}>
@@ -97,7 +96,7 @@ export default function WhatsAppSupport() {
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: '#16A34A',
+                background: 'var(--color-risk-low)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
@@ -106,11 +105,11 @@ export default function WhatsAppSupport() {
             >
               <MessageSquare size={20} />
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               Message SAHARA Anytime on WhatsApp
             </h1>
           </div>
-          <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
+          <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: 0 }}>
             Take your wellbeing check-ins, practice guided breathing, or get immediate helpline access directly on WhatsApp.
           </p>
         </div>
@@ -118,12 +117,12 @@ export default function WhatsAppSupport() {
         {/* 1. Student Hero Launch Card */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #BBF7D0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-risk-low-border)',
             borderRadius: 16,
             padding: '32px 36px',
             marginBottom: 28,
-            boxShadow: '0 4px 16px rgba(22, 163, 74, 0.08)',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -137,25 +136,25 @@ export default function WhatsAppSupport() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: '#F0FDF4',
-                color: '#166534',
+                background: 'var(--color-risk-low-bg)',
+                color: 'var(--color-risk-low-text)',
                 padding: '4px 12px',
                 borderRadius: 99,
                 fontSize: 12,
                 fontWeight: 700,
-                border: '1px solid #BBF7D0',
+                border: '1px solid var(--color-risk-low-border)',
                 marginBottom: 12,
               }}
             >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-risk-low)' }} />
               <span>Official Twilio Sandbox Active</span>
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 10px' }}>
               Connect in 10 Seconds
             </h2>
-            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
-              Open WhatsApp on your phone and send <code>join no-different</code> to{' '}
-              <strong>+1 (415) 523-8886</strong>. You will be greeted immediately by SAHARA.
+            <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              Open WhatsApp on your phone and send <code style={{ background: 'var(--color-surface-raised)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--color-border)' }}>join no-different</code> to{' '}
+              <strong style={{ color: 'var(--color-text-primary)' }}>+1 (415) 523-8886</strong>. You will be greeted immediately by SAHARA.
             </p>
 
             <a
@@ -166,7 +165,7 @@ export default function WhatsAppSupport() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                background: '#16A34A',
+                background: 'var(--color-risk-low)',
                 color: '#FFFFFF',
                 padding: '12px 24px',
                 borderRadius: 10,
@@ -183,8 +182,8 @@ export default function WhatsAppSupport() {
 
           <div
             style={{
-              background: '#F8FAFC',
-              border: '1.5px solid #E2E8F0',
+              background: 'var(--color-surface-raised)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: 14,
               padding: '20px 24px',
               textAlign: 'center',
@@ -206,10 +205,10 @@ export default function WhatsAppSupport() {
                   height: 136,
                   margin: '0 auto 10px',
                   background: '#FFFFFF',
-                  border: '1.5px solid #CBD5E1',
+                  border: '1.5px solid var(--color-border)',
                   borderRadius: 12,
                   padding: 6,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  boxShadow: 'var(--shadow-sm)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -222,7 +221,7 @@ export default function WhatsAppSupport() {
                   style={{ width: '100%', height: '100%', borderRadius: 6, objectFit: 'contain' }}
                 />
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-risk-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 <ExternalLink size={12} /> Scan or Click QR Code
               </span>
             </a>
@@ -235,8 +234,8 @@ export default function WhatsAppSupport() {
             <div
               key={s.num}
               style={{
-                background: '#FFFFFF',
-                border: '1.5px solid #E2E8F0',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
                 borderRadius: 14,
                 padding: '20px 22px',
               }}
@@ -246,8 +245,8 @@ export default function WhatsAppSupport() {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  background: '#E0F2F1',
-                  color: '#01575E',
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -258,8 +257,8 @@ export default function WhatsAppSupport() {
               >
                 {s.num}
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px' }}>{s.title}</h3>
-              <p style={{ fontSize: 13.5, color: '#64748B', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>{s.title}</h3>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -267,20 +266,20 @@ export default function WhatsAppSupport() {
         {/* 3. Live Webhook Simulator */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '24px 28px',
             marginBottom: 28,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <Sparkles size={18} color="#01575E" />
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <Sparkles size={18} color="var(--color-primary)" />
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               Live WhatsApp Webhook Simulator
             </h3>
           </div>
-          <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 16px' }}>
+          <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
             Test the live backend webhook handler directly in your browser:
           </p>
 
@@ -288,9 +287,9 @@ export default function WhatsAppSupport() {
             style={{
               height: 280,
               overflowY: 'auto',
-              background: '#F8FAFC',
+              background: 'var(--color-surface-raised)',
               borderRadius: 12,
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--color-border)',
               padding: '16px 20px',
               display: 'flex',
               flexDirection: 'column',
@@ -304,9 +303,9 @@ export default function WhatsAppSupport() {
                 style={{
                   alignSelf: m.from === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '80%',
-                  background: m.from === 'user' ? '#16A34A' : '#FFFFFF',
-                  color: m.from === 'user' ? '#FFFFFF' : '#0E1A2B',
-                  border: m.from === 'user' ? 'none' : '1px solid #E2E8F0',
+                  background: m.from === 'user' ? 'var(--color-risk-low)' : 'var(--color-surface)',
+                  color: m.from === 'user' ? '#FFFFFF' : 'var(--color-text-primary)',
+                  border: m.from === 'user' ? 'none' : '1px solid var(--color-border)',
                   borderRadius: m.from === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                   padding: '10px 16px',
                   fontSize: 13.5,
@@ -318,7 +317,7 @@ export default function WhatsAppSupport() {
               </div>
             ))}
             {isTyping && (
-              <div style={{ fontSize: 12.5, color: '#64748B', fontStyle: 'italic' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
                 WhatsApp webhook replying...
               </div>
             )}
@@ -340,7 +339,9 @@ export default function WhatsAppSupport() {
                 flex: 1,
                 padding: '10px 16px',
                 borderRadius: 8,
-                border: '1.5px solid #CBD5E1',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text-primary)',
                 fontSize: 14,
                 outline: 'none',
               }}
@@ -349,7 +350,7 @@ export default function WhatsAppSupport() {
               type="submit"
               disabled={!input.trim() || isTyping}
               style={{
-                background: '#16A34A',
+                background: 'var(--color-risk-low)',
                 color: '#FFFFFF',
                 padding: '10px 20px',
                 borderRadius: 8,
@@ -368,8 +369,8 @@ export default function WhatsAppSupport() {
         {/* 4. Collapsed Developer Details */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
             borderRadius: 12,
             overflow: 'hidden',
           }}
@@ -379,7 +380,7 @@ export default function WhatsAppSupport() {
             style={{
               width: '100%',
               padding: '14px 20px',
-              background: '#F8FAFC',
+              background: 'var(--color-surface-raised)',
               border: 'none',
               display: 'flex',
               alignItems: 'center',
@@ -387,7 +388,7 @@ export default function WhatsAppSupport() {
               cursor: 'pointer',
               fontWeight: 600,
               fontSize: 13.5,
-              color: '#475569',
+              color: 'var(--color-text-secondary)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -401,15 +402,15 @@ export default function WhatsAppSupport() {
           </button>
 
           {showDevDetails && (
-            <div style={{ padding: '16px 20px', fontSize: 13, color: '#334155', borderTop: '1px solid #E2E8F0' }}>
+            <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--color-text-secondary)', borderTop: '1px solid var(--color-border)' }}>
               <p style={{ margin: '0 0 8px' }}>
-                <strong>Webhook Endpoint:</strong> <code>POST /whatsapp-webhook</code>
+                <strong>Webhook Endpoint:</strong> <code style={{ background: 'var(--color-surface-raised)', padding: '2px 6px', borderRadius: 4 }}>POST /whatsapp-webhook</code>
               </p>
               <p style={{ margin: '0 0 8px' }}>
-                <strong>Twilio Sandbox Number:</strong> <code>whatsapp:+14155238886</code>
+                <strong>Twilio Sandbox Number:</strong> <code style={{ background: 'var(--color-surface-raised)', padding: '2px 6px', borderRadius: 4 }}>whatsapp:+14155238886</code>
               </p>
               <p style={{ margin: 0 }}>
-                <strong>Integration Architecture:</strong> Receives standard Twilio incoming payload, steps through 17-step intake machine, routes completed answers to <code>assess_student()</code>, logs anonymized record to SQLite, and replies with formatted TwiML.
+                <strong>Integration Architecture:</strong> Receives standard Twilio incoming payload, steps through 17-step intake machine, routes completed answers to <code>assess_student()</code>, logs anonymized record to Neon PostgreSQL, and replies with formatted TwiML.
               </p>
             </div>
           )}

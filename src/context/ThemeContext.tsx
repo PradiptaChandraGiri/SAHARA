@@ -1,78 +1,85 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+// src/context/ThemeContext.tsx
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  type Theme,
+  type ResolvedTheme,
+  getInitialTheme,
+  getSavedTheme,
+  setSavedTheme,
+  applyTheme,
+  resolveTheme,
+} from '../utils/theme'
+import { useAuth } from './AuthContext'
 
-type Theme = 'light' | 'dark'
-
-interface ThemeContextType {
+interface ThemeContextValue {
   theme: Theme
-  toggleTheme: () => void
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
+  toggleTheme: () => void
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setCurrentTheme] = useState<Theme>(() => {
-    try {
-      const saved = localStorage.getItem('sahara_theme')
-      if (saved === 'light' || saved === 'dark') {
-        return saved
-      }
-      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark'
-      }
-    } catch (e) {
-      // ignore
-    }
-    return 'light'
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  const role = user?.role
+
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return getInitialTheme(role)
   })
 
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    return resolveTheme(theme)
+  })
+
+  // When user logs in/out or role changes, if there is NO explicit localStorage preference,
+  // adapt to the role-based default (Student -> light, Counselor/Admin -> dark)
   useEffect(() => {
-    try {
-      document.documentElement.setAttribute('data-theme', theme)
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-      localStorage.setItem('sahara_theme', theme)
-    } catch (e) {
-      // ignore
+    const saved = getSavedTheme()
+    if (!saved) {
+      const roleDefault = getInitialTheme(role)
+      setThemeState(roleDefault)
     }
+  }, [role])
+
+  // Apply theme to DOM and keep resolvedTheme in sync
+  useEffect(() => {
+    const active = applyTheme(theme)
+    setResolvedTheme(active)
   }, [theme])
 
-  // Listen for system theme changes if user hasn't explicitly set preference
+  // Listen to OS-level theme changes when theme is 'system'
   useEffect(() => {
-    try {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = (e: MediaQueryListEvent) => {
-        const saved = localStorage.getItem('sahara_theme')
-        if (!saved) {
-          setCurrentTheme(e.matches ? 'dark' : 'light')
-        }
-      }
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    } catch (e) {
-      // ignore
-    }
-  }, [])
+    if (typeof window === 'undefined' || theme !== 'system') return
 
-  const toggleTheme = () => {
-    setCurrentTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => {
+      const active = applyTheme('system')
+      setResolvedTheme(active)
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [theme])
+
+  const setTheme = (newTheme: Theme) => {
+    setSavedTheme(newTheme)
+    setThemeState(newTheme)
   }
 
-  const setTheme = (t: Theme) => {
-    setCurrentTheme(t)
+  const toggleTheme = () => {
+    const next: Theme = resolvedTheme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   )
 }
 
-export function useTheme() {
+export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext)
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider')

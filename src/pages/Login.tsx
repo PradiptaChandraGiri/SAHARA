@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import ThemeToggle from '../components/ThemeToggle'
 
 /**
  * DawnArc — signature visual motif for SAHARA:
@@ -16,8 +17,8 @@ function DawnArc({ style }: { style?: React.CSSProperties }) {
     >
       <defs>
         <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#14243D" />
-          <stop offset="100%" stopColor="#1D3357" />
+          <stop offset="0%" stopColor="#0E1A2B" />
+          <stop offset="100%" stopColor="#01575E" />
         </linearGradient>
         <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#E8B563" />
@@ -26,7 +27,7 @@ function DawnArc({ style }: { style?: React.CSSProperties }) {
       </defs>
       <rect width="600" height="400" fill="url(#skyGrad)" />
       <circle cx="300" cy="330" r="90" fill="url(#sunGrad)" opacity="0.9" />
-      <rect y="332" width="600" height="68" fill="#14243D" />
+      <rect y="332" width="600" height="68" fill="#0E1A2B" />
       {[1, 2, 3].map(i => (
         <path
           key={i}
@@ -93,7 +94,7 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--slate-50)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--color-background)', transition: 'background-color 0.25s ease' }}>
       {/* Left — Brand Hero Panel */}
       <div style={{
         flex: '0 0 46%', position: 'relative', overflow: 'hidden',
@@ -105,7 +106,7 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10, background: 'var(--amber-500)',
+              width: 36, height: 36, borderRadius: 10, background: 'var(--color-accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 4px 12px rgba(217, 154, 52, 0.3)',
             }}>
@@ -114,7 +115,7 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
                 <circle cx="12" cy="13" r="3.2" fill="#14243D" />
               </svg>
             </div>
-            <span className="display" style={{ color: '#fff', fontSize: 22, fontWeight: 700, letterSpacing: '0.02em' }}>SAHARA</span>
+            <span style={{ color: '#FFFFFF', fontSize: 22, fontWeight: 800, letterSpacing: '0.02em' }}>SAHARA</span>
           </div>
         </div>
 
@@ -123,42 +124,46 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
             display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 18,
             border: '1px solid rgba(232,181,99,0.35)', borderRadius: 99, padding: '4px 14px',
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber-400)' }} />
-            <span style={{ fontSize: 12.5, color: 'var(--amber-400)', fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-accent)' }} />
+            <span style={{ fontSize: 12.5, color: 'var(--color-accent)', fontWeight: 600 }}>
               Institutional Student Wellbeing &amp; Early-Warning
             </span>
           </div>
-          <h1 className="display" style={{ color: '#fff', fontSize: 36, fontWeight: 600, lineHeight: 1.25, marginBottom: 16 }}>
+          <h1 style={{ color: '#FFFFFF', fontSize: 36, fontWeight: 800, lineHeight: 1.25, marginBottom: 16, letterSpacing: '-0.02em' }}>
             Early signs, caught at first light.
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.76)', fontSize: 15, lineHeight: 1.7 }}>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, lineHeight: 1.7 }}>
             A unified early-warning system for student wellbeing and academic risk —
             connecting students, faculty mentors, and counselors before challenges escalate.
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, fontSize: 12.5, color: 'rgba(255,255,255,0.55)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 1, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Confidential &amp; Anonymized by Default</span>
-          <span className="mono">Institutional Single Sign-On</span>
+          <span>Institutional Single Sign-On</span>
         </div>
       </div>
 
       {/* Right — Single Sign-On Panel */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 48px' }}>
-        <div className="dawn-in" style={{ width: '100%', maxWidth: 400 }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 48px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 24, right: 24 }}>
+          <ThemeToggle variant="compact" />
+        </div>
+
+        <div style={{ width: '100%', maxWidth: 400 }}>
           
           <div style={{ marginBottom: 32 }}>
-            <h2 className="display" style={{ fontSize: 28, fontWeight: 600, color: 'var(--ink-900)', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
               Sign in to SAHARA
             </h2>
-            <p style={{ fontSize: 14.5, color: 'var(--ink-500)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
               Continue with your verified Google or GitHub account. Your institutional role (Student, Counselor, or Admin) will be automatically recognized.
             </p>
           </div>
 
           {error && (
             <div style={{
-              background: 'var(--coral-100)', border: `1px solid var(--coral-500)`, color: 'var(--coral-600)',
+              background: 'var(--color-risk-high-bg)', border: `1px solid var(--color-risk-high-border)`, color: 'var(--color-risk-high-text)',
               borderRadius: 'var(--radius-sm)', padding: '12px 14px', fontSize: 13.5, marginBottom: 20,
             }} role="alert">
               {error}
@@ -171,7 +176,14 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
               type="button"
               onClick={() => handleOAuth('google')}
               disabled={submitting}
-              style={oauthPrimaryBtnStyle}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                width: '100%', padding: '13px 20px', borderRadius: 10,
+                border: '1.5px solid var(--color-border)', background: 'var(--color-surface)',
+                color: 'var(--color-text-primary)', fontSize: 14.5, fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             >
               <GoogleIcon />
               <span>Continue with Google</span>
@@ -181,7 +193,14 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
               type="button"
               onClick={() => handleOAuth('github')}
               disabled={submitting}
-              style={oauthSecondaryBtnStyle}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                width: '100%', padding: '13px 20px', borderRadius: 10,
+                border: '1.5px solid var(--color-border)', background: 'var(--color-surface-raised)',
+                color: 'var(--color-text-primary)', fontSize: 14.5, fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             >
               <GitHubIcon />
               <span>Continue with GitHub</span>
@@ -189,24 +208,24 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
           </div>
 
           <div style={{
-            background: '#F0FDFA', borderRadius: 'var(--radius-sm)',
-            padding: '14px 16px', border: '1px solid #CCFBF1', marginBottom: 28,
+            background: 'var(--color-primary-subtle)', borderRadius: 10,
+            padding: '14px 16px', border: '1px solid var(--color-border)', marginBottom: 28,
           }}>
-            <p style={{ fontSize: 12.5, color: '#0F766E', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--color-primary)', margin: 0, lineHeight: 1.5 }}>
               🔒 <strong>We only use your account to sign you in securely:</strong> Student check-ins are pseudonymized with cryptographic IDs (e.g., <code>STU-XXXXXX</code>) to protect individual privacy by default.
             </p>
           </div>
 
           {/* Distinct Guest / Preview Section */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: 'var(--ink-400)', marginBottom: 10 }}>
+          <div style={{ borderTop: '1px solid var(--color-border-subtle)', paddingTop: 20, textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 10 }}>
               Need to test or preview without an account?
             </p>
             <button
               type="button"
               onClick={onExploreGuest || onSuccess}
               style={{
-                background: 'transparent', border: 'none', color: 'var(--navy-700)',
+                background: 'transparent', border: 'none', color: 'var(--color-primary)',
                 fontSize: 13.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline',
                 padding: '4px 8px',
               }}
@@ -219,22 +238,4 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
       </div>
     </div>
   )
-}
-
-const oauthPrimaryBtnStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-  width: '100%', padding: '13px 20px', borderRadius: 'var(--radius-sm)',
-  border: '1.5px solid var(--border)', background: '#fff',
-  color: 'var(--ink-900)', fontSize: 14.5, fontWeight: 600,
-  cursor: 'pointer', transition: 'all 0.2s ease',
-  boxShadow: 'var(--shadow-sm)',
-}
-
-const oauthSecondaryBtnStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-  width: '100%', padding: '13px 20px', borderRadius: 'var(--radius-sm)',
-  border: '1.5px solid var(--navy-900)', background: 'var(--navy-950)',
-  color: '#fff', fontSize: 14.5, fontWeight: 600,
-  cursor: 'pointer', transition: 'all 0.2s ease',
-  boxShadow: 'var(--shadow-sm)',
 }

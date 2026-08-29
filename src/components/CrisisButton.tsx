@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { PhoneCall, ShieldAlert, X, ExternalLink, MessageSquare } from 'lucide-react'
+import { PhoneCall, ShieldAlert, X, MessageSquare } from 'lucide-react'
 
 export interface CrisisContact {
   name: string
@@ -55,10 +55,10 @@ export default function CrisisButton() {
             alignItems: 'center',
             gap: 8,
             padding: '11px 18px',
-            background: 'var(--coral-500, #EA580C)',
+            background: 'var(--color-risk-high, #DC2626)',
             color: '#FFFFFF',
             borderRadius: 999,
-            boxShadow: '0 8px 24px rgba(234, 88, 12, 0.35)',
+            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.4)',
             fontWeight: 700,
             fontSize: 13.5,
             border: '1.5px solid rgba(255,255,255,0.4)',
@@ -80,7 +80,7 @@ export default function CrisisButton() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(14, 26, 43, 0.7)',
+            backgroundColor: 'rgba(14, 24, 26, 0.75)',
             backdropFilter: 'blur(4px)',
             zIndex: 10000,
             display: 'flex',
@@ -92,12 +92,12 @@ export default function CrisisButton() {
         >
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--color-surface)',
               borderRadius: 18,
               maxWidth: 540,
               width: '100%',
-              boxShadow: '0 20px 48px rgba(1, 87, 94, 0.25)',
-              border: '1px solid #E2E8F0',
+              boxShadow: '0 20px 48px rgba(0, 0, 0, 0.35)',
+              border: '1px solid var(--color-border)',
               overflow: 'hidden',
               animation: 'fadeIn 0.2s ease-out',
             }}
@@ -106,7 +106,7 @@ export default function CrisisButton() {
             {/* Modal Header */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #01575E 0%, #0E1A2B 100%)',
+                background: 'linear-gradient(135deg, var(--color-primary-container) 0%, var(--navy-950) 100%)',
                 color: '#FFFFFF',
                 padding: '20px 24px',
                 display: 'flex',
@@ -120,17 +120,17 @@ export default function CrisisButton() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    background: 'rgba(234, 88, 12, 0.25)',
-                    border: '1px solid rgba(234, 88, 12, 0.5)',
+                    background: 'rgba(248, 113, 113, 0.25)',
+                    border: '1px solid rgba(248, 113, 113, 0.5)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <ShieldAlert size={20} color="#FDBA74" />
+                  <ShieldAlert size={20} color="#FCA5A5" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>24/7 Immediate Support & Crisis Helplines</h3>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>24/7 Immediate Support & Crisis Helplines</h3>
                   <p style={{ margin: 0, fontSize: 12.5, color: '#CBD5E1' }}>
                     Free, confidential, and available right now
                   </p>
@@ -139,7 +139,7 @@ export default function CrisisButton() {
               <button
                 onClick={() => setIsOpen(false)}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.15)',
                   border: 'none',
                   color: '#FFFFFF',
                   borderRadius: '50%',
@@ -158,7 +158,7 @@ export default function CrisisButton() {
 
             {/* Modal Content */}
             <div style={{ padding: '20px 24px', maxHeight: '70vh', overflowY: 'auto' }}>
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.5, margin: '0 0 16px' }}>
+              <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
                 If you or a fellow student are experiencing severe emotional distress, overwhelming anxiety, or thoughts of self-harm, please connect immediately with a trained counselor:
               </p>
 
@@ -167,10 +167,10 @@ export default function CrisisButton() {
                   <div
                     key={c.number}
                     style={{
-                      border: '1.5px solid #E2E8F0',
+                      border: '1.5px solid var(--color-border)',
                       borderRadius: 12,
                       padding: '14px 16px',
-                      background: '#F9F9F8',
+                      background: 'var(--color-surface-raised)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -179,22 +179,22 @@ export default function CrisisButton() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0E1A2B' }}>{c.name}</h4>
+                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>{c.name}</h4>
                         <span
                           style={{
                             fontSize: 11,
                             fontWeight: 600,
                             padding: '2px 8px',
                             borderRadius: 99,
-                            background: '#EFF6FF',
-                            color: '#1D4ED8',
-                            border: '1px solid #BFDBFE',
+                            background: 'var(--color-primary-subtle)',
+                            color: 'var(--color-primary)',
+                            border: '1px solid var(--color-border)',
                           }}
                         >
                           {c.hours}
                         </span>
                       </div>
-                      <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748B' }}>{c.desc}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>{c.desc}</p>
                     </div>
 
                     <a
@@ -203,7 +203,7 @@ export default function CrisisButton() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        background: '#01575E',
+                        background: 'var(--color-primary)',
                         color: '#FFFFFF',
                         padding: '8px 14px',
                         borderRadius: 8,
@@ -226,18 +226,18 @@ export default function CrisisButton() {
                   marginTop: 18,
                   padding: '12px 16px',
                   borderRadius: 12,
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
+                  background: 'var(--color-risk-low-bg)',
+                  border: '1px solid var(--color-risk-low-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}
               >
                 <div>
-                  <h5 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#166534' }}>
+                  <h5 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: 'var(--color-risk-low-text)' }}>
                     Prefer texting? Connect with SAHARA WhatsApp Bot
                   </h5>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#15803D' }}>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-risk-low-text)', opacity: 0.9 }}>
                     Automated triage, guided breathing & crisis routing directly on your phone.
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export default function CrisisButton() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    background: '#16A34A',
+                    background: 'var(--color-risk-low)',
                     color: '#FFFFFF',
                     padding: '8px 12px',
                     borderRadius: 8,
@@ -268,8 +268,8 @@ export default function CrisisButton() {
             {/* Modal Footer */}
             <div
               style={{
-                background: '#F8FAFC',
-                borderTop: '1px solid #E2E8F0',
+                background: 'var(--color-surface-raised)',
+                borderTop: '1px solid var(--color-border-subtle)',
                 padding: '12px 24px',
                 display: 'flex',
                 justifyContent: 'flex-end',
@@ -279,8 +279,8 @@ export default function CrisisButton() {
                 onClick={() => setIsOpen(false)}
                 style={{
                   background: 'transparent',
-                  border: '1.5px solid #CBD5E1',
-                  color: '#475569',
+                  border: '1.5px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
                   padding: '7px 18px',
                   borderRadius: 8,
                   fontSize: 13,

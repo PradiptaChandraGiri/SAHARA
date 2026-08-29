@@ -16,12 +16,11 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react'
+import { API_BASE } from '../config'
 
 interface ProfileProps {
   onNavigate: (page: Page) => void
 }
-
-import { API_BASE } from '../config'
 
 export default function Profile({ onNavigate }: ProfileProps) {
   const { user, token, logout } = useAuth()
@@ -34,7 +33,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const fetchHistory = async () => {
     setIsLoading(true)
     try {
-      const savedToken = token || localStorage.getItem('sahara_token')
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
       const headers: Record<string, string> = { 'Accept': 'application/json' }
       if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
@@ -56,7 +55,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
               risk_tier: r.risk_level || (Number(r.overall_wellbeing) > 65 ? 'high' : Number(r.overall_wellbeing) > 35 ? 'medium' : 'low'),
               risk_level: r.risk_level || (Number(r.overall_wellbeing) > 65 ? 'high' : Number(r.overall_wellbeing) > 35 ? 'medium' : 'low'),
               factors: Array.isArray(r.contributing_factors) ? r.contributing_factors : [],
-              timestamp: r.created_at,
+              top_factors: Array.isArray(r.contributing_factors) ? r.contributing_factors : [],
+              timestamp: r.created_at || new Date().toISOString(),
             }))
           : []
         setHistory(mapped)
@@ -75,7 +75,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const handleDownloadData = async () => {
     setExporting(true)
     try {
-      const savedToken = token || localStorage.getItem('sahara_token')
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
       const headers: Record<string, string> = { 'Accept': 'application/json' }
       if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
@@ -98,65 +98,73 @@ export default function Profile({ onNavigate }: ProfileProps) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `my_sahara_data.json`
+      a.download = `sahara-wellbeing-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
-      console.error('Error downloading data:', err)
+      console.warn('Export error:', err)
     } finally {
       setExporting(false)
     }
   }
 
   const handleDeleteData = async () => {
-    const confirmed = window.confirm(
-      'This permanently deletes all your check-ins and results — are you sure?'
-    )
-    if (!confirmed) return
+    if (!window.confirm('Are you sure you want to permanently delete all your assessment records? This action cannot be undone.')) {
+      return
+    }
 
     setDeleting(true)
     try {
-      const savedToken = token || localStorage.getItem('sahara_token')
-      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
 
-      await fetch(`${API_BASE}/api/me`, {
+      const res = await fetch(`${API_BASE}/api/me`, {
         method: 'DELETE',
         credentials: 'include',
         headers,
       })
-
-      setHistory([])
-      setDeleteSuccess(true)
-      await logout()
-      onNavigate('home')
+      if (res.ok) {
+        setHistory([])
+        setDeleteSuccess(true)
+        setTimeout(() => setDeleteSuccess(false), 5000)
+      }
     } catch (err) {
-      console.error('Error deleting data:', err)
+      console.warn('Delete error:', err)
     } finally {
       setDeleting(false)
     }
   }
 
-  const latest = history[0]
-
-  // Compute trend data for chart if 2+ records exist
   const sortedChronological = [...history].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   )
   const hasTrend = sortedChronological.length >= 2
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
-      <div style={{ maxWidth: 940, margin: '0 auto' }}>
-        {/* 1. Header Profile Card */}
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
+      <div style={{ maxWidth: 880, margin: '0 auto' }}>
+        {/* Top Header */}
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            Account &amp; Wellbeing Longitudinal Record
+          </h1>
+          <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', marginTop: 4, margin: '4px 0 0' }}>
+            Manage your student profile, track changes over time, and exercise data sovereignty.
+          </p>
+        </div>
+
+        {/* 1. Profile Identity Card */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
-            padding: '28px 32px',
-            marginBottom: 28,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            padding: '24px 28px',
+            marginBottom: 24,
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -167,42 +175,43 @@ export default function Profile({ onNavigate }: ProfileProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: '#01575E',
-                color: '#FFFFFF',
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: 'var(--color-primary-subtle)',
+                color: 'var(--color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 20,
-                fontWeight: 700,
+                fontSize: 18,
+                fontWeight: 800,
               }}
             >
               {user?.name ? user.name.slice(0, 2).toUpperCase() : 'ST'}
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
-                  {user?.name || 'Student Account'}
-                </h1>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  {user?.name || 'Explorer Student'}
+                </h2>
                 <span
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
+                    textTransform: 'uppercase',
                     padding: '2px 8px',
                     borderRadius: 99,
-                    background: '#E0F2F1',
-                    color: '#01575E',
-                    textTransform: 'uppercase',
+                    background: 'var(--color-primary-subtle)',
+                    color: 'var(--color-primary)',
+                    border: '1px solid var(--color-border)',
                   }}
                 >
                   {user?.role || 'student'}
                 </span>
               </div>
-              <p style={{ fontSize: 13.5, color: '#64748B', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
                 {user?.email || 'Anonymous / Guest Session'} •{' '}
-                <span style={{ color: '#16A34A', fontWeight: 600 }}>🔒 Cryptographic ID: STU-Protected</span>
+                <span style={{ color: 'var(--color-risk-low)', fontWeight: 600 }}>🔒 Cryptographic ID: STU-Protected</span>
               </p>
             </div>
           </div>
@@ -220,9 +229,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
         {deleteSuccess && (
           <div
             style={{
-              background: '#F0FDF4',
-              border: '1px solid #BBF7D0',
-              color: '#166534',
+              background: 'var(--color-risk-low-bg)',
+              border: '1px solid var(--color-risk-low-border)',
+              color: 'var(--color-risk-low-text)',
               padding: '12px 18px',
               borderRadius: 12,
               marginBottom: 24,
@@ -242,8 +251,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
         {hasTrend && (
           <div
             style={{
-              background: '#FFFFFF',
-              border: '1.5px solid #E2E8F0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: 16,
               padding: '24px 28px',
               marginBottom: 28,
@@ -251,14 +260,14 @@ export default function Profile({ onNavigate }: ProfileProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Longitudinal Wellbeing Progress
                 </h3>
-                <p style={{ fontSize: 13, color: '#64748B', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
                   Risk score evolution across your last {sortedChronological.length} check-ins
                 </p>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#01575E', background: '#E0F2F1', padding: '4px 10px', borderRadius: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)', background: 'var(--color-primary-subtle)', padding: '4px 10px', borderRadius: 6 }}>
                 Trajectory Tracked
               </span>
             </div>
@@ -267,8 +276,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
             <div style={{ height: 160, width: '100%', position: 'relative', marginTop: 10 }}>
               <svg viewBox="0 0 500 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
                 {/* Horizontal reference lines */}
-                <line x1="0" y1="30" x2="500" y2="30" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="70" x2="500" y2="70" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1="0" y1="30" x2="500" y2="30" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1="0" y1="70" x2="500" y2="70" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
 
                 {/* Draw Trend Line */}
                 {(() => {
@@ -289,15 +298,15 @@ export default function Profile({ onNavigate }: ProfileProps) {
                       {/* Gradient Area below line */}
                       <path
                         d={`${pathD} L ${points[points.length - 1].x} 115 L ${points[0].x} 115 Z`}
-                        fill="rgba(1, 87, 94, 0.08)"
+                        fill="var(--color-primary-subtle)"
                       />
                       {/* Trend Stroke */}
-                      <path d={pathD} fill="none" stroke="#01575E" strokeWidth="3" strokeLinecap="round" />
+                      <path d={pathD} fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" />
                       {/* Data Dots */}
                       {points.map((p, i) => (
                         <g key={i}>
-                          <circle cx={p.x} cy={p.y} r="5" fill="#FFFFFF" stroke="#01575E" strokeWidth="2.5" />
-                          <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="700" fill="#0E1A2B" textAnchor="middle">
+                          <circle cx={p.x} cy={p.y} r="5" fill="var(--color-surface)" stroke="var(--color-primary)" strokeWidth="2.5" />
+                          <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="700" fill="var(--color-text-primary)" textAnchor="middle">
                             {p.score}%
                           </text>
                         </g>
@@ -313,31 +322,31 @@ export default function Profile({ onNavigate }: ProfileProps) {
         {/* 3. Historical Check-in Logs Table */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '24px 28px',
             marginBottom: 28,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Clock size={18} color="#01575E" />
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <Clock size={18} color="var(--color-primary)" />
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               Past Check-in History
             </h3>
           </div>
 
           {isLoading ? (
-            <p style={{ textAlign: 'center', color: '#64748B', padding: '30px 0', fontSize: 14 }}>
+            <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '30px 0', fontSize: 14 }}>
               Loading assessment records...
             </p>
           ) : history.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <Activity size={36} color="#CBD5E1" style={{ margin: '0 auto 12px' }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: '#0E1A2B', margin: '0 0 4px' }}>
+              <Activity size={36} color="var(--color-text-muted)" style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 4px' }}>
                 No past check-ins recorded yet.
               </p>
-              <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 18px' }}>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 18px' }}>
                 Take your first 3-minute check-in to unlock progress tracking.
               </p>
               <button
@@ -352,12 +361,12 @@ export default function Profile({ onNavigate }: ProfileProps) {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1.5px solid #E2E8F0', background: '#F8FAFC' }}>
-                    <th style={{ padding: '12px 14px', color: '#475569', fontWeight: 700 }}>Date & Time</th>
-                    <th style={{ padding: '12px 14px', color: '#475569', fontWeight: 700 }}>Wellbeing Status</th>
-                    <th style={{ padding: '12px 14px', color: '#475569', fontWeight: 700 }}>Anxiety Scale</th>
-                    <th style={{ padding: '12px 14px', color: '#475569', fontWeight: 700 }}>Retention Risk</th>
-                    <th style={{ padding: '12px 14px', color: '#475569', fontWeight: 700 }}>Contributing Factors</th>
+                  <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-raised)' }}>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Date & Time</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Wellbeing Status</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Anxiety Scale</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Retention Risk</th>
+                    <th style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontWeight: 700 }}>Contributing Factors</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -370,8 +379,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
                       : []
 
                     return (
-                      <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '12px 14px', color: '#0E1A2B', fontWeight: 500 }}>
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-primary)', fontWeight: 500 }}>
                           {new Date(row.timestamp).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
@@ -381,10 +390,10 @@ export default function Profile({ onNavigate }: ProfileProps) {
                         <td style={{ padding: '12px 14px' }}>
                           <RiskBadge tier={tier} size="sm" />
                         </td>
-                        <td style={{ padding: '12px 14px', fontWeight: 600, color: '#01575E' }}>
-                          {row.anxiety_score !== null ? `${row.anxiety_score}/10` : '—'}
+                        <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                          {row.anxiety_score !== null ? `${Math.round(row.anxiety_score * 10) / 10}/10` : '—'}
                         </td>
-                        <td style={{ padding: '12px 14px', fontWeight: 600, color: '#D99A34' }}>
+                        <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--color-accent)' }}>
                           {row.dropout_probability !== null ? `${Math.round(row.dropout_probability * 100)}%` : '—'}
                         </td>
                         <td style={{ padding: '12px 14px' }}>
@@ -393,8 +402,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
                               <span
                                 key={fIdx}
                                 style={{
-                                  background: '#F1F5F9',
-                                  color: '#334155',
+                                  background: 'var(--color-surface-raised)',
+                                  color: 'var(--color-text-secondary)',
+                                  border: '1px solid var(--color-border)',
                                   fontSize: 11.5,
                                   padding: '2px 8px',
                                   borderRadius: 4,
@@ -417,19 +427,19 @@ export default function Profile({ onNavigate }: ProfileProps) {
         {/* 4. Student Data Privacy Controls (Download & Delete) */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '24px 28px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Shield size={18} color="#01575E" />
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <Shield size={18} color="var(--color-primary)" />
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               Your Data Rights & Privacy Controls
             </h3>
           </div>
-          <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 20px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13.5, color: 'var(--color-text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
             Under SAHARA's student privacy charter, you have full sovereignty over your assessment history. You may download a portable JSON copy or permanently purge your check-in records at any time.
           </p>
 
@@ -448,9 +458,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
               onClick={handleDeleteData}
               disabled={deleting || history.length === 0}
               style={{
-                background: '#FFF7ED',
-                border: '1.5px solid #FED7AA',
-                color: '#C2410C',
+                background: 'var(--color-risk-high-bg)',
+                border: '1.5px solid var(--color-risk-high-border)',
+                color: 'var(--color-risk-high-text)',
                 padding: '10px 20px',
                 borderRadius: 8,
                 fontSize: 13.5,
@@ -469,8 +479,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
         </div>
 
         {/* System & Developer Metadata */}
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12.5, color: '#64748B' }}>
-          SAHARA — Student Academic Health & Attrition Risk Assessment Platform · Lead Developer: <strong style={{ color: '#0E1A2B' }}>Pradipta Chandra Giri</strong>
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+          SAHARA — Student Academic Health & Attrition Risk Assessment Platform · Lead Developer: <strong style={{ color: 'var(--color-text-primary)' }}>Pradipta Chandra Giri</strong>
         </div>
       </div>
     </div>

@@ -89,7 +89,7 @@ function CircleGauge({
     >
       <div style={{ position: 'relative', width: 130, height: 130, margin: '0 auto 12px' }}>
         <svg width="130" height="130" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="65" cy="65" r={r} fill="none" stroke="#F1F5F9" strokeWidth="10" />
+          <circle cx="65" cy="65" r={r} fill="none" stroke="var(--color-border-subtle)" strokeWidth="10" />
           <circle
             cx="65"
             cy="65"
@@ -113,14 +113,14 @@ function CircleGauge({
             flexDirection: 'column',
           }}
         >
-          <span style={{ fontSize: 26, fontWeight: 700, color: '#0E1A2B' }}>{value}%</span>
+          <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text-primary)' }}>{value}%</span>
         </div>
       </div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>{label}</div>
       <p
         style={{
           fontSize: 12.5,
-          color: '#64748B',
+          color: 'var(--color-text-muted)',
           lineHeight: 1.45,
           margin: 0,
           textAlign: 'center',
@@ -305,7 +305,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app, #F9F9F8)', padding: '40px 32px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 880, margin: '0 auto' }}>
         {/* Top Header */}
         <div
@@ -320,15 +320,15 @@ export default function Results({ data, onNavigate }: ResultsProps) {
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0E1A2B', margin: 0, letterSpacing: '-0.02em' }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                 Your Wellbeing Snapshot
               </h1>
               <span
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: '#01575E',
-                  background: '#E0F2F1',
+                  color: 'var(--color-primary)',
+                  background: 'var(--color-primary-subtle)',
                   padding: '3px 10px',
                   borderRadius: 99,
                   display: 'inline-flex',
@@ -340,7 +340,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 <span>AI Evaluated</span>
               </span>
             </div>
-            <p style={{ fontSize: 14.5, color: '#64748B', margin: 0 }}>
+            <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', margin: 0 }}>
               Evaluated on {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Personalized for your current semester load
             </p>
           </div>
@@ -348,16 +348,16 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
               onClick={() => window.print()}
-              className="btn-outline-dark"
+              className="btn-outline"
               style={{ padding: '8px 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              <FileText size={14} color="#01575E" />
+              <FileText size={14} color="var(--color-primary)" />
               <span>Export Clinical Summary</span>
             </button>
 
             <button
               onClick={() => onNavigate('checkin')}
-              className="btn-outline-dark"
+              className="btn-outline"
               style={{ padding: '8px 14px', fontSize: 13 }}
             >
               <RotateCcw size={14} />
@@ -369,8 +369,8 @@ export default function Results({ data, onNavigate }: ResultsProps) {
         {/* Clinical Triage & Urgency Assessment (Ada Health / Clinical Standard) */}
         <div
           style={{
-            background: overallScore > 65 ? '#FFF7ED' : overallScore > 40 ? '#FFFBEB' : '#F0FDF4',
-            border: `1.5px solid ${overallScore > 65 ? '#FED7AA' : overallScore > 40 ? '#FDE68A' : '#BBF7D0'}`,
+            background: overallScore > 65 ? 'var(--color-risk-high-bg)' : overallScore > 40 ? 'var(--color-risk-moderate-bg)' : 'var(--color-risk-low-bg)',
+            border: `1.5px solid ${overallScore > 65 ? 'var(--color-risk-high-border)' : overallScore > 40 ? 'var(--color-risk-moderate-border)' : 'var(--color-risk-low-border)'}`,
             borderRadius: 12,
             padding: '14px 20px',
             marginBottom: 20,
@@ -387,14 +387,14 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                background: overallScore > 65 ? '#EA580C' : overallScore > 40 ? '#D97706' : '#16A34A',
+                background: overallScore > 65 ? 'var(--color-risk-high)' : overallScore > 40 ? 'var(--color-risk-moderate)' : 'var(--color-risk-low)',
               }}
             />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: overallScore > 65 ? '#9A3412' : overallScore > 40 ? '#92400E' : '#166534', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: overallScore > 65 ? 'var(--color-risk-high-text)' : overallScore > 40 ? 'var(--color-risk-moderate-text)' : 'var(--color-risk-low-text)', textTransform: 'uppercase' }}>
                 Clinical Triage Level: Tier {overallScore > 65 ? '3 — Priority Counselor Handover' : overallScore > 40 ? '2 — Guided Somatic & Study Protocol' : '1 — Routine Wellbeing Maintenance'}
               </div>
-              <div style={{ fontSize: 12.5, color: overallScore > 65 ? '#C2410C' : overallScore > 40 ? '#B45309' : '#15803D' }}>
+              <div style={{ fontSize: 12.5, color: overallScore > 65 ? 'var(--color-risk-high-text)' : overallScore > 40 ? 'var(--color-risk-moderate-text)' : 'var(--color-risk-low-text)', opacity: 0.9 }}>
                 {overallScore > 65
                   ? 'Elevated acute strain detected. Reviewing this clinical summary with a campus counselor or calling 14416 is strongly encouraged.'
                   : overallScore > 40
@@ -408,7 +408,7 @@ export default function Results({ data, onNavigate }: ResultsProps) {
             <a
               href="tel:14416"
               style={{
-                background: '#EA580C',
+                background: 'var(--color-risk-high)',
                 color: '#FFFFFF',
                 padding: '6px 14px',
                 borderRadius: 8,
@@ -426,16 +426,16 @@ export default function Results({ data, onNavigate }: ResultsProps) {
         {/* 1. Human-Centered Metric Gauges */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '32px 28px 24px',
             marginBottom: 24,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
               Primary Wellbeing Indicators
             </h2>
             <RiskBadge tier={risk} />

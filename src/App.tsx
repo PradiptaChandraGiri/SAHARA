@@ -120,18 +120,18 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--slate-50)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-background)' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 12, background: 'var(--navy-950)',
+            width: 44, height: 44, borderRadius: 12, background: 'var(--color-primary-container)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
             boxShadow: 'var(--shadow-md)',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
+              <path d="M2 18 Q12 8 22 18" stroke="var(--color-accent)" strokeWidth="2.2" strokeLinecap="round" />
             </svg>
           </div>
-          <p style={{ fontSize: 14, color: 'var(--ink-500)', fontWeight: 500 }}>Connecting to SAHARA…</p>
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 500 }}>Connecting to SAHARA…</p>
         </div>
       </div>
     )
@@ -166,7 +166,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--slate-50)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--color-background)' }}>
       <Sidebar currentPage={page} onNavigate={navigate} />
 
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>

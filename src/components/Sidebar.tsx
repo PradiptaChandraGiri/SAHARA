@@ -50,31 +50,31 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
   return (
     <aside style={{
-      width: 240, minWidth: 240, background: 'var(--bg-sidebar, #FFFFFF)', borderRight: '1px solid var(--border)',
-      display: 'flex', flexDirection: 'column', height: '100vh', transition: 'background 0.25s ease, border-color 0.25s ease',
+      width: 244, minWidth: 244, background: 'var(--color-surface)', borderRight: '1px solid var(--color-border)',
+      display: 'flex', flexDirection: 'column', height: '100vh', transition: 'background-color 0.25s ease, border-color 0.25s ease',
     }}>
-      {/* Logo & Brand Header */}
-      <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Logo & Header */}
+      <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 34, height: 34, borderRadius: 8, background: 'var(--navy-950)',
+              width: 34, height: 34, borderRadius: 8, background: 'var(--color-primary-container)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M2 18 Q12 8 22 18" stroke="var(--amber-500)" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M2 18 Q12 8 22 18" stroke="var(--color-accent)" strokeWidth="2.4" strokeLinecap="round" />
               </svg>
             </div>
             <div>
-              <span className="display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-900)' }}>SAHARA</span>
-              <span style={{ display: 'block', fontSize: 10.5, color: 'var(--amber-600)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', display: 'block', lineHeight: 1.2 }}>
+                SAHARA
+              </span>
+              <span style={{ display: 'block', fontSize: 10.5, color: 'var(--color-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {role} View
               </span>
             </div>
           </div>
-
-          {/* Compact Theme Switcher in Brand Header */}
-          <ThemeToggle compact />
+          <ThemeToggle variant="compact" />
         </div>
       </div>
 
@@ -114,18 +114,18 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Footer / account */}
-      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-raised)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 34, height: 34, borderRadius: '50%', background: 'var(--navy-100)',
+            width: 34, height: 34, borderRadius: '50%', background: 'var(--color-primary-subtle)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12.5, fontWeight: 700, color: 'var(--ink-900)',
+            fontSize: 12.5, fontWeight: 700, color: 'var(--color-primary)',
           }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user?.name || 'Guest Explorer'}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-400)', textTransform: 'capitalize' }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
               {user ? user.role : 'Unauthenticated'}
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             <button
               onClick={logout}
               title="Sign out"
-              style={{ background: 'none', border: 'none', color: 'var(--ink-400)', cursor: 'pointer', padding: 4 }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}
             >
               {icon('M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9')}
             </button>
@@ -141,7 +141,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             <button
               onClick={() => onNavigate('login')}
               title="Sign in"
-              style={{ background: 'none', border: 'none', color: 'var(--teal-800)', cursor: 'pointer', padding: 4, fontWeight: 600, fontSize: 12 }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', padding: 4, fontWeight: 600, fontSize: 12 }}
             >
               Login
             </button>
@@ -150,10 +150,10 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </div>
 
       {/* Developer Attribution */}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-card-subtle, #FAFAFA)' }}>
-        <div style={{ fontSize: 10.5, color: 'var(--ink-500)', lineHeight: 1.4 }}>
+      <div style={{ padding: '8px 14px', borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-surface)' }}>
+        <div style={{ fontSize: 10.5, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
           Lead Developer:{' '}
-          <strong style={{ color: 'var(--ink-900)', fontWeight: 600 }}>Pradipta Chandra Giri</strong>
+          <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>Pradipta Chandra Giri</strong>
         </div>
       </div>
     </aside>
@@ -171,9 +171,9 @@ function NavButton({ item, active, onNavigate }: {
       style={{
         display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
         padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-        fontSize: 13.5, fontWeight: 500, marginBottom: 2,
-        background: active ? 'var(--navy-100)' : 'transparent',
-        color: active ? 'var(--ink-900)' : 'var(--ink-500)',
+        fontSize: 13.5, fontWeight: active ? 700 : 500, marginBottom: 2,
+        background: active ? 'var(--color-primary-subtle)' : 'transparent',
+        color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)',
         transition: 'all 0.15s ease',
       }}
     >
@@ -184,8 +184,6 @@ function NavButton({ item, active, onNavigate }: {
 }
 
 const sectionLabel: React.CSSProperties = {
-  fontSize: 10.5, fontWeight: 700, color: 'var(--ink-400)', letterSpacing: '0.07em',
+  fontSize: 10.5, fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '0.07em',
   textTransform: 'uppercase', padding: '6px 12px 6px',
 }
-
-
