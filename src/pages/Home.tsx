@@ -1,7 +1,27 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { Page } from '../App'
 import { useAuth } from '../context/AuthContext'
-import { ShieldCheck, Lock, UserCheck, MessageSquare, ArrowRight, Activity, Brain, Users } from 'lucide-react'
+import {
+  ShieldCheck,
+  Lock,
+  UserCheck,
+  MessageSquare,
+  ArrowRight,
+  Activity,
+  Brain,
+  Users,
+  Bell,
+  Sun,
+  Moon,
+  Sparkles,
+  Globe,
+  Smartphone,
+  CheckCircle2,
+  X,
+  Clock,
+  HelpCircle,
+  PauseCircle,
+} from 'lucide-react'
 
 interface HomeProps {
   onNavigate: (page: Page) => void
@@ -40,6 +60,8 @@ const flow = [
 
 export default function Home({ onNavigate }: HomeProps) {
   const { user } = useAuth()
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [activeStepTab, setActiveStepTab] = useState<'channels' | 'schedule' | 'privacy'>('channels')
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-background)', display: 'flex', flexDirection: 'column', transition: 'background-color 0.25s ease' }}>
@@ -73,7 +95,7 @@ export default function Home({ onNavigate }: HomeProps) {
           ))}
         </svg>
 
-        <div style={{ maxWidth: 840, margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
+        <div style={{ maxWidth: 880, margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <div
             style={{
               display: 'inline-flex',
@@ -88,7 +110,7 @@ export default function Home({ onNavigate }: HomeProps) {
           >
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-accent)' }} />
             <span style={{ fontSize: 13, color: 'var(--color-accent)', fontWeight: 600 }}>
-              AI-Driven Student Wellbeing & Academic Risk Early-Warning Platform
+              AI-Driven Student Wellbeing &amp; Academic Risk Early-Warning Platform
             </span>
           </div>
 
@@ -111,14 +133,14 @@ export default function Home({ onNavigate }: HomeProps) {
               color: 'rgba(255, 255, 255, 0.85)',
               lineHeight: 1.65,
               margin: '0 auto 36px',
-              maxWidth: 680,
+              maxWidth: 700,
             }}
           >
-            SAHARA detects early behavioral and emotional strain before difficulties escalate into academic attrition, connecting students with personalized resources and campus care.
+            SAHARA detects early behavioral and emotional strain before difficulties escalate into academic attrition, connecting students with personalized resources, smart reminders, and campus care.
           </p>
 
-          {/* ONE Primary Call To Action */}
-          <div>
+          {/* Primary Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
               onClick={() => onNavigate('login')}
               className="btn-cta"
@@ -131,12 +153,156 @@ export default function Home({ onNavigate }: HomeProps) {
               <span>Get Started</span>
               <ArrowRight size={18} />
             </button>
+
+            <button
+              onClick={() => setShowReminderModal(true)}
+              style={{
+                fontSize: 15,
+                padding: '14px 24px',
+                borderRadius: 10,
+                background: 'rgba(255, 255, 255, 0.12)',
+                border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Bell size={17} color="var(--color-accent)" />
+              <span>How Reminders Work (Guide)</span>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* 2. How SAHARA Works (3 Pillars) */}
-      <section style={{ padding: '64px 32px 32px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
+      {/* 2. Notification & Reminder Setup Feature Showcase Card */}
+      <section style={{ padding: '48px 32px 16px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 18,
+            padding: '32px 36px',
+            boxShadow: 'var(--shadow-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 32,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ maxWidth: 640 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'var(--color-primary-subtle)',
+                color: 'var(--color-primary)',
+                padding: '4px 12px',
+                borderRadius: 99,
+                fontSize: 12,
+                fontWeight: 700,
+                marginBottom: 12,
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <Bell size={13} />
+              <span>Zero Default-On • Capped at Max 2 Daily</span>
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+              Gentle, Opt-in Wellbeing Notifications
+            </h2>
+            <p style={{ fontSize: 14.5, color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              No guilt trips, no streak pressure, and zero surprise popups. Choose between discreet Web Push notifications or WhatsApp reminders at your exact preferred morning &amp; evening times in your local timezone.
+            </p>
+
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowReminderModal(true)}
+                className="btn-teal"
+                style={{ padding: '10px 20px', fontSize: 13.5 }}
+              >
+                <HelpCircle size={15} />
+                <span>View Step-by-Step Setup Guide</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('login')}
+                className="btn-outline"
+                style={{ padding: '10px 20px', fontSize: 13.5 }}
+              >
+                <span>Customize in Profile</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* Visual Mini Preview Strip */}
+          <div
+            style={{
+              background: 'var(--color-surface-raised)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 14,
+              padding: '20px 22px',
+              minWidth: 280,
+              maxWidth: 340,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+              Sample Reminder Previews
+            </span>
+
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Sun size={14} color="var(--color-accent)" />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    Morning Check-in • 8:00 AM
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                  "A 2-minute check-in can help you start the day with a clearer picture of how you're doing."
+                </p>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Moon size={14} color="var(--color-primary)" />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    Evening Wind-Down • 9:00 PM
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                  "A wind-down routine can make a real difference tonight — even 10 quiet minutes before bed helps."
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. How SAHARA Works (3 Pillars) */}
+      <section style={{ padding: '48px 32px 32px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
             How SAHARA Works
@@ -187,8 +353,8 @@ export default function Home({ onNavigate }: HomeProps) {
         </div>
       </section>
 
-      {/* 3. Operational Workflow Strip */}
-      <section style={{ padding: '32px 32px 48px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
+      {/* 4. Operational Workflow Strip */}
+      <section style={{ padding: '24px 32px 48px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
         <div
           style={{
             background: 'var(--color-surface)',
@@ -225,7 +391,7 @@ export default function Home({ onNavigate }: HomeProps) {
         </div>
       </section>
 
-      {/* 4. WhatsApp 24/7 Channel Feature Card */}
+      {/* 5. WhatsApp 24/7 Channel Feature Card */}
       <section style={{ padding: '0 32px 56px', maxWidth: 1140, margin: '0 auto', width: '100%' }}>
         <div
           style={{
@@ -276,7 +442,7 @@ export default function Home({ onNavigate }: HomeProps) {
         </div>
       </section>
 
-      {/* 5. How Your Data is Handled (Privacy & Security) */}
+      {/* 6. How Your Data is Handled (Privacy & Security) */}
       <section
         style={{
           background: 'var(--color-surface)',
@@ -289,7 +455,7 @@ export default function Home({ onNavigate }: HomeProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <ShieldCheck size={24} color="var(--color-primary)" />
             <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-              How Your Data is Handled & Protected
+              How Your Data is Handled &amp; Protected
             </h2>
           </div>
           <p style={{ fontSize: 14.5, color: 'var(--color-text-secondary)', lineHeight: 1.7, margin: '0 0 24px', maxWidth: 840 }}>
@@ -322,7 +488,7 @@ export default function Home({ onNavigate }: HomeProps) {
         </div>
       </section>
 
-      {/* 6. Footer */}
+      {/* 7. Footer */}
       <footer
         style={{
           background: 'var(--color-surface)',
@@ -363,7 +529,7 @@ export default function Home({ onNavigate }: HomeProps) {
               <span style={{ color: 'var(--color-text-primary)', fontWeight: 800, fontSize: 16 }}>SAHARA</span>
             </div>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-              Student Academic Health & Attrition Risk Assessment Platform · Developed by Pradipta Chandra Giri &copy; {new Date().getFullYear()}
+              Student Academic Health &amp; Attrition Risk Assessment Platform · Developed by Pradipta Chandra Giri &copy; {new Date().getFullYear()}
             </p>
           </div>
 
@@ -373,6 +539,12 @@ export default function Home({ onNavigate }: HomeProps) {
               style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', padding: 0, fontWeight: 600 }}
             >
               Sign In
+            </button>
+            <button
+              onClick={() => setShowReminderModal(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: 0 }}
+            >
+              Reminder Setup
             </button>
             <a
               href="https://wa.me/14155238886?text=join%20no-different"
@@ -386,6 +558,257 @@ export default function Home({ onNavigate }: HomeProps) {
           </div>
         </div>
       </footer>
+
+      {/* 8. Interactive Notification & Reminder Setup Guide Pop-out Modal */}
+      {showReminderModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setShowReminderModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 20,
+              maxWidth: 680,
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '32px 36px',
+              boxShadow: 'var(--shadow-md)',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowReminderModal(false)}
+              style={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              <X size={16} />
+            </button>
+
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Bell size={22} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0 }}>
+                  How to Set Up Reminders &amp; Notifications
+                </h2>
+                <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: 0 }}>
+                  Simple, 100% opt-in steps to configure your gentle wellness nudges.
+                </p>
+              </div>
+            </div>
+
+            {/* Nav Step Tabs */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                margin: '20px 0',
+                borderBottom: '1px solid var(--color-border)',
+                paddingBottom: 10,
+              }}
+            >
+              {[
+                { id: 'channels', label: '1. Channels & Push' },
+                { id: 'schedule', label: '2. Times & Schedule' },
+                { id: 'privacy', label: '3. Caps & Pause' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveStepTab(tab.id as any)}
+                  style={{
+                    background: activeStepTab === tab.id ? 'var(--color-primary-subtle)' : 'transparent',
+                    border: activeStepTab === tab.id ? '1px solid var(--color-primary)' : '1px solid transparent',
+                    color: activeStepTab === tab.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content 1: Channels */}
+            {activeStepTab === 'channels' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Globe size={18} color="var(--color-primary)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Channel 1: Browser System Notifications (Web Push)
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: '0 0 10px' }}>
+                    1. Go to <strong>My Profile</strong> &rarr; <strong>Notification &amp; Wellbeing Reminders</strong>.<br />
+                    2. Toggle on <strong>Browser Notifications</strong>.<br />
+                    3. Your browser will show an OS permission prompt — click <strong>"Allow"</strong>.<br />
+                    4. <em>Zero spam guaranteed:</em> Only delivers notifications when you scheduled them.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Smartphone size={18} color="var(--color-risk-low)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Channel 2: Discreet WhatsApp Reminders
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    1. Toggle on <strong>WhatsApp Reminders</strong> and confirm your mobile number.<br />
+                    2. Send <code style={{ background: 'var(--color-surface)', padding: '2px 6px', borderRadius: 4 }}>join no-different</code> to <strong>+1 (415) 523-8886</strong> on WhatsApp to link your phone.<br />
+                    3. Receive factor-aware study and breathing suggestions right in WhatsApp.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content 2: Schedule */}
+            {activeStepTab === 'schedule' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Sun size={18} color="var(--color-accent)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Morning Check-in (Default: 8:00 AM)
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    A short, 2-minute invitation to begin your study day mindfully and reflect on sleep and focus. You can adjust the exact hour and minute with the time picker.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Moon size={18} color="var(--color-primary)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Evening Wind-Down (Default: 9:00 PM)
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    A gentle reminder to put away screens and coursework before bed. Tailored to help your mind decompress and recharge for the next day.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Globe size={18} color="var(--color-text-primary)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Automatic Timezone Sync
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    SAHARA automatically respects your local timezone (e.g. <code>Asia/Kolkata</code>, <code>America/New_York</code>). You never have to manually convert UTC times.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content 3: Privacy & Daily Cap */}
+            {activeStepTab === 'privacy' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <ShieldCheck size={18} color="var(--color-risk-low)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      Strict Daily Cap: Max 2 Messages Per Day
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    Notifications are strictly limited to at most 1 morning + 1 evening message daily. We never spam or flood your device.
+                  </p>
+                </div>
+
+                <div style={{ background: 'var(--color-surface-raised)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <PauseCircle size={18} color="var(--color-accent)" />
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      One-Tap "Pause All" &amp; Zero Guilt
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    Taking a break or studying for intense finals? You can pause reminders for 1 week, 2 weeks, or indefinitely with one click. When you return, SAHARA will never show "missed check-ins" or punitive streak counters.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Bottom Action Button */}
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button
+                onClick={() => setShowReminderModal(false)}
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                  padding: '10px 18px',
+                  borderRadius: 8,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Close Guide
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowReminderModal(false)
+                  onNavigate('login')
+                }}
+                className="btn-teal"
+                style={{ padding: '10px 22px', fontSize: 13.5 }}
+              >
+                <span>Set Up Reminders Now</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
