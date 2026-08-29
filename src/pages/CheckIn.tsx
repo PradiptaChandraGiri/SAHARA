@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Page, CheckInData } from '../App'
 import { ArrowLeft, Check, Lock, Sparkles, ChevronRight, Edit3, MessageSquare, Bot, AlertCircle, X } from 'lucide-react'
 import { API_BASE } from '../config'
+import AnalyzingVisualization from '../components/AnalyzingVisualization'
 
 interface CheckInProps {
   onNavigate: (page: Page) => void
@@ -325,7 +326,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
       <div
         style={{
           minHeight: '100vh',
-          background: 'var(--bg-app, #F9F9F8)',
+          background: 'var(--color-background)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -334,60 +335,26 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
       >
         <div
           style={{
-            maxWidth: 440,
+            maxWidth: 460,
             width: '100%',
-            background: '#FFFFFF',
-            borderRadius: 16,
-            border: '1.5px solid #E2E8F0',
-            padding: '40px 32px',
+            background: 'var(--color-surface)',
+            borderRadius: 20,
+            border: '1.5px solid var(--color-border)',
+            padding: '36px 32px',
             textAlign: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            boxShadow: 'var(--shadow-md)',
           }}
         >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: '#E0F2F1',
-              color: '#01575E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              animation: 'spin 2s linear infinite',
-            }}
-          >
-            <Sparkles size={28} />
-          </div>
-
-          <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0E1A2B', margin: '0 0 10px' }}>
-            Evaluating Your Check-In
-          </h3>
-
-          <p style={{ fontSize: 14, color: '#01575E', fontWeight: 600, minHeight: 22, margin: '0 0 24px' }}>
-            {analyzingMessages[analyzeMsg]}
-          </p>
-
-          <div
-            style={{
-              width: '100%',
-              height: 6,
-              background: '#F1F5F9',
-              borderRadius: 99,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, #01575E, #2A6F77)',
-                borderRadius: 99,
-                width: `${((analyzeMsg + 1) / analyzingMessages.length) * 100}%`,
-                transition: 'width 0.3s ease',
-              }}
-            />
-          </div>
+          <AnalyzingVisualization
+            size="lg"
+            statuses={[
+              'Reading your check-in answers',
+              'Weighing sleep and stress factors',
+              'Comparing against the trained model',
+              'Preparing your results',
+            ]}
+            subtext="Encrypted &amp; private evaluation in progress"
+          />
         </div>
       </div>
     )

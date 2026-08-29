@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
 import ChatMessageText from '../components/ChatMessageText'
+import AnalyzingVisualization from '../components/AnalyzingVisualization'
 
 interface Message {
   id: number
@@ -587,11 +588,14 @@ export default function AISupport() {
                 {m.text ? (
                   <ChatMessageText text={m.text} />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 2px', minHeight: 20 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary)', opacity: 0.6 }} />
-                  </div>
+                  <AnalyzingVisualization
+                    size="sm"
+                    statuses={[
+                      'Synthesizing student context...',
+                      'Weighing wellbeing factors...',
+                      'Formulating calm guidance...',
+                    ]}
+                  />
                 )}
 
                 {/* Inline Recommended Resource Card (Part 5) */}
