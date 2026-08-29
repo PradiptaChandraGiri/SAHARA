@@ -22,6 +22,9 @@ interface StudentDashboardProps {
 
 export default function StudentDashboard({ onNavigate, lastCheckInData }: StudentDashboardProps) {
   const { user } = useAuth()
+  const [latestAssessment, setLatestAssessment] = useState<any>(null)
+  const [dbSuggestion, setDbSuggestion] = useState<VettedResource | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [retentionAlert, setRetentionAlert] = useState<string | null>(null)
   const [retentionDaysRemaining, setRetentionDaysRemaining] = useState<number | null>(null)
 
