@@ -18,9 +18,19 @@ import {
   RefreshCw,
   Sliders,
   Bell,
+  BellOff,
   Check,
+  Smartphone,
+  Globe,
+  Sun,
+  Moon,
+  Sparkles,
+  Send,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react'
 import { API_BASE } from '../config'
+import { enableBrowserNotifications, checkNotificationSupport } from '../utils/notifications'
 
 interface ProfileProps {
   onNavigate: (page: Page) => void
@@ -35,6 +45,22 @@ interface RetentionInfo {
   isExpiringSoon: boolean
   notificationAlert: string | null
   lastExtendedAt: string | null
+}
+
+interface NotificationPreferences {
+  channel_browser: boolean
+  channel_whatsapp: boolean
+  morning_enabled: boolean
+  morning_time: string
+  evening_enabled: boolean
+  evening_time: string
+  contextual_enabled: boolean
+  timezone: string
+  is_paused: boolean
+  paused_until: string | null
+  has_whatsapp: boolean
+  whatsapp_number: string | null
+  vapid_public_key?: string
 }
 
 export default function Profile({ onNavigate }: ProfileProps) {
@@ -59,6 +85,28 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [isExtending, setIsExtending] = useState(false)
   const [extendSuccess, setExtendSuccess] = useState(false)
   const [updatingDays, setUpdatingDays] = useState(false)
+
+  // Notification Preferences State
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>({
+    channel_browser: false,
+    channel_whatsapp: false,
+    morning_enabled: false,
+    morning_time: '08:00',
+    evening_enabled: false,
+    evening_time: '21:00',
+    contextual_enabled: false,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    is_paused: false,
+    paused_until: null,
+    has_whatsapp: false,
+    whatsapp_number: null,
+  })
+  const [savingPrefs, setSavingPrefs] = useState(false)
+  const [prefsSavedMessage, setPrefsSavedMessage] = useState(false)
+  const [customPhone, setCustomPhone] = useState('')
+  const [testingNotification, setTestingNotification] = useState(false)
+  const [testResultMsg, setTestResultMsg] = useState<string | null>(null)
+  const [pausing, setPausing] = useState(false)
 
   const fetchHistory = async () => {
     setIsLoading(true)
@@ -118,10 +166,141 @@ export default function Profile({ onNavigate }: ProfileProps) {
     }
   }
 
+  const fetchNotificationPreferences = async () => {
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Accept': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/notifications/preferences`, {
+        credentials: 'include',
+        headers,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+        setNotifPrefs({
+          ...data,
+          timezone: data.timezone && data.timezone !== 'UTC' ? data.timezone : userTz,
+        })
+        if (data.whatsapp_number) {
+          setCustomPhone(data.whatsapp_number)
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching notification preferences:', err)
+    }
+  }
+
   useEffect(() => {
     fetchHistory()
     fetchRetentionStatus()
+    fetchNotificationPreferences()
   }, [user])
+
+  const handleToggleBrowserPush = async () => {
+    if (!notifPrefs.channel_browser) {
+      // User is turning it ON -> trigger the OS permission prompt ONLY upon user click
+      const success = await enableBrowserNotifications(notifPrefs.vapid_public_key)
+      if (success) {
+        setNotifPrefs((prev) => ({ ...prev, channel_browser: true }))
+      } else {
+        alert('Browser notification permission was not granted or is blocked by your browser settings.')
+      }
+    } else {
+      // User is turning it OFF
+      setNotifPrefs((prev) => ({ ...prev, channel_browser: false }))
+    }
+  }
+
+  const handleSavePreferences = async () => {
+    setSavingPrefs(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const payload = {
+        ...notifPrefs,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || notifPrefs.timezone || 'UTC',
+        whatsapp_number: customPhone || notifPrefs.whatsapp_number,
+      }
+
+      const res = await fetch(`${API_BASE}/api/notifications/preferences`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        setPrefsSavedMessage(true)
+        await fetchNotificationPreferences()
+        setTimeout(() => setPrefsSavedMessage(false), 4000)
+      }
+    } catch (err) {
+      console.warn('Error saving notification preferences:', err)
+    } finally {
+      setSavingPrefs(false)
+    }
+  }
+
+  const handlePauseReminders = async (days: number, resume: boolean = false) => {
+    setPausing(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/notifications/pause`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ days, resume }),
+      })
+      if (res.ok) {
+        await fetchNotificationPreferences()
+      }
+    } catch (err) {
+      console.warn('Error toggling pause state:', err)
+    } finally {
+      setPausing(false)
+    }
+  }
+
+  const handleSendTestNotification = async (channel: 'browser' | 'whatsapp') => {
+    setTestingNotification(true)
+    setTestResultMsg(null)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/notifications/test-send`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ channel, type: 'morning' }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (channel === 'browser') {
+          setTestResultMsg('✓ Test browser push sent! Check your system notification banner.')
+        } else {
+          setTestResultMsg(
+            data.result?.status === 'delivered_via_template' || data.result?.status === 'delivered_direct_sandbox'
+              ? '✓ Test WhatsApp reminder sent to your linked number!'
+              : 'ℹ️ WhatsApp reminder queued (Template awaiting Twilio approval or join sandbox required).'
+          )
+        }
+        setTimeout(() => setTestResultMsg(null), 6000)
+      }
+    } catch (err) {
+      console.warn('Test notification error:', err)
+    } finally {
+      setTestingNotification(false)
+    }
+  }
 
   const handleExtendRetention = async () => {
     setIsExtending(true)
@@ -191,6 +370,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           exported_at: new Date().toISOString(),
           user: user || { role: 'student' },
           retention_policy: `${retention.retentionDays} days`,
+          notification_preferences: notifPrefs,
           assessments: history,
         }
       }
@@ -256,16 +436,18 @@ export default function Profile({ onNavigate }: ProfileProps) {
     return `Retained until ${targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
   }
 
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || notifPrefs.timezone || 'UTC'
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-background)', padding: '40px 32px 80px', transition: 'background-color 0.25s ease' }}>
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
         {/* Top Header */}
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            Account &amp; Wellbeing Longitudinal Record
+            Account, Wellbeing &amp; Reminders Center
           </h1>
           <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', marginTop: 4, margin: '4px 0 0' }}>
-            Manage your student profile, track timeline progress, and control your data retention lifecycle.
+            Manage your student profile, gentle check-in reminders, and data retention lifecycle.
           </p>
         </div>
 
@@ -469,7 +651,476 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
         )}
 
-        {/* 2. Data Retention Policy & Automated Cleanup Timeline Card */}
+        {/* 2. Notification & Reminder Preference Center */}
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 16,
+            padding: '28px 30px',
+            marginBottom: 28,
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Bell size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Notification &amp; Wellbeing Reminders
+                </h3>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
+                  Gentle, opt-in reminders capped at maximum 2 per day. Nothing sends unless you enable it.
+                </p>
+              </div>
+            </div>
+
+            {/* Timezone badge */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'var(--color-surface-raised)',
+                padding: '5px 12px',
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                fontSize: 12,
+                color: 'var(--color-text-secondary)',
+                fontWeight: 600,
+              }}
+            >
+              <Globe size={14} color="var(--color-primary)" />
+              <span>Timezone: {userTimezone}</span>
+            </div>
+          </div>
+
+          {/* Pause Status Indicator */}
+          {notifPrefs.is_paused && (
+            <div
+              style={{
+                background: 'var(--color-accent-subtle)',
+                border: '1px solid var(--color-accent)',
+                borderRadius: 10,
+                padding: '12px 16px',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <PauseCircle size={16} color="var(--color-accent)" />
+                <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                  All reminders are currently paused until{' '}
+                  {notifPrefs.paused_until ? new Date(notifPrefs.paused_until).toLocaleDateString() : 'resumed'}.
+                </span>
+              </div>
+              <button
+                onClick={() => handlePauseReminders(0, true)}
+                disabled={pausing}
+                style={{
+                  background: 'var(--color-primary)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 14px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <PlayCircle size={14} />
+                <span>Resume Now</span>
+              </button>
+            </div>
+          )}
+
+          {/* Channels Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
+            {/* Browser Push Channel */}
+            <div
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 12,
+                padding: '18px 20px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Globe size={18} color="var(--color-primary)" />
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    Browser Notifications
+                  </span>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.channel_browser}
+                    onChange={handleToggleBrowserPush}
+                    style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+                  />
+                </label>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                Gentle system notification banner on your computer or phone browser. Only requests browser permission upon clicking.
+              </p>
+              {notifPrefs.channel_browser && (
+                <button
+                  type="button"
+                  onClick={() => handleSendTestNotification('browser')}
+                  disabled={testingNotification}
+                  style={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-primary)',
+                    borderRadius: 6,
+                    padding: '5px 12px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Send size={12} />
+                  <span>Send Test Browser Notification</span>
+                </button>
+              )}
+            </div>
+
+            {/* WhatsApp Reminder Channel */}
+            <div
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 12,
+                padding: '18px 20px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Smartphone size={18} color="var(--color-risk-low)" />
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    WhatsApp Reminders
+                  </span>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.channel_whatsapp}
+                    onChange={(e) => setNotifPrefs((prev) => ({ ...prev, channel_whatsapp: e.target.checked }))}
+                    style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--color-risk-low)' }}
+                  />
+                </label>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 10px', lineHeight: 1.5 }}>
+                Receive discreet, factor-aware check-in invitations via the official SAHARA WhatsApp bot.
+              </p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={customPhone}
+                  onChange={(e) => setCustomPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: 12.5,
+                    outline: 'none',
+                  }}
+                />
+                {notifPrefs.channel_whatsapp && (
+                  <button
+                    type="button"
+                    onClick={() => handleSendTestNotification('whatsapp')}
+                    disabled={testingNotification}
+                    style={{
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-risk-low)',
+                      borderRadius: 6,
+                      padding: '5px 10px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Send size={12} />
+                    <span>Test</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Test Notification Feedback */}
+          {testResultMsg && (
+            <div
+              style={{
+                background: 'var(--color-primary-subtle)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-primary)',
+                padding: '10px 14px',
+                borderRadius: 8,
+                marginBottom: 20,
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              {testResultMsg}
+            </div>
+          )}
+
+          {/* Reminder Time Slots */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 24 }}>
+            {/* Morning Slot */}
+            <div
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 12,
+                padding: '16px 18px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sun size={17} color="var(--color-accent)" />
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    Morning Check-in
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.morning_enabled}
+                  onChange={(e) => setNotifPrefs((prev) => ({ ...prev, morning_enabled: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 10px', lineHeight: 1.4 }}>
+                A peaceful 2-minute invitation to start your day with mindfulness.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 600 }}>Time:</label>
+                <input
+                  type="time"
+                  value={notifPrefs.morning_time}
+                  onChange={(e) => setNotifPrefs((prev) => ({ ...prev, morning_time: e.target.value }))}
+                  disabled={!notifPrefs.morning_enabled}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: 13,
+                    opacity: notifPrefs.morning_enabled ? 1 : 0.5,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Evening Wind-down Slot */}
+            <div
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 12,
+                padding: '16px 18px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Moon size={17} color="var(--color-primary)" />
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                    Evening Wind-Down
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.evening_enabled}
+                  onChange={(e) => setNotifPrefs((prev) => ({ ...prev, evening_enabled: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 10px', lineHeight: 1.4 }}>
+                A gentle reminder to pause study and decompress before bed.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 600 }}>Time:</label>
+                <input
+                  type="time"
+                  value={notifPrefs.evening_time}
+                  onChange={(e) => setNotifPrefs((prev) => ({ ...prev, evening_time: e.target.value }))}
+                  disabled={!notifPrefs.evening_enabled}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: 13,
+                    opacity: notifPrefs.evening_enabled ? 1 : 0.5,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contextual Nudge Toggle */}
+          <div
+            style={{
+              background: 'var(--color-surface-raised)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
+              <Sparkles size={18} color="var(--color-accent)" />
+              <div>
+                <h4 style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Occasional Contextual Suggestions
+                </h4>
+                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                  Occasionally suggest an evidence-based breathing or study strategy based on your latest check-in (never exceeds daily cap).
+                </p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={notifPrefs.contextual_enabled}
+              onChange={(e) => setNotifPrefs((prev) => ({ ...prev, contextual_enabled: e.target.checked }))}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+            />
+          </div>
+
+          {/* Save & Pause Action Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 14,
+              paddingTop: 16,
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            {/* Pause options */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)', fontWeight: 600 }}>Pause Reminders:</span>
+              <button
+                type="button"
+                onClick={() => handlePauseReminders(7)}
+                disabled={pausing}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                  borderRadius: 6,
+                  padding: '5px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                1 Week
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePauseReminders(14)}
+                disabled={pausing}
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                  borderRadius: 6,
+                  padding: '5px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                2 Weeks
+              </button>
+              {notifPrefs.is_paused && (
+                <button
+                  type="button"
+                  onClick={() => handlePauseReminders(0, true)}
+                  disabled={pausing}
+                  style={{
+                    background: 'var(--color-primary-subtle)',
+                    border: '1px solid var(--color-primary)',
+                    color: 'var(--color-primary)',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Resume Now
+                </button>
+              )}
+            </div>
+
+            {/* Save Preferences Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {prefsSavedMessage && (
+                <span style={{ fontSize: 13, color: 'var(--color-risk-low)', fontWeight: 600 }}>
+                  ✓ Preferences saved
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleSavePreferences}
+                disabled={savingPrefs}
+                className="btn-teal"
+                style={{ padding: '8px 18px', fontSize: 13.5 }}
+              >
+                <Check size={15} />
+                <span>{savingPrefs ? 'Saving...' : 'Save Reminder Preferences'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Data Retention Policy & Automated Cleanup Timeline Card */}
         <div
           style={{
             background: 'var(--color-surface)',
@@ -594,7 +1245,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
         </div>
 
-        {/* 3. Longitudinal Trend View (If 2+ Check-ins Exist) */}
+        {/* 4. Longitudinal Trend View (If 2+ Check-ins Exist) */}
         {hasTrend && (
           <div
             style={{
@@ -666,7 +1317,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
         )}
 
-        {/* 4. Historical Check-in Logs Table */}
+        {/* 5. Historical Check-in Logs Table */}
         <div
           style={{
             background: 'var(--color-surface)',
@@ -800,7 +1451,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           )}
         </div>
 
-        {/* 5. Student Data Privacy Controls (Download & Delete) */}
+        {/* 6. Student Data Privacy Controls (Download & Delete) */}
         <div
           style={{
             background: 'var(--color-surface)',

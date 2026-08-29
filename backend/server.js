@@ -5,6 +5,7 @@ const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
 const passport = require("passport");
+const cron = require("node-cron");
 
 const authRoutes = require("./routes/auth");
 const checkinRoutes = require("./routes/checkins");
@@ -14,6 +15,9 @@ const whatsappRoutes = require("./routes/whatsapp");
 const counselorRoutes = require("./routes/counselor");
 const adminRoutes = require("./routes/admin");
 const privacyRoutes = require("./routes/privacy");
+const notificationRoutes = require("./routes/notifications");
+
+const { runSchedulerTick } = require("./jobs/notificationScheduler");
 
 const app = express();
 
@@ -43,7 +47,7 @@ app.use(
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "sahara_session_secret_2026",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -65,8 +69,14 @@ app.use(whatsappRoutes);
 app.use(counselorRoutes);
 app.use(adminRoutes);
 app.use(privacyRoutes);
+app.use(notificationRoutes);
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// Schedule notification reminder tick every 15 minutes (runs at :00, :15, :30, :45)
+cron.schedule("*/15 * * * *", () => {
+  runSchedulerTick().catch((err) => console.error("Cron scheduler error:", err));
+});
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`SAHARA backend running on port ${PORT}`));

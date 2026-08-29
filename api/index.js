@@ -21,6 +21,7 @@ const whatsappRoutes = require(path.join(__dirname, "../backend/routes/whatsapp.
 const counselorRoutes = require(path.join(__dirname, "../backend/routes/counselor.js"));
 const adminRoutes = require(path.join(__dirname, "../backend/routes/admin.js"));
 const privacyRoutes = require(path.join(__dirname, "../backend/routes/privacy.js"));
+const notificationRoutes = require(path.join(__dirname, "../backend/routes/notifications.js"));
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use(whatsappRoutes);
 app.use(counselorRoutes);
 app.use(adminRoutes);
 app.use(privacyRoutes);
+app.use(notificationRoutes);
 
 app.get("/api/health", (req, res) => res.json({ status: "ok", environment: "vercel-serverless", timestamp: new Date().toISOString() }));
 

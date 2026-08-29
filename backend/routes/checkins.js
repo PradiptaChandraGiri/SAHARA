@@ -114,6 +114,35 @@ router.post("/api/checkins", async (req, res) => {
     );
 
     await client.query("COMMIT");
+
+    // Optional Contextual Nudge (if enabled, delayed ~4 hours or logged, respecting daily cap)
+    setTimeout(async () => {
+      try {
+        const prefRes = await pool.query(
+          `SELECT * FROM notification_preferences 
+           WHERE user_id = $1 AND contextual_enabled = true 
+             AND (paused_until IS NULL OR paused_until < now())
+             AND (channel_browser = true OR channel_whatsapp = true)`,
+          [userId]
+        );
+        if (prefRes.rows.length > 0) {
+          const pref = prefRes.rows[0];
+          // Check daily cap
+          const sentCountRes = await pool.query(
+            `SELECT count(*) FROM notification_log WHERE user_id = $1 AND sent_at::date = CURRENT_DATE`,
+            [userId]
+          );
+          const sentCount = Number(sentCountRes.rows[0]?.count || 0);
+          if (sentCount < 2) {
+            const { sendReminder } = require("../jobs/notificationScheduler");
+            await sendReminder(pref, "contextual");
+          }
+        }
+      } catch (nudgeErr) {
+        console.warn("Contextual nudge evaluation error:", nudgeErr.message);
+      }
+    }, 5000); // Trigger in background safely
+
     res.status(201).json(resultRow.rows[0]);
   } catch (err) {
     await client.query("ROLLBACK");
