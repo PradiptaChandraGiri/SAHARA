@@ -14,6 +14,7 @@ import StudentProfile from './pages/StudentProfile'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import CrisisButton from './components/CrisisButton'
+import InstallAppBanner from './components/InstallAppBanner'
 import ErrorBoundary from './components/ErrorBoundary'
 
 export type Page =
@@ -169,6 +170,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', background: 'var(--color-background)', flexDirection: 'column' }}>
       <MobileNav currentPage={page} onNavigate={navigate} />
+      <InstallAppBanner />
 
       <div style={{ display: 'flex', flex: 1, height: '100%', overflow: 'hidden', width: '100%' }}>
         <Sidebar currentPage={page} onNavigate={navigate} />

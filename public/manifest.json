@@ -1,0 +1,48 @@
+{
+  "name": "SAHARA — Student Wellbeing & Resilience",
+  "short_name": "SAHARA",
+  "description": "AI-driven student mental wellbeing and academic early-warning resilience platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F9F9F8",
+  "theme_color": "#01575E",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Take Check-in",
+      "short_name": "Check-in",
+      "description": "Start a 5-minute wellbeing assessment",
+      "url": "/?page=checkin",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI Support Chat",
+      "short_name": "AI Support",
+      "description": "Speak with the SAHARA Copilot",
+      "url": "/?page=ai-support",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "24/7 Crisis Hotline",
+      "short_name": "Crisis Help",
+      "description": "Emergency mental health line (14416)",
+      "url": "tel:14416",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["health", "education", "lifestyle"]
+}
