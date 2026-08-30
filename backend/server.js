@@ -1,11 +1,34 @@
 // server.js
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
 const passport = require("passport");
 const cron = require("node-cron");
+const pool = require("./db/pool");
+
+// Phase 1: Environment & Startup Verification Check
+console.log("\n================ SAHARA BACKEND INITIALIZATION ================");
+const required = [
+  "DATABASE_URL", "SESSION_SECRET", "GROQ_API_KEY",
+  "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID",
+  "GITHUB_CLIENT_SECRET", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
+  "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY",
+];
+const missing = required.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.warn("⚠️ Missing required environment variables:", missing);
+} else {
+  console.log("✅ All core environment variables verified.");
+}
+
+// Database Connection Verification
+pool.query("SELECT NOW() as db_time")
+  .then((res) => console.log(`✅ PostgreSQL Database connected (${res.rows[0].db_time})`))
+  .catch((err) => console.error("❌ PostgreSQL Database connection failed:", err.message));
 
 const authRoutes = require("./routes/auth");
 const checkinRoutes = require("./routes/checkins");

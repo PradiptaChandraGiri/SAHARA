@@ -219,13 +219,16 @@ const handleGitHubCallback = (req, res, next) => {
 router.get("/auth/github/callback", handleGitHubCallback);
 router.get("/api/auth/github/callback", handleGitHubCallback);
 
-router.post("/auth/logout", (req, res) => {
+const handleLogout = (req, res) => {
   if (req.session) req.session.destroy(() => {});
   res.json({ ok: true });
-});
+};
+
+router.post("/auth/logout", handleLogout);
+router.post("/api/auth/logout", handleLogout);
 
 // Frontend calls this on load to check "am I logged in, and as what role"
-router.get("/auth/me", async (req, res) => {
+const handleMe = async (req, res) => {
   let userId = req.session?.userId;
 
   const authHeader = req.headers.authorization;
@@ -238,6 +241,9 @@ router.get("/auth/me", async (req, res) => {
   }
 
   if (!userId) return res.status(401).json({ error: "Not signed in." });
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(userId));
+  if (!isUuid) return res.status(401).json({ error: "Invalid session token." });
+
   try {
     const result = await pool.query(`SELECT id, email, display_name, role FROM users WHERE id = $1`, [
       userId,
@@ -248,6 +254,9 @@ router.get("/auth/me", async (req, res) => {
     console.warn("/auth/me DB error:", err.message);
     res.status(500).json({ error: "Authentication lookup error." });
   }
-});
+};
+
+router.get("/auth/me", handleMe);
+router.get("/api/auth/me", handleMe);
 
 module.exports = router;

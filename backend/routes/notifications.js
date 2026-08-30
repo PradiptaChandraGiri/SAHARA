@@ -10,11 +10,11 @@ const router = express.Router();
 
 // GET /api/notifications/preferences - loads current settings for Profile page
 router.get("/api/notifications/preferences", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   try {
-    const userRes = await pool.query(`SELECT whatsapp_number, phone FROM users WHERE id = $1`, [userId]);
+    const userRes = await pool.query(`SELECT whatsapp_number FROM users WHERE id = $1`, [userId]);
     const user = userRes.rows[0] || {};
-    const hasWhatsApp = !!(user.whatsapp_number || user.phone);
+    const hasWhatsApp = !!user.whatsapp_number;
 
     const result = await pool.query(
       `SELECT * FROM notification_preferences WHERE user_id = $1`,
@@ -36,7 +36,7 @@ router.get("/api/notifications/preferences", requireAuth, async (req, res) => {
         is_paused: false,
         paused_until: null,
         has_whatsapp: hasWhatsApp,
-        whatsapp_number: user.whatsapp_number || user.phone || null,
+        whatsapp_number: user.whatsapp_number || null,
         vapid_public_key: process.env.VAPID_PUBLIC_KEY || "",
       });
     }
@@ -48,7 +48,7 @@ router.get("/api/notifications/preferences", requireAuth, async (req, res) => {
       evening_time: row.evening_time ? String(row.evening_time).slice(0, 5) : "21:00",
       is_paused: isPaused,
       has_whatsapp: hasWhatsApp,
-      whatsapp_number: user.whatsapp_number || user.phone || null,
+      whatsapp_number: user.whatsapp_number || null,
       vapid_public_key: process.env.VAPID_PUBLIC_KEY || "",
     });
   } catch (err) {
@@ -59,7 +59,7 @@ router.get("/api/notifications/preferences", requireAuth, async (req, res) => {
 
 // PUT /api/notifications/preferences - saves changes from the preference center
 router.put("/api/notifications/preferences", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   const {
     channel_browser,
     channel_whatsapp,
@@ -108,7 +108,7 @@ router.put("/api/notifications/preferences", requireAuth, async (req, res) => {
 
 // POST /api/notifications/pause - "snooze all" for N days, no guilt-tripping
 router.post("/api/notifications/pause", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   const { days, resume } = req.body;
 
   try {
@@ -147,7 +147,7 @@ router.post("/api/notifications/pause", requireAuth, async (req, res) => {
 
 // POST /api/notifications/push-subscribe - browser calls this after permission is granted
 router.post("/api/notifications/push-subscribe", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   const subscription = req.body.subscription;
 
   if (!subscription || !subscription.endpoint || !subscription.keys) {
@@ -181,7 +181,7 @@ router.post("/api/notifications/push-subscribe", requireAuth, async (req, res) =
 
 // POST /api/notifications/test-send - triggers immediate test reminder for live validation
 router.post("/api/notifications/test-send", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   const { channel, type } = req.body; // channel: 'browser' | 'whatsapp', type: 'morning' | 'evening' | 'contextual'
 
   try {
@@ -223,7 +223,7 @@ router.post("/api/notifications/test-send", requireAuth, async (req, res) => {
 
 // GET /api/notifications/log - returns recent send history for the student
 router.get("/api/notifications/log", requireAuth, async (req, res) => {
-  const userId = req.session.userId;
+  const userId = req.userId || req.session?.userId;
   try {
     const logs = await pool.query(
       `SELECT id, channel, type, content, sent_at 

@@ -9,20 +9,24 @@ function requireAuth(req, res, next) {
   let role = req.session ? req.session.role : null;
 
   const authHeader = req.headers.authorization;
-  if (!userId && authHeader && authHeader.startsWith("Bearer ")) {
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     const tokenStr = authHeader.substring(7).trim();
     const verified = verifyToken(tokenStr);
     if (verified && verified.userId) {
       userId = verified.userId;
-      role = verified.role;
-      if (!req.session) req.session = {};
-      req.session.userId = userId;
-      req.session.role = role;
+      role = verified.role || role;
     }
   }
 
   if (!userId) {
     return res.status(401).json({ error: "Not signed in." });
+  }
+
+  req.userId = userId;
+  req.userRole = role;
+  if (req.session) {
+    req.session.userId = userId;
+    req.session.role = role;
   }
   next();
 }

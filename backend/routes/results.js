@@ -7,14 +7,16 @@ const router = express.Router();
 
 // Helper to resolve user ID from session or Bearer authorization header
 function getUserIdFromReq(req) {
-  if (req.session && req.session.userId) return req.session.userId;
+  let uid = (req.session && req.session.userId) ? req.session.userId : null;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const tokenStr = authHeader.substring(7).trim();
     const verified = verifyToken(tokenStr);
-    if (verified && verified.userId) return verified.userId;
+    if (verified && verified.userId) uid = verified.userId;
   }
-  return null;
+  if (!uid) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(uid));
+  return isUuid ? uid : null;
 }
 
 // GET /api/results/latest - powers the Dashboard status card + Results page
@@ -277,9 +279,15 @@ router.post("/api/results/followup", async (req, res) => {
 // generic YouTube search-results pages instead of actual videos.
 router.get("/api/results/:id/videos", async (req, res) => {
   try {
+    const { id } = req.params;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) {
+      return res.json([]);
+    }
+
     const resultRow = await pool.query(
       `SELECT contributing_factors FROM results WHERE id = $1`,
-      [req.params.id]
+      [id]
     );
     if (resultRow.rows.length === 0) return res.status(404).json({ error: "Result not found." });
 

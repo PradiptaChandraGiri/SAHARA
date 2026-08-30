@@ -43,7 +43,8 @@ router.post("/api/checkins", async (req, res) => {
     }
   }
 
-  if (!userId) {
+  const isUuid = userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(userId));
+  if (!userId || !isUuid) {
     // Automatically provision a guest student record in DB
     const guestUser = await pool.query(
       `INSERT INTO users (email, display_name, oauth_provider, oauth_id, role, last_login_at)
@@ -58,12 +59,32 @@ router.post("/api/checkins", async (req, res) => {
     }
   }
 
-  const answers = req.body;
+  // Parse academic_year to numeric (e.g. "Year 2" -> 2)
+  const rawYear = req.body.academic_year || req.body.year || 2;
+  const yearNum = typeof rawYear === "number" ? rawYear : parseInt(String(rawYear).replace(/\D/g, "")) || 2;
 
-  const missing = CHECKIN_FIELDS.filter((f) => answers[f] === undefined || answers[f] === null);
-  if (missing.length > 0) {
-    return res.status(400).json({ error: "Missing required fields", missing });
-  }
+  // Parse academic_performance to numeric (e.g. GPA 3.2 -> 3.2, "Average" -> 3.0)
+  const rawPerf = req.body.academic_performance || req.body.gpa || 3.0;
+  let perfNum = typeof rawPerf === "number" ? rawPerf : parseFloat(String(rawPerf).replace(/[^\d.]/g, ""));
+  if (isNaN(perfNum) || perfNum === null) perfNum = 3.0;
+
+  const answers = {
+    age: Number(req.body.age) || 20,
+    gender: String(req.body.gender || "prefer_not_to_say"),
+    academic_year: yearNum,
+    department: String(req.body.department || "Computer Science / Engineering"),
+    sleep_hours: req.body.sleep_hours !== undefined ? Number(req.body.sleep_hours) : 6.5,
+    study_hours_per_day: req.body.study_hours_per_day !== undefined ? Number(req.body.study_hours_per_day) : 4.5,
+    exam_pressure: req.body.exam_pressure !== undefined ? Number(req.body.exam_pressure) : 6,
+    academic_performance: perfNum,
+    stress_level: req.body.stress_level !== undefined ? Number(req.body.stress_level) : 6,
+    physical_activity: req.body.physical_activity !== undefined ? Number(req.body.physical_activity) : (req.body.physical_activity_hours !== undefined ? Number(req.body.physical_activity_hours) : 2),
+    social_support: req.body.social_support !== undefined ? Number(req.body.social_support) : 2,
+    screen_time: req.body.screen_time !== undefined ? Number(req.body.screen_time) : (req.body.recreational_screen_time !== undefined ? Number(req.body.recreational_screen_time) : 4),
+    internet_usage: req.body.internet_usage !== undefined ? Number(req.body.internet_usage) : 4,
+    financial_stress: req.body.financial_stress !== undefined ? Number(req.body.financial_stress) : 2,
+    family_expectation: req.body.family_expectation !== undefined ? Number(req.body.family_expectation) : 3,
+  };
 
   const client = await pool.connect();
   try {

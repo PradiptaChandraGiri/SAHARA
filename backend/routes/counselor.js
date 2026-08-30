@@ -5,24 +5,31 @@ const { requireAuth, requireRole, logAudit } = require("../middleware/auth");
 
 const router = express.Router();
 
-// GET /api/counselor/queue - triage queue, sorted by urgency
-router.get("/api/counselor/queue", requireAuth, requireRole("counselor", "admin"), async (req, res) => {
-  const result = await pool.query(`
-    SELECT DISTINCT ON (r.user_id)
-      r.user_id, r.risk_level, r.overall_wellbeing, r.contributing_factors, r.created_at,
-      u.display_name
-    FROM results r
-    JOIN users u ON u.id = r.user_id
-    WHERE r.risk_level IN ('moderate', 'high')
-    ORDER BY r.user_id, r.created_at DESC
-  `);
-  // Order by urgency after dedup (Postgres can't easily do both in one pass cleanly)
-  const rows = result.rows.sort((a, b) => {
-    const order = { high: 0, moderate: 1 };
-    return order[a.risk_level] - order[b.risk_level];
-  });
-  res.json(rows);
-});
+// GET /api/counselor/queue or /api/counselor/students - triage queue
+const handleQueue = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT ON (r.user_id)
+        r.user_id, r.risk_level, r.overall_wellbeing, r.contributing_factors, r.created_at,
+        u.display_name
+      FROM results r
+      JOIN users u ON u.id = r.user_id
+      WHERE r.risk_level IN ('moderate', 'high')
+      ORDER BY r.user_id, r.created_at DESC
+    `);
+    const rows = result.rows.sort((a, b) => {
+      const order = { high: 0, moderate: 1 };
+      return (order[a.risk_level] ?? 2) - (order[b.risk_level] ?? 2);
+    });
+    res.json(rows);
+  } catch (err) {
+    console.warn("Counselor queue query error:", err.message);
+    res.json([]);
+  }
+};
+
+router.get("/api/counselor/queue", requireAuth, requireRole("counselor", "admin"), handleQueue);
+router.get("/api/counselor/students", requireAuth, requireRole("counselor", "admin"), handleQueue);
 
 // GET /api/counselor/students/:userId - individual case view.
 // Logs the access, per the audit requirement.

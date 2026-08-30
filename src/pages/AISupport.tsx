@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
 import ChatMessageText from '../components/ChatMessageText'
+import AnalyzingVisualization from '../components/AnalyzingVisualization'
 import { Play } from 'lucide-react'
 
 export interface SuggestedVideo {

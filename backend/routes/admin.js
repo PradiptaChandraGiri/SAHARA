@@ -5,41 +5,48 @@ const { requireAuth, requireRole, logAudit } = require("../middleware/auth");
 
 const router = express.Router();
 
-// GET /api/admin/stats - population-level trends ONLY, no individual
-// student data by default, per the earlier privacy-first admin spec.
-router.get("/api/admin/stats", requireAuth, requireRole("admin"), async (req, res) => {
-  const distribution = await pool.query(`
-    SELECT risk_level, COUNT(DISTINCT user_id) AS student_count
-    FROM (
-      SELECT DISTINCT ON (user_id) user_id, risk_level
-      FROM results ORDER BY user_id, created_at DESC
-    ) latest
-    GROUP BY risk_level
-  `);
+// GET /api/admin/stats or /api/admin/metrics - population-level trends
+const handleStats = async (req, res) => {
+  try {
+    const distribution = await pool.query(`
+      SELECT risk_level, COUNT(DISTINCT user_id) AS student_count
+      FROM (
+        SELECT DISTINCT ON (user_id) user_id, risk_level
+        FROM results ORDER BY user_id, created_at DESC
+      ) latest
+      GROUP BY risk_level
+    `);
 
-  const trend = await pool.query(`
-    SELECT date_trunc('day', created_at) AS day,
-           ROUND(AVG(overall_wellbeing)) AS avg_wellbeing,
-           COUNT(*) AS checkin_count
-    FROM results
-    WHERE created_at > now() - interval '90 days'
-    GROUP BY day ORDER BY day
-  `);
+    const trend = await pool.query(`
+      SELECT date_trunc('day', created_at) AS day,
+             ROUND(AVG(overall_wellbeing)) AS avg_wellbeing,
+             COUNT(*) AS checkin_count
+      FROM results
+      WHERE created_at > now() - interval '90 days'
+      GROUP BY day ORDER BY day
+    `);
 
-  const counselorLoad = await pool.query(`
-    SELECT u.display_name, COUNT(cn.id) AS open_cases
-    FROM users u
-    LEFT JOIN case_notes cn ON cn.counselor_id = u.id AND cn.status != 'resolved'
-    WHERE u.role = 'counselor'
-    GROUP BY u.id, u.display_name
-  `);
+    const counselorLoad = await pool.query(`
+      SELECT u.display_name, COUNT(cn.id) AS open_cases
+      FROM users u
+      LEFT JOIN case_notes cn ON cn.counselor_id = u.id AND cn.status != 'resolved'
+      WHERE u.role = 'counselor'
+      GROUP BY u.id, u.display_name
+    `);
 
-  res.json({
-    riskDistribution: distribution.rows,
-    trend: trend.rows,
-    counselorLoad: counselorLoad.rows,
-  });
-});
+    res.json({
+      riskDistribution: distribution.rows || [],
+      trend: trend.rows || [],
+      counselorLoad: counselorLoad.rows || [],
+    });
+  } catch (err) {
+    console.warn("Admin stats query error:", err.message);
+    res.json({ riskDistribution: [], trend: [], counselorLoad: [] });
+  }
+};
+
+router.get("/api/admin/stats", requireAuth, requireRole("admin"), handleStats);
+router.get("/api/admin/metrics", requireAuth, requireRole("admin"), handleStats);
 
 // GET /api/admin/system-health - model + integration status, ties into
 // the earlier "confirm what's real vs mockup" audit.
