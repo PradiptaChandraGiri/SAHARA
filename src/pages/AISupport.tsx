@@ -17,7 +17,17 @@ import {
 } from 'lucide-react'
 import { getResourcesForFactors, VettedResource } from '../data/resources'
 import ChatMessageText from '../components/ChatMessageText'
-import AnalyzingVisualization from '../components/AnalyzingVisualization'
+import { Play } from 'lucide-react'
+
+export interface SuggestedVideo {
+  videoId: string
+  title: string
+  description?: string
+  thumbnailUrl: string
+  channelTitle: string
+  url: string
+  reason: string
+}
 
 interface Message {
   id: number
@@ -26,6 +36,7 @@ interface Message {
   time: string
   isCrisis?: boolean
   inlineResource?: VettedResource
+  suggestedVideo?: SuggestedVideo
 }
 
 const CHAT_STORAGE_KEY = 'sahara_ai_chat_history_v2'
@@ -281,6 +292,15 @@ export default function AISupport() {
                 )
               )
             }
+            if (data.done) {
+              if (data.suggestedVideo) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === aiMsgId ? { ...msg, suggestedVideo: data.suggestedVideo } : msg
+                  )
+                )
+              }
+            }
             if (data.error) {
               throw new Error(data.error)
             }
@@ -318,6 +338,7 @@ export default function AISupport() {
                       ...msg,
                       text: data.text || data.response || 'I am here to support you.',
                       isCrisis: Boolean(data.flaggedCrisis),
+                      suggestedVideo: data.suggestedVideo || undefined,
                     }
                   : msg
               )
@@ -598,51 +619,105 @@ export default function AISupport() {
                   />
                 )}
 
-                {/* Inline Recommended Resource Card (Part 5) */}
-                {!isUser && m.inlineResource && !m.isCrisis && (
+                {/* Inline AI-Curated Real Video Card */}
+                {!isUser && m.suggestedVideo && !m.isCrisis && (
                   <div
                     style={{
-                      marginTop: 12,
+                      marginTop: 14,
                       background: 'var(--color-surface-raised)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 10,
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 10,
+                      border: '1.5px solid var(--color-border)',
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      boxShadow: 'var(--shadow-sm)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {getResourceIcon(m.inlineResource.type)}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                          {m.inlineResource.title}
-                        </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
-                          {m.inlineResource.readTime}
-                        </div>
-                      </div>
-                    </div>
-
                     <a
-                      href={m.inlineResource.link}
+                      href={m.suggestedVideo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-teal"
-                      style={{
-                        fontSize: 12,
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
+                      style={{ position: 'relative', display: 'block', width: '100%', height: 130, overflow: 'hidden', background: '#000000' }}
                     >
-                      <span>Open</span>
-                      <ExternalLink size={11} />
+                      <img
+                        src={m.suggestedVideo.thumbnailUrl}
+                        alt={m.suggestedVideo.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(0, 0, 0, 0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: 'rgba(1, 87, 94, 0.95)',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Play size={15} fill="#FFFFFF" style={{ marginLeft: 2 }} />
+                        </div>
+                      </div>
                     </a>
+
+                    <div style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
+                          {m.suggestedVideo.channelTitle || 'YouTube Wellbeing'}
+                        </span>
+                        <span style={{ fontSize: 10.5, color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Video size={11} />
+                          <span>Curated Video</span>
+                        </span>
+                      </div>
+
+                      <h5 style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px', lineHeight: 1.35 }}>
+                        {m.suggestedVideo.title}
+                      </h5>
+
+                      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 10px', lineHeight: 1.45 }}>
+                        {m.suggestedVideo.reason || m.suggestedVideo.description}
+                      </p>
+
+                      <a
+                        href={m.suggestedVideo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-teal"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          width: '100%',
+                          padding: '7px 12px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Play size={12} fill="#FFFFFF" />
+                        <span>Watch on YouTube</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
                   </div>
                 )}
 

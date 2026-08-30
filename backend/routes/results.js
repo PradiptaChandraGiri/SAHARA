@@ -272,7 +272,50 @@ router.post("/api/results/followup", async (req, res) => {
   }
 });
 
-// GET /api/results/:id/resources - returns curated resources from DB as base reference
+// GET /api/results/:id/videos - REAL, AI-curated video suggestions.
+// Replaces the old static "resources" table lookup, which pointed to
+// generic YouTube search-results pages instead of actual videos.
+router.get("/api/results/:id/videos", async (req, res) => {
+  try {
+    const resultRow = await pool.query(
+      `SELECT contributing_factors FROM results WHERE id = $1`,
+      [req.params.id]
+    );
+    if (resultRow.rows.length === 0) return res.status(404).json({ error: "Result not found." });
+
+    const factors = resultRow.rows[0].contributing_factors || [];
+    if (factors.length === 0) return res.json([]);
+
+    const { recommendVideoForFactor } = require("../services/videoRecommendation");
+    // Get one AI-curated real video per contributing factor (capped at 3)
+    const videos = await Promise.all(
+      factors.slice(0, 3).map((factor) => recommendVideoForFactor(factor))
+    );
+    res.json(videos.filter(Boolean));
+  } catch (err) {
+    console.error("Video recommendation failed:", err);
+    res.json([]);
+  }
+});
+
+// POST /api/results/videos - Direct AI video recommendations for factors list
+router.post("/api/results/videos", async (req, res) => {
+  const { factors } = req.body || {};
+  const factorList = Array.isArray(factors) ? factors : (typeof factors === "string" ? [factors] : ["general"]);
+
+  try {
+    const { recommendVideoForFactor } = require("../services/videoRecommendation");
+    const videos = await Promise.all(
+      factorList.slice(0, 3).map((factor) => recommendVideoForFactor(factor))
+    );
+    res.json(videos.filter(Boolean));
+  } catch (err) {
+    console.error("Direct video recommendation failed:", err);
+    res.json([]);
+  }
+});
+
+// GET /api/results/:id/resources - legacy compatibility fallback
 router.get("/api/results/:id/resources", async (req, res) => {
   try {
     const resultRow = await pool.query(
@@ -284,13 +327,11 @@ router.get("/api/results/:id/resources", async (req, res) => {
     const factors = resultRow.rows[0].contributing_factors;
     if (!factors || factors.length === 0) return res.json([]);
 
-    const resources = await pool.query(
-      `SELECT id, factor_key, title, description, resource_type, url
-       FROM resources WHERE factor_key = ANY($1) AND active = true
-       LIMIT 3`,
-      [factors]
+    const { recommendVideoForFactor } = require("../services/videoRecommendation");
+    const videos = await Promise.all(
+      factors.slice(0, 3).map((factor) => recommendVideoForFactor(factor))
     );
-    res.json(resources.rows);
+    res.json(videos.filter(Boolean));
   } catch (err) {
     res.json([]);
   }

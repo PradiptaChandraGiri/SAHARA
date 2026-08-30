@@ -43,6 +43,16 @@ interface DynamicAISuggestion {
   keyNotes?: string[]
 }
 
+export interface SuggestedVideo {
+  videoId: string
+  title: string
+  description?: string
+  thumbnailUrl: string
+  channelTitle: string
+  url: string
+  reason: string
+}
+
 interface AIGuidanceData {
   aiSynthesis: string
   suggestions: DynamicAISuggestion[]
@@ -163,6 +173,10 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const [isLoadingGuidance, setIsLoadingGuidance] = useState(false)
   const [activeActionModal, setActiveActionModal] = useState<DynamicAISuggestion | null>(null)
 
+  // Real AI-curated video suggestions
+  const [curatedVideos, setCuratedVideos] = useState<SuggestedVideo[]>([])
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false)
+
   // Conversational follow-up state
   const [followupInput, setFollowupInput] = useState('')
   const [activeCoaching, setActiveCoaching] = useState<FollowupCoachingResult | null>(null)
@@ -199,6 +213,45 @@ export default function Results({ data, onNavigate }: ResultsProps) {
   const anxietyScore = d.anxietyRisk ?? Math.min(overallScore + 4, 95)
   const dropoutScore = d.dropoutRisk ?? Math.max(overallScore - 6, 8)
   const factors = d.factors && d.factors.length > 0 ? d.factors : ['High exam pressure', 'Low sleep hours']
+
+  // Fetch real, AI-curated YouTube video suggestions
+  useEffect(() => {
+    let isCancelled = false
+    setIsLoadingVideos(true)
+
+    const fetchVideos = async () => {
+      try {
+        const id = d.id || serverData?.id
+        let res: Response | null = null
+        if (id) {
+          res = await fetch(`${API_BASE}/api/results/${id}/videos`, { credentials: 'include' })
+        }
+        if (!res || !res.ok) {
+          res = await fetch(`${API_BASE}/api/results/videos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ factors }),
+          })
+        }
+        if (res && res.ok) {
+          const videoList = await res.json()
+          if (!isCancelled && Array.isArray(videoList)) {
+            setCuratedVideos(videoList)
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch real curated videos:', err)
+      } finally {
+        if (!isCancelled) setIsLoadingVideos(false)
+      }
+    }
+
+    fetchVideos()
+    return () => {
+      isCancelled = true
+    }
+  }, [d.id, serverData?.id, JSON.stringify(factors)])
 
   const [guidanceNotice, setGuidanceNotice] = useState<string | null>(null)
   const [followupError, setFollowupError] = useState<string | null>(null)
@@ -622,223 +675,181 @@ export default function Results({ data, onNavigate }: ResultsProps) {
           </div>
         </div>
 
-        {/* 4. Suggested for You (Dynamic Groq AI-Generated Suggestions with YouTube Video & Analysis Notes) */}
-        <div
-          style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
-            borderRadius: 16,
-            padding: '24px 28px',
-            marginBottom: 24,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <HeartHandshake size={20} color="#01575E" />
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
-                Suggested for You
-              </h3>
-            </div>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#01575E',
-                background: '#F0FDFA',
-                padding: '3px 8px',
-                borderRadius: 6,
-                border: '1px solid #CCFBF1',
-              }}
-            >
-              {isLoadingGuidance ? 'Updating AI Suggestions...' : 'Dynamic AI Tailored & Video Notes'}
-            </span>
-          </div>
-
-          <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 16px' }}>
-            Practical, bite-sized protocols with verified video breakdowns & study notes generated dynamically for your exact assessment:
-          </p>
-
-          {guidanceNotice && (
-            <div
-              style={{
-                background: '#FFFBEB',
-                border: '1px solid #FDE68A',
-                borderRadius: 8,
-                padding: '10px 14px',
-                marginBottom: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 10,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#92400E' }}>
-                <AlertTriangle size={15} color="#D97706" />
-                <span>{guidanceNotice}</span>
+        {/* 4. Suggested for You (Real AI-Curated YouTube Videos with Personalized Reason) */}
+        {(isLoadingVideos || curatedVideos.length > 0) && (
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 16,
+              padding: 'clamp(20px, 4vw, 28px)',
+              marginBottom: 24,
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <HeartHandshake size={20} color="var(--color-primary)" />
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Suggested for You
+                </h3>
               </div>
-              <button
-                type="button"
-                onClick={loadGuidance}
+              <span
                 style={{
-                  background: '#F59E0B',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '4px 10px',
                   fontSize: 12,
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  color: 'var(--color-primary)',
+                  background: 'var(--color-primary-subtle)',
+                  padding: '3px 10px',
+                  borderRadius: 6,
                 }}
               >
-                Refresh AI
-              </button>
+                {isLoadingVideos ? 'Curating Real Videos...' : 'Real, AI-Curated Videos'}
+              </span>
             </div>
-          )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
-            {(aiGuidance?.suggestions || [
-              {
-                id: 'sug_1',
-                title: '5-Minute Breathing Reset Before Exams',
-                tag: 'Exam Grounding',
-                type: 'video',
-                duration: '5 min video & notes',
-                description: 'Quick somatic breathing method that settles nervous system spikes before walking into an exam.',
-                actionStep: 'Do 4 cycles of 4-second box breathing with relaxed shoulders.',
-                youtubeId: 'm3-O74xEmVE',
-                videoTitle: 'Physiological Sigh: Fast Autonomic Nervous System Reset',
-                keyNotes: [
-                  'Two rapid inhales through nose + one long mouth exhale drops acute heart rate.',
-                  'Rebalances carbon dioxide ratio in the bloodstream to halt panic signals.',
-                  'Use immediately when sitting down at your exam desk.'
-                ],
-              },
-              {
-                id: 'sug_2',
-                title: 'The Pomodoro Method for Study Sessions',
-                tag: 'Focus Rhythm',
-                type: 'video',
-                duration: '4 min video & notes',
-                description: 'Break high-pressure revisions into manageable 25-minute sprints with 5-minute screen-free intervals.',
-                actionStep: 'Choose your top assignment and set a single 25-minute countdown.',
-                youtubeId: 'mNBmG24djoY',
-                videoTitle: 'How to Focus & Study Deeply with the 25/5 Pomodoro Method',
-                keyNotes: [
-                  'Single-task focus prevents cognitive fatigue and task switching friction.',
-                  '5-minute screen-free rest allows hippocampus to consolidate memories.',
-                  'Repeat for 4 cycles for maximum study retention.'
-                ],
-              },
-              {
-                id: 'sug_3',
-                title: 'Sleep Hygiene for University Students',
-                tag: 'Sleep Optimization',
-                type: 'video',
-                duration: '4 min video & notes',
-                description: 'Evidence-based protocols to fall asleep faster even when study schedules are erratic.',
-                actionStep: 'Dim overhead lights and stop screen usage 30 minutes before sleep.',
-                youtubeId: 'pL02HRFk2vo',
-                videoTitle: '10-Minute Non-Sleep Deep Rest (NSDR) Protocol - Dr. Andrew Huberman',
-                keyNotes: [
-                  'Externalize tomorrow to-do list onto physical paper to stop nocturnal rumination.',
-                  'Dim ambient overhead lights 30 minutes before sleep to trigger melatonin.',
-                  '10 minutes of NSDR in bed resets autonomic nervous system.'
-                ],
-              },
-            ]).map((sug) => (
-              <div
-                key={sug.id}
-                style={{
-                  border: '1.5px solid #E2E8F0',
-                  borderRadius: 12,
-                  padding: '18px 20px',
-                  background: '#F9F9F8',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 14,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {getResourceIcon(sug.type)}
-                      <span
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: '0 0 18px', lineHeight: 1.5 }}>
+              Specific, evidence-based videos curated by Groq AI and fetched from YouTube to address your top factors:
+            </p>
+
+            {isLoadingVideos && curatedVideos.length === 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    style={{
+                      borderRadius: 12,
+                      border: '1.5px solid var(--color-border)',
+                      padding: 16,
+                      background: 'var(--color-surface-raised)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ width: '100%', height: 140, borderRadius: 8, background: 'var(--color-border)', opacity: 0.6, animation: 'pulse 1.5s infinite' }} />
+                    <div style={{ width: '70%', height: 16, borderRadius: 4, background: 'var(--color-border)', opacity: 0.6 }} />
+                    <div style={{ width: '90%', height: 12, borderRadius: 4, background: 'var(--color-border)', opacity: 0.6 }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                {curatedVideos.map((video, idx) => (
+                  <div
+                    key={video.videoId || idx}
+                    style={{
+                      border: '1.5px solid var(--color-border)',
+                      borderRadius: 14,
+                      overflow: 'hidden',
+                      background: 'var(--color-surface-raised)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.2s ease',
+                      boxShadow: 'var(--shadow-sm)',
+                    }}
+                  >
+                    <div>
+                      {/* Video Thumbnail with Play Badge */}
+                      <a
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ position: 'relative', display: 'block', width: '100%', height: 160, overflow: 'hidden', background: '#000000' }}
+                      >
+                        <img
+                          src={video.thumbnailUrl}
+                          alt={video.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transition: 'transform 0.3s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0, 0, 0, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: '50%',
+                              background: 'rgba(1, 87, 94, 0.9)',
+                              color: '#FFFFFF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                            }}
+                          >
+                            <Play size={18} fill="#FFFFFF" style={{ marginLeft: 2 }} />
+                          </div>
+                        </div>
+                      </a>
+
+                      <div style={{ padding: '16px 18px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
+                            {video.channelTitle || 'YouTube Wellbeing'}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Video size={12} />
+                            <span>Verified Video</span>
+                          </span>
+                        </div>
+
+                        <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 8px', lineHeight: 1.35 }}>
+                          {video.title}
+                        </h4>
+
+                        {/* AI-Written Warm Reason */}
+                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
+                          {video.reason || video.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '0 18px 16px' }}>
+                      <a
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-teal"
                         style={{
-                          fontSize: 11.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          fontSize: 13,
                           fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: '#E0F2F1',
-                          color: '#01575E',
-                          textTransform: 'uppercase',
+                          textDecoration: 'none',
                         }}
                       >
-                        {sug.tag}
-                      </span>
+                        <Play size={14} fill="#FFFFFF" />
+                        <span>Watch on YouTube</span>
+                        <ExternalLink size={13} />
+                      </a>
                     </div>
-                    <span style={{ fontSize: 12, color: '#64748B', fontWeight: 500 }}>{sug.duration}</span>
                   </div>
-
-                  <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0E1A2B', margin: '0 0 6px', lineHeight: 1.35 }}>
-                    {sug.title}
-                  </h4>
-
-                  <p style={{ fontSize: 13, color: '#475569', margin: '0 0 10px', lineHeight: 1.5 }}>
-                    {sug.description}
-                  </p>
-
-                  {sug.youtubeId && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 12,
-                        color: '#01575E',
-                        fontWeight: 600,
-                        background: '#E6FFFA',
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <Play size={12} color="#E53E3E" fill="#E53E3E" />
-                      <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {sug.videoTitle || 'Video & Study Notes Included'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveActionModal(sug)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    background: '#01575E',
-                    color: '#FFFFFF',
-                    padding: '9px 14px',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    marginTop: 4,
-                  }}
-                >
-                  <Play size={13} fill="#FFFFFF" />
-                  <span>Watch Video & Read Notes</span>
-                </button>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        )}
 
         {/* 5. Conversational Follow-Up with Real-Time Groq AI Coaching, Study Notes & Video */}
         <div

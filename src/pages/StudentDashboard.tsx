@@ -62,19 +62,20 @@ export default function StudentDashboard({ onNavigate, lastCheckInData }: Studen
               factors: row.contributing_factors?.map((f: string) => f.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())) || [],
             })
 
-            // Fetch real curated resources for the week
-            const resRes = await fetch(`${API_BASE}/api/results/${row.id}/resources`, { credentials: 'include', headers })
+            // Fetch real curated video recommendation for the week
+            const resRes = await fetch(`${API_BASE}/api/results/${row.id}/videos`, { credentials: 'include', headers })
             if (resRes.ok) {
-              const resources = await resRes.json()
-              if (Array.isArray(resources) && resources.length > 0) {
+              const videos = await resRes.json()
+              if (Array.isArray(videos) && videos.length > 0) {
+                const vid = videos[0]
                 setDbSuggestion({
-                  id: resources[0].id,
-                  title: resources[0].title,
-                  description: resources[0].description,
-                  type: (resources[0].resource_type || 'video') as any,
-                  link: resources[0].url,
-                  tag: resources[0].factor_key?.replace(/_/g, ' ') || 'Focus',
-                  readTime: resources[0].resource_type === 'video' ? '5 min watch' : '4 min read',
+                  id: vid.videoId || 'sug_vid_1',
+                  title: vid.title,
+                  description: vid.reason || vid.description,
+                  type: 'video',
+                  link: vid.url,
+                  tag: vid.channelTitle || 'Wellbeing Focus',
+                  readTime: '5 min watch',
                 })
               }
             }

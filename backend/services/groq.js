@@ -19,8 +19,8 @@ const BASE_SYSTEM_PROMPT =
   "learning protocols (like Pomodoro 25/5, Feynman technique, Active Recall, or Box Breathing). " +
   "Use minimal markdown - **bold** for emphasis, concise bullet points for study notes. Keep formatting clean and supportive.";
 
-const GROQ_MODEL = "openai/gpt-oss-20b";
-const FALLBACK_MODEL = "groq/compound-mini";
+const GROQ_MODEL = "qwen/qwen3.8-27b";
+const FALLBACK_MODEL = "openai/gpt-oss-120b";
 
 function logGroqError(context, err) {
   if (err?.status === 429) {

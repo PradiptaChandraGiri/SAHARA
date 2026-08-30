@@ -2,8 +2,19 @@
 const express = require("express");
 const pool = require("../db/pool");
 const { getChatReply, streamChatReply } = require("../services/groq");
+const { recommendVideo } = require("../services/videoRecommendation");
 
 const router = express.Router();
+
+const VIDEO_WORTHY_KEYWORDS = [
+  "sleep", "study", "exam", "focus", "stress", "anxious", "anxiety",
+  "breathing", "relax", "tips", "how do i", "how can i", "overwhelmed",
+  "concentration", "procrastination", "pomodoro", "burnout", "meditation",
+];
+function isVideoWorthy(message) {
+  const lower = message.toLowerCase();
+  return VIDEO_WORTHY_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 const CRISIS_KEYWORDS = [
   "kill myself", "suicide", "end my life", "self harm", "self-harm",
@@ -131,7 +142,17 @@ router.post("/api/chat/stream", async (req, res) => {
       } catch (e) {}
     }
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    // Check if message warrants an inline real video recommendation
+    let suggestedVideo = null;
+    if (isVideoWorthy(message)) {
+      try {
+        suggestedVideo = await recommendVideo(message);
+      } catch (err) {
+        console.warn("Inline video recommendation in stream error:", err.message);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, suggestedVideo })}\n\n`);
     res.end();
   } catch (err) {
     console.error("Streaming chat failed:", err);
@@ -140,7 +161,7 @@ router.post("/api/chat/stream", async (req, res) => {
   }
 });
 
-// POST /api/chat - Non-streaming fallback + WhatsApp webhook router
+// POST /api/chat - non-streaming version with suggested video support
 router.post("/api/chat", async (req, res) => {
   const { message, clientContext } = req.body;
   if (!message || typeof message !== "string" || message.trim().length === 0) {
@@ -150,6 +171,15 @@ router.post("/api/chat", async (req, res) => {
   const userId = await getOrCreateUserId(req);
 
   if (containsCrisisLanguage(message)) {
+    try {
+      if (userId) {
+        await pool.query(`INSERT INTO chat_messages (user_id, role, content) VALUES ($1, 'user', $2)`, [userId, message]);
+        await pool.query(
+          `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, true)`,
+          [userId, CRISIS_RESPONSE.text]
+        );
+      }
+    } catch (e) {}
     return res.json({ ...CRISIS_RESPONSE, flaggedCrisis: true });
   }
 
@@ -169,13 +199,21 @@ router.post("/api/chat", async (req, res) => {
     const studentContext = (await getStudentEvaluationContext(userId)) || clientContext || null;
     const reply = await getChatReply(message, history, studentContext);
 
-    if (userId && reply?.text) {
+    if (userId && reply.text) {
       try {
         await pool.query(
           `INSERT INTO chat_messages (user_id, role, content, flagged_crisis) VALUES ($1, 'assistant', $2, $3)`,
           [userId, reply.text, reply.flaggedCrisis]
         );
       } catch (e) {}
+    }
+
+    if (isVideoWorthy(message)) {
+      try {
+        reply.suggestedVideo = await recommendVideo(message);
+      } catch (err) {
+        console.warn("Inline video recommendation failed:", err.message);
+      }
     }
 
     res.json(reply);
