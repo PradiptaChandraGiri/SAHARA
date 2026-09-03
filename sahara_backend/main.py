@@ -46,6 +46,7 @@ from storage.database import (
     verify_password,
 )
 from whatsapp.bot import router as whatsapp_router
+from gemini_suggestions import get_curated_youtube_links, get_gemini_suggestions, CURATED_RESOURCES
 
 init_db()
 
@@ -152,6 +153,8 @@ class AssessmentResponse(BaseModel):
     next_step: str
     top_factors: List[str]
     suggestions: List[str]
+    curated_resources: Optional[List[Dict[str, Any]]] = Field(default=[])
+    video_suggestions: Optional[List[Dict[str, Any]]] = Field(default=[])
     timestamp: str
 
 
@@ -347,26 +350,38 @@ def assess(intake: StudentIntake, current_user: Optional[Dict[str, Any]] = Depen
 
     top_factors = get_top_factors(data, top_n=3)
 
-    # Dynamic suggestions based on risk tier
+    # Dynamic suggestions & curated resources based on risk tier and student signals
     tier = result["risk_tier"]
+    curated_videos = get_curated_youtube_links(data, tier)
+
+    gemini_ai_tips = []
+    if os.getenv("GEMINI_API_KEY"):
+        try:
+            gemini_ai_tips = get_gemini_suggestions(data)
+        except Exception:
+            pass
+
     if tier == "Low":
-        suggestions = [
+        tier_suggestions = [
             "Maintain your healthy routine and 7-8 hours of sleep.",
             "Use Pomodoro 25/5 study intervals to prevent mental fatigue.",
             "Engage in 20-30 mins of daily physical activity.",
         ]
     elif tier == "Medium":
-        suggestions = [
+        tier_suggestions = [
             "Practice 4-7-8 breathing exercises during study breaks.",
             "Connect with a study group or peer mentor to distribute workload.",
             "Schedule a light 15-minute screen-free wind-down routine before sleep.",
         ]
     else:
-        suggestions = [
+        tier_suggestions = [
             "Reach out to your designated campus counselor for a confidential session.",
             "Call National Tele-MANAS (14416) for immediate 24/7 emotional support.",
             "Speak with an academic advisor regarding workload adjustments.",
         ]
+
+    # Prioritize personalized Gemini AI suggestions if available, otherwise use tier suggestions
+    suggestions = gemini_ai_tips if gemini_ai_tips else tier_suggestions
 
     aid = str(uuid.uuid4())
     ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -397,8 +412,29 @@ def assess(intake: StudentIntake, current_user: Optional[Dict[str, Any]] = Depen
         next_step=result["next_step"],
         top_factors=top_factors,
         suggestions=suggestions,
+        curated_resources=curated_videos,
+        video_suggestions=curated_videos,
         timestamp=ts,
     )
+
+
+@app.get("/videos")
+@app.get("/api/videos")
+def get_videos_endpoint(query: Optional[str] = Query(None)):
+    """Return verified wellbeing videos with authentic YouTube thumbnails."""
+    if query:
+        q = query.lower()
+        if "exam" in q or "stress" in q or "anxiet" in q:
+            return [CURATED_RESOURCES["exam_stress"]]
+        if "sleep" in q or "rest" in q:
+            return [CURATED_RESOURCES["sleep"]]
+        if "focus" in q or "study" in q:
+            return [CURATED_RESOURCES["study_focus"]]
+        if "burnout" in q or "overwhelm" in q:
+            return [CURATED_RESOURCES["burnout_reset"]]
+        if "stretch" in q or "physical" in q:
+            return [CURATED_RESOURCES["physical_stretch"]]
+    return list(CURATED_RESOURCES.values())
 
 
 # ============================================================

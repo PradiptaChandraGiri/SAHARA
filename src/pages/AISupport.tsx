@@ -639,8 +639,17 @@ export default function AISupport() {
                       style={{ position: 'relative', display: 'block', width: '100%', height: 130, overflow: 'hidden', background: '#000000' }}
                     >
                       <img
-                        src={m.suggestedVideo.thumbnailUrl}
+                        src={m.suggestedVideo.thumbnailUrl || (m.suggestedVideo.videoId ? `https://i.ytimg.com/vi/${m.suggestedVideo.videoId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60')}
                         alt={m.suggestedVideo.title}
+                        onError={(e) => {
+                          if (m.suggestedVideo?.videoId && !e.currentTarget.src.includes('hqdefault.jpg')) {
+                            e.currentTarget.src = `https://i.ytimg.com/vi/${m.suggestedVideo.videoId}/hqdefault.jpg`
+                          } else if (m.suggestedVideo?.videoId && !e.currentTarget.src.includes('mqdefault.jpg')) {
+                            e.currentTarget.src = `https://i.ytimg.com/vi/${m.suggestedVideo.videoId}/mqdefault.jpg`
+                          } else {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60'
+                          }
+                        }}
                         style={{
                           width: '100%',
                           height: '100%',

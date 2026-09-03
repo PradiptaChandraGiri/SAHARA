@@ -5,11 +5,8 @@
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY is not set on the server.");
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let genAI = null;
+let model = null;
 
 const systemInstructionText =
   "You are SAHARA, a warm, supportive AI wellbeing companion for university " +
@@ -19,13 +16,20 @@ const systemInstructionText =
   "and helpful. If a student seems to be struggling significantly, gently " +
   "encourage them to use the 'Message a counselor' option.";
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-3.6-flash",
-  systemInstruction: {
-    role: "system",
-    parts: [{ text: systemInstructionText }],
-  },
-});
+if (process.env.GEMINI_API_KEY) {
+  try {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      systemInstruction: {
+        role: "system",
+        parts: [{ text: systemInstructionText }],
+      },
+    });
+  } catch (e) {
+    console.warn("Gemini service initialization warning:", e.message);
+  }
+}
 
 // Keyword list for routing away from freeform AI, per the earlier
 // risk-tiered response spec. This is intentionally simple/conservative -
@@ -58,18 +62,32 @@ async function getChatReply(userMessage, conversationHistory = []) {
     return { ...CRISIS_RESPONSE, flaggedCrisis: true };
   }
 
-  // Filter and format history for Gemini API
-  const history = conversationHistory
-    .filter((m) => m && m.content && (m.role === "user" || m.role === "assistant"))
-    .map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+  if (!model) {
+    return {
+      text: "I'm here to support you. Try taking three deep breaths and taking one task at a time. If you'd like to explore coping strategies, our resource library and campus counselors are here for you.",
+      flaggedCrisis: false,
+    };
+  }
 
-  const chat = model.startChat({ history });
+  try {
+    // Filter and format history for Gemini API
+    const history = conversationHistory
+      .filter((m) => m && m.content && (m.role === "user" || m.role === "assistant"))
+      .map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
 
-  const result = await chat.sendMessage(userMessage);
-  return { text: result.response.text(), flaggedCrisis: false };
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessage(userMessage);
+    return { text: result.response.text(), flaggedCrisis: false };
+  } catch (err) {
+    console.warn("Gemini chat execution fallback:", err.message);
+    return {
+      text: "Thank you for reaching out. University demands can feel overwhelming at times, but taking small pauses and focusing on what you can control right now makes a big difference. Feel free to explore our focus and relaxation tools.",
+      flaggedCrisis: false,
+    };
+  }
 }
 
 module.exports = { getChatReply, containsCrisisLanguage };

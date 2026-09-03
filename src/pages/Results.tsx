@@ -759,8 +759,17 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                         style={{ position: 'relative', display: 'block', width: '100%', height: 160, overflow: 'hidden', background: '#000000' }}
                       >
                         <img
-                          src={video.thumbnailUrl}
+                          src={video.thumbnailUrl || (video.videoId ? `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60')}
                           alt={video.title}
+                          onError={(e) => {
+                            if (video.videoId && !e.currentTarget.src.includes('hqdefault.jpg')) {
+                              e.currentTarget.src = `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`
+                            } else if (video.videoId && !e.currentTarget.src.includes('mqdefault.jpg')) {
+                              e.currentTarget.src = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
+                            } else {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60'
+                            }
+                          }}
                           style={{
                             width: '100%',
                             height: '100%',

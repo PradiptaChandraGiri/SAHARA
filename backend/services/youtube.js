@@ -15,28 +15,54 @@
 const FALLBACK_VIDEOS = {
   exam: [
     {
+      videoId: "1ZYbU82GVz4",
+      title: "Exam Panic & Anxiety Relief (4-7-8 Breathing Technique)",
+      description: "Quick Box and 4-7-8 breathing exercises to calm heart rate and clear mental fog before exams.",
+      thumbnailUrl: "https://i.ytimg.com/vi/1ZYbU82GVz4/hqdefault.jpg",
+      channelTitle: "Mindful Health Lab",
+      url: "https://www.youtube.com/watch?v=1ZYbU82GVz4",
+    },
+    {
       videoId: "1vx8iUvfyCY",
       title: "5-Minute Guided Breathing Exercise for Exam Anxiety",
-      description: "Quick Box Breathing exercise to activate your parasympathetic nervous system and reset focus.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60",
+      description: "Quick somatic breathing exercise to activate your parasympathetic nervous system and reset focus.",
+      thumbnailUrl: "https://i.ytimg.com/vi/1vx8iUvfyCY/hqdefault.jpg",
       channelTitle: "Mindful Peace",
       url: "https://www.youtube.com/watch?v=1vx8iUvfyCY",
     },
+  ],
+  study: [
     {
       videoId: "inpok4MKVLM",
       title: "How to Study with High Focus (Pomodoro Protocol)",
       description: "Evidence-based 25/5 study session structure to reduce cognitive fatigue before exams.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&auto=format&fit=crop&q=60",
+      thumbnailUrl: "https://i.ytimg.com/vi/inpok4MKVLM/hqdefault.jpg",
       channelTitle: "Study Health Lab",
       url: "https://www.youtube.com/watch?v=inpok4MKVLM",
+    },
+    {
+      videoId: "jfKfPfyJRdk",
+      title: "50/10 Pomodoro Study with Lofi Beats & Rain",
+      description: "Calm background study sprints with built-in rest intervals to sustain focus.",
+      thumbnailUrl: "https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg",
+      channelTitle: "Lofi Focus Cafe",
+      url: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
     },
   ],
   sleep: [
     {
+      videoId: "pL02HRFk2vo",
+      title: "10-Minute NSDR (Non-Sleep Deep Rest) - Huberman Lab",
+      description: "Zero-cost somatic protocol for rapid neuro-recovery, dopamine replenishment, and deep rest.",
+      thumbnailUrl: "https://i.ytimg.com/vi/pL02HRFk2vo/hqdefault.jpg",
+      channelTitle: "Huberman Lab",
+      url: "https://www.youtube.com/watch?v=pL02HRFk2vo",
+    },
+    {
       videoId: "thc4qQjP65Q",
       title: "10-Minute Wind Down Meditation for Restful Sleep",
       description: "Gentle somatic body scan to release muscle tension and calm racing thoughts before bed.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1511295742362-92c96b124e52?w=500&auto=format&fit=crop&q=60",
+      thumbnailUrl: "https://i.ytimg.com/vi/thc4qQjP65Q/hqdefault.jpg",
       channelTitle: "Sleep & Mind Lab",
       url: "https://www.youtube.com/watch?v=thc4qQjP65Q",
     },
@@ -46,9 +72,29 @@ const FALLBACK_VIDEOS = {
       videoId: "YFSc7Ck0Ao0",
       title: "Digital Detox & Eye Strain Relief (20-20-20 Rule)",
       description: "Simple ergonomic reset to reduce screen fatigue and restore mental clarity during long study blocks.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60",
+      thumbnailUrl: "https://i.ytimg.com/vi/YFSc7Ck0Ao0/hqdefault.jpg",
       channelTitle: "Wellness Focus",
       url: "https://www.youtube.com/watch?v=YFSc7Ck0Ao0",
+    },
+  ],
+  burnout: [
+    {
+      videoId: "VbXvX5H-R38",
+      title: "How to Reset When College & Life Feel Overwhelming",
+      description: "Practical strategies to break academic paralysis into gentle 15-minute micro-steps.",
+      thumbnailUrl: "https://i.ytimg.com/vi/VbXvX5H-R38/hqdefault.jpg",
+      channelTitle: "Mental Fitness Hub",
+      url: "https://www.youtube.com/watch?v=VbXvX5H-R38",
+    },
+  ],
+  stretch: [
+    {
+      videoId: "4pKly2JojMw",
+      title: "10-Minute Desk & Dorm Stretch for Mental Clarity",
+      description: "Gentle physical movement to unclamp neck and shoulder tension from sitting and studying.",
+      thumbnailUrl: "https://i.ytimg.com/vi/4pKly2JojMw/hqdefault.jpg",
+      channelTitle: "Somatic Flow",
+      url: "https://www.youtube.com/watch?v=4pKly2JojMw",
     },
   ],
   general: [
@@ -56,7 +102,7 @@ const FALLBACK_VIDEOS = {
       videoId: "1vx8iUvfyCY",
       title: "Quick 3-Minute Reset: Somatic Grounding for Students",
       description: "A gentle grounding exercise to reduce overwhelm and regain calm.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60",
+      thumbnailUrl: "https://i.ytimg.com/vi/1vx8iUvfyCY/hqdefault.jpg",
       channelTitle: "SAHARA Wellbeing Care",
       url: "https://www.youtube.com/watch?v=1vx8iUvfyCY",
     },
@@ -128,13 +174,22 @@ async function searchYouTubeVideos(query, maxResults = 3) {
 
 function getFallbackVideos(query, maxResults = 3) {
   const q = query.toLowerCase();
-  if (q.includes("sleep") || q.includes("insomnia") || q.includes("night") || q.includes("rest")) {
+  if (q.includes("sleep") || q.includes("insomnia") || q.includes("night") || q.includes("rest") || q.includes("tired")) {
     return FALLBACK_VIDEOS.sleep.slice(0, maxResults);
   }
-  if (q.includes("screen") || q.includes("digital") || q.includes("eye") || q.includes("internet")) {
+  if (q.includes("burnout") || q.includes("overwhelm") || q.includes("hopeless") || q.includes("paralysis") || q.includes("strain")) {
+    return FALLBACK_VIDEOS.burnout.slice(0, maxResults);
+  }
+  if (q.includes("study") || q.includes("focus") || q.includes("pomodoro") || q.includes("concentrat") || q.includes("procrastinat")) {
+    return FALLBACK_VIDEOS.study.slice(0, maxResults);
+  }
+  if (q.includes("stretch") || q.includes("body") || q.includes("physical") || q.includes("exercise") || q.includes("desk")) {
+    return FALLBACK_VIDEOS.stretch.slice(0, maxResults);
+  }
+  if (q.includes("screen") || q.includes("digital") || q.includes("eye") || q.includes("internet") || q.includes("phone")) {
     return FALLBACK_VIDEOS.screen.slice(0, maxResults);
   }
-  if (q.includes("exam") || q.includes("study") || q.includes("stress") || q.includes("focus") || q.includes("anxious")) {
+  if (q.includes("exam") || q.includes("test") || q.includes("stress") || q.includes("panic") || q.includes("anxious") || q.includes("breath")) {
     return FALLBACK_VIDEOS.exam.slice(0, maxResults);
   }
   return FALLBACK_VIDEOS.general.slice(0, maxResults);

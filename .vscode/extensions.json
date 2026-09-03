@@ -1,0 +1,33 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+    ],
+    "unwantedRecommendations": [
+        "redhat.java",
+        "vscjava.vscode-gradle",
+        "vscjava.vscode-java-debug",
+        "vscjava.vscode-java-dependency",
+        "vscjava.vscode-java-test",
+        "vscjava.vscode-maven",
+        "vscjava.vscode-java-pack",
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cpptools-themes",
+        "ms-vscode.cpp-devtools",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "ms-vscode.makefile-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "devsense.phptools-vscode",
+        "devsense.intelli-php-vscode",
+        "devsense.composer-php-vscode",
+        "devsense.profiler-php-vscode",
+        "ms-vscode.powershell",
+        "meta.pyrefly",
+        "golang.go",
+        "shopify.ruby-lsp"
+    ]
+}
