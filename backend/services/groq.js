@@ -477,34 +477,59 @@ Return ONLY valid JSON.`;
     }
   }
 
-  // Attach relevant domain & topic video recommendation dynamically
-  const text = `${concern} ${coachingResult.headline} ${(coachingResult.studyNotes || []).join(' ')} ${coachingResult.videoTitle || ''}`.toLowerCase();
-  let videoMatch = VERIFIED_YT_MAP.pomodoro;
-
-  if (text.includes("dynamic programming") || text.includes("recursion") || text.includes("algorithm") || text.includes("dsa") || text.includes("coding") || text.includes("code") || text.includes("data structure") || text.includes("tree")) {
-    videoMatch = VERIFIED_YT_MAP.dsa_coding;
-  } else if (text.includes("calculus") || text.includes("math") || text.includes("integral") || text.includes("derivative") || text.includes("algebra") || text.includes("matrix")) {
-    videoMatch = VERIFIED_YT_MAP.calculus_math;
-  } else if (text.includes("chemistry") || text.includes("organic") || text.includes("reaction") || text.includes("physics") || text.includes("biology") || text.includes("science")) {
-    videoMatch = VERIFIED_YT_MAP.chemistry_science;
-  } else if (text.includes("coursework") || text.includes("assignment") || text.includes("deadline") || text.includes("essay") || text.includes("project")) {
-    videoMatch = VERIFIED_YT_MAP.coursework_triage;
-  } else if (text.includes("sleep") || text.includes("tired") || text.includes("insomnia") || text.includes("wake")) {
-    videoMatch = VERIFIED_YT_MAP.sleep;
-  } else if (text.includes("panic") || text.includes("breath") || text.includes("anxious") || text.includes("heart") || text.includes("nervous")) {
-    videoMatch = VERIFIED_YT_MAP.breathing;
-  } else if (text.includes("exam") || text.includes("midterm") || text.includes("test") || text.includes("finals")) {
-    videoMatch = VERIFIED_YT_MAP.exam_stress;
-  } else if (text.includes("subject") || text.includes("memor") || text.includes("notes") || text.includes("study") || text.includes("understand")) {
-    videoMatch = VERIFIED_YT_MAP.active_recall;
-  } else if (text.includes("procrastinat") || text.includes("focus") || text.includes("distraction")) {
-    videoMatch = VERIFIED_YT_MAP.pomodoro;
+  // Attach real, query-specific live YouTube video recommendation dynamically per user input
+  let recommendedVideo = null;
+  try {
+    const { searchYouTubeVideos } = require("./youtube");
+    const searchQuery = `${concern} student study`.replace(/[^\w\s]/g, ' ').trim();
+    const liveMatches = await searchYouTubeVideos(searchQuery, 3);
+    if (liveMatches && liveMatches.length > 0) {
+      const best = liveMatches[0];
+      recommendedVideo = {
+        youtubeId: best.videoId,
+        videoTitle: best.title,
+        thumbnailUrl: best.thumbnailUrl || `https://i.ytimg.com/vi/${best.videoId}/hqdefault.jpg`,
+        channelTitle: best.channelTitle || "YouTube Wellbeing",
+        url: best.url || `https://www.youtube.com/watch?v=${best.videoId}`,
+        description: best.description || "",
+      };
+    }
+  } catch (err) {
+    console.warn("Dynamic video lookup error in generateFollowupCoaching:", err.message);
   }
 
-  coachingResult.recommendedVideo = {
-    youtubeId: videoMatch.youtubeId,
-    videoTitle: coachingResult.videoTitle || videoMatch.videoTitle,
-  };
+  if (!recommendedVideo) {
+    const text = `${concern} ${coachingResult.headline} ${(coachingResult.studyNotes || []).join(' ')} ${coachingResult.videoTitle || ''}`.toLowerCase();
+    let videoMatch = VERIFIED_YT_MAP.pomodoro;
+
+    if (text.includes("dynamic programming") || text.includes("recursion") || text.includes("algorithm") || text.includes("dsa") || text.includes("coding") || text.includes("code") || text.includes("data structure") || text.includes("tree")) {
+      videoMatch = VERIFIED_YT_MAP.dsa_coding;
+    } else if (text.includes("calculus") || text.includes("math") || text.includes("integral") || text.includes("derivative") || text.includes("algebra") || text.includes("matrix")) {
+      videoMatch = VERIFIED_YT_MAP.calculus_math;
+    } else if (text.includes("chemistry") || text.includes("organic") || text.includes("reaction") || text.includes("physics") || text.includes("biology") || text.includes("science")) {
+      videoMatch = VERIFIED_YT_MAP.chemistry_science;
+    } else if (text.includes("coursework") || text.includes("assignment") || text.includes("deadline") || text.includes("essay") || text.includes("project")) {
+      videoMatch = VERIFIED_YT_MAP.coursework_triage;
+    } else if (text.includes("sleep") || text.includes("tired") || text.includes("insomnia") || text.includes("wake")) {
+      videoMatch = VERIFIED_YT_MAP.sleep;
+    } else if (text.includes("panic") || text.includes("breath") || text.includes("anxious") || text.includes("heart") || text.includes("nervous")) {
+      videoMatch = VERIFIED_YT_MAP.breathing;
+    } else if (text.includes("exam") || text.includes("midterm") || text.includes("test") || text.includes("finals")) {
+      videoMatch = VERIFIED_YT_MAP.exam_stress;
+    } else if (text.includes("subject") || text.includes("memor") || text.includes("notes") || text.includes("study") || text.includes("understand")) {
+      videoMatch = VERIFIED_YT_MAP.active_recall;
+    }
+
+    recommendedVideo = {
+      youtubeId: videoMatch.youtubeId,
+      videoTitle: coachingResult.videoTitle || videoMatch.videoTitle,
+      thumbnailUrl: `https://i.ytimg.com/vi/${videoMatch.youtubeId}/hqdefault.jpg`,
+      channelTitle: "SAHARA Wellbeing",
+      url: `https://www.youtube.com/watch?v=${videoMatch.youtubeId}`,
+    };
+  }
+
+  coachingResult.recommendedVideo = recommendedVideo;
 
   return coachingResult;
 }

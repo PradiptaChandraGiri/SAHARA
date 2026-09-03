@@ -112,6 +112,52 @@ const FALLBACK_VIDEOS = {
 const cache = new Map();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+async function scrapeLiveYouTubeVideos(query, maxResults = 3) {
+  try {
+    const encoded = encodeURIComponent(query.trim());
+    const response = await fetch(`https://www.youtube.com/results?search_query=${encoded}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const match = html.match(/ytInitialData\s*=\s*({.+?});<\/script>/);
+    if (!match) return null;
+
+    const parsed = JSON.parse(match[1]);
+    const sectionList = parsed.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+    const contents = sectionList.find((c) => c.itemSectionRenderer)?.itemSectionRenderer?.contents || [];
+
+    const videos = [];
+    for (const item of contents) {
+      const v = item.videoRenderer;
+      if (v && v.videoId && v.title?.runs?.[0]?.text) {
+        const videoId = v.videoId;
+        const title = v.title.runs.map((r) => r.text).join("");
+        const channelTitle = v.ownerText?.runs?.[0]?.text || "YouTube Wellbeing";
+        const description = v.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map((r) => r.text).join("") || "";
+        const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        videos.push({
+          videoId,
+          title,
+          description,
+          thumbnailUrl,
+          channelTitle,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+        });
+        if (videos.length >= maxResults) break;
+      }
+    }
+    return videos.length > 0 ? videos : null;
+  } catch (err) {
+    console.warn("Live YouTube scraper fallback:", err.message);
+    return null;
+  }
+}
+
 async function searchYouTubeVideos(query, maxResults = 3) {
   const cacheKey = query.toLowerCase().trim();
   const cached = cache.get(cacheKey);
@@ -121,55 +167,57 @@ async function searchYouTubeVideos(query, maxResults = 3) {
 
   const apiKey = process.env.YOUTUBE_API_KEY;
 
-  if (!apiKey || !apiKey.startsWith("AIzaSy")) {
-    // Return curated high-yield videos directly if dedicated YouTube key is not configured
-    return getFallbackVideos(query, maxResults);
+  // 1. If official API key is provided, try YouTube Data API v3
+  if (apiKey && apiKey.startsWith("AIzaSy")) {
+    try {
+      const params = new URLSearchParams({
+        part: "snippet",
+        q: `${query} mental health student wellbeing`,
+        type: "video",
+        videoEmbeddable: "true",
+        safeSearch: "strict",
+        order: "relevance",
+        maxResults: String(maxResults),
+        relevanceLanguage: "en",
+        key: apiKey,
+      });
+
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+          const results = data.items
+            .filter((item) => item.id && item.id.videoId)
+            .map((item) => ({
+              videoId: item.id.videoId,
+              title: item.snippet.title,
+              description: item.snippet.description,
+              thumbnailUrl: `https://i.ytimg.com/vi/${item.id.videoId}/hqdefault.jpg`,
+              channelTitle: item.snippet.channelTitle,
+              url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+            }));
+
+          if (results.length > 0) {
+            cache.set(cacheKey, { results, expiresAt: Date.now() + CACHE_TTL_MS });
+            return results;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Official YouTube API query error, proceeding to live dynamic scraper:", err.message);
+    }
   }
 
-  try {
-    const params = new URLSearchParams({
-      part: "snippet",
-      q: `${query} mental health student wellbeing`,
-      type: "video",
-      videoEmbeddable: "true",
-      safeSearch: "strict",
-      order: "relevance",
-      maxResults: String(maxResults),
-      relevanceLanguage: "en",
-      key: apiKey,
-    });
-
-    const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
-
-    if (!response.ok) {
-      return getFallbackVideos(query, maxResults);
-    }
-
-    const data = await response.json();
-    if (!data.items || data.items.length === 0) {
-      return getFallbackVideos(query, maxResults);
-    }
-
-    const results = data.items
-      .filter((item) => item.id && item.id.videoId)
-      .map((item) => ({
-        videoId: item.id.videoId,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnailUrl: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${item.id.videoId}/mqdefault.jpg`,
-        channelTitle: item.snippet.channelTitle,
-        url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-      }));
-
-    if (results.length === 0) {
-      return getFallbackVideos(query, maxResults);
-    }
-
-    cache.set(cacheKey, { results, expiresAt: Date.now() + CACHE_TTL_MS });
-    return results;
-  } catch (err) {
-    return getFallbackVideos(query, maxResults);
+  // 2. Dynamic live search scraper - delivers real, query-specific YouTube results per student prompt
+  const liveResults = await scrapeLiveYouTubeVideos(query, maxResults);
+  if (liveResults && liveResults.length > 0) {
+    cache.set(cacheKey, { results: liveResults, expiresAt: Date.now() + CACHE_TTL_MS });
+    return liveResults;
   }
+
+  // 3. High-quality curated catalog fallback
+  const fallback = getFallbackVideos(query, maxResults);
+  return fallback;
 }
 
 function getFallbackVideos(query, maxResults = 3) {

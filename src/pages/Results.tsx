@@ -67,6 +67,10 @@ interface FollowupCoachingResult {
   recommendedVideo?: {
     youtubeId: string
     videoTitle: string
+    thumbnailUrl?: string
+    channelTitle?: string
+    url?: string
+    description?: string
   }
 }
 
@@ -1017,51 +1021,134 @@ export default function Results({ data, onNavigate }: ResultsProps) {
                 </div>
               )}
 
-              {/* Recommended Video Pill */}
+              {/* Recommended Video Guide Card with Authentic Thumbnail */}
               {activeCoaching.recommendedVideo && (
                 <div
                   style={{
                     background: '#F0FDFA',
-                    borderRadius: 8,
-                    padding: '10px 14px',
+                    borderRadius: 12,
+                    border: '1.5px solid #CCFBF1',
+                    marginBottom: 16,
+                    overflow: 'hidden',
                     display: 'flex',
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    marginBottom: 14,
-                    border: '1px solid #CCFBF1',
+                    gap: 14,
+                    padding: '12px',
+                    boxShadow: '0 2px 6px rgba(15,118,110,0.06)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Play size={16} color="#E53E3E" fill="#E53E3E" />
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase' }}>
-                        Recommended Video Guide
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0E1A2B' }}>
-                        {activeCoaching.recommendedVideo.videoTitle}
+                  {/* Thumbnail with Play Overlay */}
+                  <a
+                    href={activeCoaching.recommendedVideo.url || `https://www.youtube.com/watch?v=${activeCoaching.recommendedVideo.youtubeId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      position: 'relative',
+                      width: 140,
+                      height: 86,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      background: '#0F172A',
+                      display: 'block',
+                    }}
+                  >
+                    <img
+                      src={activeCoaching.recommendedVideo.thumbnailUrl || `https://i.ytimg.com/vi/${activeCoaching.recommendedVideo.youtubeId}/hqdefault.jpg`}
+                      alt={activeCoaching.recommendedVideo.videoTitle}
+                      onError={(e) => {
+                        const target = e.currentTarget
+                        if (activeCoaching.recommendedVideo?.youtubeId && !target.src.includes('hqdefault.jpg')) {
+                          target.src = `https://i.ytimg.com/vi/${activeCoaching.recommendedVideo.youtubeId}/hqdefault.jpg`
+                        } else if (activeCoaching.recommendedVideo?.youtubeId && !target.src.includes('mqdefault.jpg')) {
+                          target.src = `https://i.ytimg.com/vi/${activeCoaching.recommendedVideo.youtubeId}/mqdefault.jpg`
+                        } else {
+                          target.src = 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&auto=format&fit=crop&q=60'
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.25s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.0)')}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: 'rgba(1, 87, 94, 0.95)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        <Play size={14} fill="#FFFFFF" style={{ marginLeft: 2 }} />
                       </div>
                     </div>
+                  </a>
+
+                  {/* Video Meta & Title */}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Recommended Video Guide
+                      </span>
+                      {activeCoaching.recommendedVideo.channelTitle && (
+                        <span style={{ fontSize: 11, color: '#64748B' }}>
+                          • {activeCoaching.recommendedVideo.channelTitle}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0E1A2B', lineHeight: 1.35, marginBottom: 6 }}>
+                      {activeCoaching.recommendedVideo.videoTitle}
+                    </div>
+                    {activeCoaching.recommendedVideo.description && (
+                      <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {activeCoaching.recommendedVideo.description}
+                      </p>
+                    )}
                   </div>
 
+                  {/* Watch CTA */}
                   <a
-                    href={`https://www.youtube.com/watch?v=${activeCoaching.recommendedVideo.youtubeId}`}
+                    href={activeCoaching.recommendedVideo.url || `https://www.youtube.com/watch?v=${activeCoaching.recommendedVideo.youtubeId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4,
+                      gap: 6,
                       background: '#01575E',
                       color: '#FFFFFF',
-                      padding: '5px 10px',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 600,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 700,
                       textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 4px rgba(1,87,94,0.15)',
                     }}
                   >
-                    <span>Watch</span>
+                    <Play size={12} fill="#FFFFFF" />
+                    <span>Watch on YouTube</span>
                     <ExternalLink size={11} />
                   </a>
                 </div>
