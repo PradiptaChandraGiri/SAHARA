@@ -96,6 +96,16 @@ app.use(notificationRoutes);
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// Serve built frontend assets
+const distPath = path.join(__dirname, "../dist");
+app.use(express.static(distPath));
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/auth") || req.path.startsWith("/health") || req.path.startsWith("/whatsapp")) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, "index.html"));
+});
+
 // Schedule notification reminder tick every 15 minutes (runs at :00, :15, :30, :45)
 cron.schedule("*/15 * * * *", () => {
   runSchedulerTick().catch((err) => console.error("Cron scheduler error:", err));

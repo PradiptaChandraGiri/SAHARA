@@ -109,8 +109,8 @@ function OptionCards({
               padding: '12px 14px',
               borderRadius: 10,
               border: isSelected ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
-              background: isSelected ? 'var(--color-primary-subtle)' : 'var(--color-surface)',
-              color: isSelected ? 'var(--color-primary)' : 'var(--color-text-primary)',
+              background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-raised)',
+              color: isSelected ? '#FFFFFF' : 'var(--color-text-primary)',
               fontWeight: isSelected ? 700 : 500,
               fontSize: 13.5,
               cursor: 'pointer',
@@ -371,7 +371,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748B',
+              color: 'var(--color-text-muted)',
               fontSize: 13.5,
               fontWeight: 600,
               cursor: 'pointer',
@@ -384,8 +384,8 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
             <span>{step > 1 ? 'Previous Step' : 'Back to Dashboard'}</span>
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}>
-            <Lock size={13} color="#01575E" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            <Lock size={13} color="var(--color-primary)" />
             <span>Encrypted & Confidential</span>
           </div>
         </div>
@@ -452,25 +452,26 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
         {/* Step Progress Header */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '28px 32px',
             marginBottom: 24,
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#01575E', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>
               Step {step} of {steps.length}
             </span>
-            <span style={{ fontSize: 13, color: '#64748B' }}>{steps[step - 1].title}</span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{steps[step - 1].title}</span>
           </div>
 
-          <div style={{ width: '100%', height: 6, background: '#F1F5F9', borderRadius: 99, marginBottom: 20 }}>
+          <div style={{ width: '100%', height: 6, background: 'var(--color-surface-raised)', borderRadius: 99, marginBottom: 20 }}>
             <div
               style={{
                 height: '100%',
-                background: '#01575E',
+                background: 'var(--color-primary)',
                 borderRadius: 99,
                 width: `${(step / steps.length) * 100}%`,
                 transition: 'width 0.25s ease',
@@ -478,10 +479,10 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
             />
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0E1A2B', margin: '0 0 6px' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
             {steps[step - 1].title}
           </h2>
-          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>{steps[step - 1].subtitle}</p>
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>{steps[step - 1].subtitle}</p>
         </div>
 
         {/* Validation error */}
@@ -508,11 +509,12 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
         {/* Step Contents */}
         <div
           style={{
-            background: '#FFFFFF',
-            border: '1.5px solid #E2E8F0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: 16,
             padding: '32px',
             marginBottom: 24,
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           {step === 1 && (
@@ -526,7 +528,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               />
 
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Gender Identity
                 </label>
                 <OptionCards
@@ -541,7 +543,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               </div>
 
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Academic Year
                 </label>
                 <OptionCards
@@ -557,7 +559,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Department / Major
                 </label>
                 <OptionCards
@@ -628,7 +630,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               />
 
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Physical Activity / Exercise Routine
                 </label>
                 <OptionCards
@@ -664,7 +666,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               />
 
               <div style={{ marginBottom: 24 }}>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Financial Strain / Living Costs
                 </label>
                 <OptionCards
@@ -679,7 +681,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#0E1A2B', marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
                   Family Academic Expectations
                 </label>
                 <OptionCards
@@ -698,8 +700,8 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
           {step === 5 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Edit3 size={18} color="#01575E" />
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0E1A2B', margin: 0 }}>
+                <Edit3 size={18} color="var(--color-primary)" />
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Review Your Inputs
                 </h3>
               </div>
@@ -709,40 +711,40 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: 12,
-                  background: '#F8FAFC',
+                  background: 'var(--color-surface-raised)',
                   borderRadius: 12,
                   padding: '18px 20px',
                   marginBottom: 20,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--color-border)',
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Program</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.department} (Yr {form.year})</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Program</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.department} (Yr {form.year})</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Daily Sleep</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.sleepHours} hrs</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Daily Sleep</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.sleepHours} hrs</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Study Load</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.studyHours} hrs/day</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Study Load</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.studyHours} hrs/day</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Exam Pressure</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.examPressure}/10</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Exam Pressure</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.examPressure}/10</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Stress Level</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.stressLevel}/10</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Stress Level</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.stressLevel}/10</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: 11.5, color: '#64748B', display: 'block' }}>Social Connection</span>
-                  <strong style={{ fontSize: 13.5, color: '#0E1A2B' }}>{form.socialSupport}/10</strong>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)', display: 'block' }}>Social Connection</span>
+                  <strong style={{ fontSize: 13.5, color: 'var(--color-text-primary)' }}>{form.socialSupport}/10</strong>
                 </div>
               </div>
 
-              <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5, margin: 0 }}>
                 When you click "Run AI Wellbeing Assessment", SAHARA computes your dual Random Forest model inference and generates real-time clinical recovery suggestions.
               </p>
             </div>
@@ -806,11 +808,11 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                 width: '100%',
                 maxHeight: '90vh',
                 overflowY: 'auto',
-                background: '#FFFFFF',
+                background: 'var(--color-surface)',
                 borderRadius: 16,
                 padding: '28px 30px',
-                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
-                border: '1.5px solid #E2E8F0',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4)',
+                border: '1.5px solid var(--color-border)',
                 position: 'relative',
               }}
             >
@@ -821,7 +823,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                   position: 'absolute',
                   top: 18,
                   right: 18,
-                  background: '#F1F5F9',
+                  background: 'var(--color-surface-raised)',
                   border: 'none',
                   borderRadius: '50%',
                   width: 32,
@@ -830,7 +832,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: '#64748B',
+                  color: 'var(--color-text-muted)',
                 }}
               >
                 <X size={18} />
@@ -842,8 +844,8 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: '#E0F2F1',
-                    color: '#01575E',
+                    background: 'var(--color-primary-subtle)',
+                    color: 'var(--color-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -851,12 +853,12 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                 >
                   <Bot size={18} />
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0E1A2B', margin: 0 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', margin: 0 }}>
                   Conversational Symptom & Strain Intake
                 </h3>
               </div>
 
-              <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.5, margin: '0 0 16px' }}>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', lineHeight: 1.5, margin: '0 0 16px' }}>
                 Describe what you're experiencing in plain language (e.g. sleep hours, symptoms, exam pressure, department, stress level). SAHARA AI will extract your clinical parameters automatically.
               </p>
 
@@ -869,7 +871,9 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
                   width: '100%',
                   padding: '12px 14px',
                   borderRadius: 10,
-                  border: '1.5px solid #CBD5E1',
+                  background: 'var(--color-surface-raised)',
+                  color: 'var(--color-text-primary)',
+                  border: '1.5px solid var(--color-border)',
                   fontSize: 13.5,
                   lineHeight: 1.5,
                   outline: 'none',
@@ -899,34 +903,34 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
               {parsedPreview && (
                 <div
                   style={{
-                    background: '#F0FDFA',
-                    border: '1.5px solid #99F6E4',
+                    background: 'var(--color-surface-raised)',
+                    border: '1.5px solid var(--color-primary)',
                     borderRadius: 12,
                     padding: '16px 18px',
                     marginBottom: 20,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F766E', textTransform: 'uppercase', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: 6 }}>
                     Clinical Parameter Extraction
                   </div>
-                  <p style={{ fontSize: 13, color: '#115E59', margin: '0 0 12px', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-primary)', margin: '0 0 12px', fontStyle: 'italic' }}>
                     "{parsedPreview.symptomSummary}"
                   </p>
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                    <span style={{ background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
                       Sleep: <strong>{parsedPreview.sleep_hours} hrs</strong>
                     </span>
-                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                    <span style={{ background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
                       Exam Pressure: <strong>{parsedPreview.exam_pressure}/10</strong>
                     </span>
-                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                    <span style={{ background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
                       Stress Level: <strong>{parsedPreview.stress_level}/10</strong>
                     </span>
-                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                    <span style={{ background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
                       Study Load: <strong>{parsedPreview.study_hours_per_day} hrs</strong>
                     </span>
-                    <span style={{ background: '#FFFFFF', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid #CCFBF1', color: '#0F766E' }}>
+                    <span style={{ background: 'var(--color-surface)', padding: '4px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
                       Major: <strong>{parsedPreview.department} (Yr {parsedPreview.academic_year})</strong>
                     </span>
                   </div>
