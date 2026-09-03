@@ -111,15 +111,39 @@ export default function MobileNav({ currentPage, onNavigate }: MobileNavProps) {
           </div>
         </div>
 
-        {/* Right: Theme Toggle & Hamburger */}
+        {/* Right: Sign In button (if guest) + Theme Toggle & Hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!user && (
+            <button
+              type="button"
+              onClick={() => handleNav('login')}
+              style={{
+                background: 'var(--color-primary)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <LogIn size={13} />
+              <span>Sign In</span>
+            </button>
+          )}
           <ThemeToggle variant="compact" />
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle navigation menu"
             style={{
               background: 'var(--color-surface-raised)',
-              border: '1px solid var(--color-border)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: 8,
               width: 36,
               height: 36,
@@ -416,7 +440,7 @@ export default function MobileNav({ currentPage, onNavigate }: MobileNavProps) {
           { id: 'student-dashboard', label: 'Dashboard', icon: <HomeIcon size={20} /> },
           { id: 'checkin', label: 'Check-in', icon: <Activity size={20} /> },
           { id: 'ai-support', label: 'AI Support', icon: <MessageSquare size={20} /> },
-          { id: 'profile', label: 'Profile', icon: <User size={20} /> },
+          { id: user ? 'profile' : 'login', label: user ? 'Profile' : 'Sign In', icon: user ? <User size={20} /> : <LogIn size={20} /> },
         ].map((btn) => (
           <button
             key={btn.id}

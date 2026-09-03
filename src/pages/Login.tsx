@@ -94,16 +94,12 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--color-background)', transition: 'background-color 0.25s ease' }}>
-      {/* Left — Brand Hero Panel */}
-      <div style={{
-        flex: '0 0 46%', position: 'relative', overflow: 'hidden',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '48px 56px', minWidth: 420,
-      }}>
+    <div className="login-page-container">
+      {/* Left / Top — Brand Hero Panel */}
+      <div className="login-brand-panel">
         <DawnArc style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} />
         
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, background: 'var(--color-accent)',
@@ -120,43 +116,47 @@ export default function Login({ onSuccess, onExploreGuest }: LoginProps) {
         </div>
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 410 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 18,
-            border: '1px solid rgba(232,181,99,0.35)', borderRadius: 99, padding: '4px 14px',
-          }}>
+          <div
+            className="login-brand-badge"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 18,
+              border: '1px solid rgba(232,181,99,0.35)', borderRadius: 99, padding: '4px 14px',
+              background: 'rgba(14, 26, 43, 0.4)',
+            }}
+          >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-accent)' }} />
             <span style={{ fontSize: 12.5, color: 'var(--color-accent)', fontWeight: 600 }}>
               Institutional Student Wellbeing &amp; Early-Warning
             </span>
           </div>
-          <h1 style={{ color: '#FFFFFF', fontSize: 36, fontWeight: 800, lineHeight: 1.25, marginBottom: 16, letterSpacing: '-0.02em' }}>
+          <h1 className="login-brand-title" style={{ color: '#FFFFFF', fontSize: 36, fontWeight: 800, lineHeight: 1.25, marginBottom: 16, letterSpacing: '-0.02em' }}>
             Early signs, caught at first light.
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, lineHeight: 1.7 }}>
+          <p className="login-brand-subtitle" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, lineHeight: 1.7 }}>
             A unified early-warning system for student wellbeing and academic risk —
             connecting students, faculty mentors, and counselors before challenges escalate.
           </p>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="login-brand-footer" style={{ position: 'relative', zIndex: 1, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Confidential &amp; Anonymized by Default</span>
           <span>Institutional Single Sign-On</span>
         </div>
       </div>
 
-      {/* Right — Single Sign-On Panel */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 48px', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 24, right: 24 }}>
+      {/* Right / Bottom — Single Sign-On Panel */}
+      <div className="login-form-panel">
+        <div style={{ position: 'absolute', top: 20, right: 20 }}>
           <ThemeToggle variant="compact" />
         </div>
 
         <div style={{ width: '100%', maxWidth: 400 }}>
           
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
               Sign in to SAHARA
             </h2>
-            <p style={{ fontSize: 14.5, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.55, margin: 0 }}>
               Continue with your verified Google or GitHub account. Your institutional role (Student, Counselor, or Admin) will be automatically recognized.
             </p>
           </div>

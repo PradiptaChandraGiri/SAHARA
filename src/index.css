@@ -385,6 +385,84 @@ body {
   }
 }
 
+/* ==========================================================================
+   LOGIN SCREEN RESPONSIVE STYLES
+   ========================================================================== */
+.login-page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background: var(--color-background);
+  transition: background-color 0.25s ease;
+  width: 100%;
+}
+
+.login-brand-panel {
+  flex: 0 0 46%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+  min-width: 380px;
+}
+
+.login-form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 48px;
+  position: relative;
+  background: var(--color-background);
+}
+
+@media (max-width: 860px) {
+  .login-page-container {
+    flex-direction: column !important;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .login-brand-panel {
+    flex: none !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    padding: 24px 20px 20px !important;
+    min-height: unset !important;
+    box-sizing: border-box;
+  }
+
+  .login-brand-subtitle {
+    display: none !important;
+  }
+
+  .login-brand-footer {
+    display: none !important;
+  }
+
+  .login-brand-title {
+    font-size: 22px !important;
+    line-height: 1.25 !important;
+    margin-bottom: 0px !important;
+  }
+
+  .login-brand-badge {
+    margin-bottom: 8px !important;
+    padding: 3px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .login-form-panel {
+    flex: 1 !important;
+    padding: 28px 20px 60px !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
 @keyframes slideInLeft {
   from {
     transform: translateX(-100%);
