@@ -229,7 +229,7 @@ router.post("/api/me/retention/purge-old", async (req, res) => {
       const keepIds = keepRows.rows.map((r) => r.id);
       if (keepIds.length > 0) {
         const delRes = await pool.query(
-          `DELETE FROM results WHERE user_id = $1 AND id != ALL($2::uuid[])`,
+          `DELETE FROM results WHERE user_id = $1 AND NOT (id = ANY($2::uuid[]))`,
           [userId, keepIds]
         );
         deletedCount = delRes.rowCount;
@@ -275,7 +275,7 @@ router.post("/api/me/retention/consolidate-daily", async (req, res) => {
     let deletedCount = 0;
     if (keepIds.length > 0) {
       const delRes = await pool.query(
-        `DELETE FROM results WHERE user_id = $1 AND id != ALL($2::uuid[])`,
+        `DELETE FROM results WHERE user_id = $1 AND NOT (id = ANY($2::uuid[]))`,
         [userId, keepIds]
       );
       deletedCount = delRes.rowCount;
