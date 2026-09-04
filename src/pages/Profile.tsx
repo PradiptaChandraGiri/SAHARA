@@ -85,6 +85,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [isExtending, setIsExtending] = useState(false)
   const [extendSuccess, setExtendSuccess] = useState(false)
   const [updatingDays, setUpdatingDays] = useState(false)
+  const [pruningStorage, setPruningStorage] = useState(false)
+  const [pruneSuccessMsg, setPruneSuccessMsg] = useState<string | null>(null)
+  const [timeWindowFilter, setTimeWindowFilter] = useState<number | 'all'>(14)
 
   // Notification Preferences State
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>({
@@ -341,6 +344,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
         body: JSON.stringify({ retentionDays: days }),
       })
       if (res.ok) {
+        setTimeWindowFilter(days)
         await fetchRetentionStatus()
         await fetchHistory()
       }
@@ -348,6 +352,39 @@ export default function Profile({ onNavigate }: ProfileProps) {
       console.warn('Error updating retention timeline:', err)
     } finally {
       setUpdatingDays(false)
+    }
+  }
+
+  const handlePruneStorage = async (options: { olderThanDays?: number; keepLatestCount?: number }) => {
+    const confirmMsg = options.keepLatestCount
+      ? `Are you sure you want to prune older test data and keep only your ${options.keepLatestCount} most recent check-ins?`
+      : `Are you sure you want to permanently delete records older than ${options.olderThanDays || 30} days to optimize database storage?`
+
+    if (!window.confirm(confirmMsg)) return
+
+    setPruningStorage(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/me/retention/purge-old`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(options),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPruneSuccessMsg(data.message || 'Storage optimized successfully.')
+        await fetchHistory()
+        await fetchRetentionStatus()
+        setTimeout(() => setPruneSuccessMsg(null), 5000)
+      }
+    } catch (err) {
+      console.warn('Prune storage error:', err)
+    } finally {
+      setPruningStorage(false)
     }
   }
 
@@ -420,7 +457,13 @@ export default function Profile({ onNavigate }: ProfileProps) {
     }
   }
 
-  const sortedChronological = [...history].sort(
+  const visibleHistory = history.filter((item) => {
+    if (timeWindowFilter === 'all') return true
+    const cutoffMs = Date.now() - Number(timeWindowFilter) * 24 * 60 * 60 * 1000
+    return new Date(item.timestamp).getTime() >= cutoffMs
+  })
+
+  const sortedChronological = [...visibleHistory].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   )
   const hasTrend = sortedChronological.length >= 2
@@ -1243,6 +1286,77 @@ export default function Profile({ onNavigate }: ProfileProps) {
               ))}
             </div>
           </div>
+
+          {/* Storage Efficiency & Test Data Cleanup */}
+          <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--color-border-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+              <div>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--color-text-primary)', display: 'block' }}>
+                  Database Storage Management &amp; Data Pruning
+                </span>
+                <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+                  Automatically deletes expired check-ins nightly. You can also manually prune older records or clear test data anytime to use storage efficiently.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handlePruneStorage({ olderThanDays: 30 })}
+                  disabled={pruningStorage || history.length === 0}
+                  className="btn-outline-dark"
+                  style={{ padding: '7px 14px', fontSize: 12.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Trash2 size={13} />
+                  <span>Purge Records &gt;30 Days</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handlePruneStorage({ keepLatestCount: 3 })}
+                  disabled={pruningStorage || history.length <= 3}
+                  style={{
+                    background: 'var(--color-risk-high-bg)',
+                    color: 'var(--color-risk-high-text)',
+                    border: '1px solid var(--color-risk-high-border)',
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: history.length <= 3 ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    opacity: history.length <= 3 ? 0.6 : 1,
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>Prune Test Data (Keep Last 3)</span>
+                </button>
+              </div>
+            </div>
+
+            {pruneSuccessMsg && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  background: 'var(--color-risk-low-bg)',
+                  border: '1px solid var(--color-risk-low-border)',
+                  color: 'var(--color-risk-low-text)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <CheckCircle2 size={16} />
+                <span>{pruneSuccessMsg}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 4. Longitudinal Trend View (If 2+ Check-ins Exist) */}
@@ -1256,18 +1370,44 @@ export default function Profile({ onNavigate }: ProfileProps) {
               marginBottom: 28,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Longitudinal Wellbeing Progress
                 </h3>
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
-                  Risk score evolution across your last {sortedChronological.length} check-ins
+                  Risk score evolution across your {sortedChronological.length} check-ins ({timeWindowFilter === 'all' ? 'All Active Time' : `Past ${timeWindowFilter} Days`})
                 </p>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)', background: 'var(--color-primary-subtle)', padding: '4px 10px', borderRadius: 6 }}>
-                Trajectory Tracked
-              </span>
+
+              {/* Interactive Timeframe Filter Tabs */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface-raised)', padding: '4px 6px', borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                {[
+                  { value: 7, label: '7 Days' },
+                  { value: 14, label: '14 Days' },
+                  { value: 30, label: '30 Days' },
+                  { value: 'all', label: 'All Records' },
+                ].map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTimeWindowFilter(t.value as any)}
+                    style={{
+                      background: timeWindowFilter === t.value ? 'var(--color-primary)' : 'transparent',
+                      color: timeWindowFilter === t.value ? '#FFFFFF' : 'var(--color-text-secondary)',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Responsive SVG Trend Chart */}
@@ -1331,13 +1471,13 @@ export default function Profile({ onNavigate }: ProfileProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Clock size={18} color="var(--color-primary)" />
               <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Past Check-in History ({history.length})
+                Past Check-in History ({visibleHistory.length}{timeWindowFilter !== 'all' ? ` of ${history.length} active` : ''})
               </h3>
             </div>
 
             {history.length > 0 && (
               <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-                Protected by {retention.retentionDays}-day retention policy
+                Showing records within {timeWindowFilter === 'all' ? 'entire' : `${timeWindowFilter}-day`} window
               </span>
             )}
           </div>
@@ -1363,6 +1503,24 @@ export default function Profile({ onNavigate }: ProfileProps) {
                 Start First Check-in
               </button>
             </div>
+          ) : visibleHistory.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px 20px', background: 'var(--color-surface-raised)', borderRadius: 12 }}>
+              <Clock size={32} color="var(--color-text-muted)" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 4px' }}>
+                No check-ins recorded in the selected past {timeWindowFilter} days.
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
+                You have {history.length} older check-ins preserved. Switch to a longer timeframe to view them.
+              </p>
+              <button
+                type="button"
+                onClick={() => setTimeWindowFilter('all')}
+                className="btn-outline-dark"
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                Show All {history.length} Check-ins
+              </button>
+            </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
@@ -1377,7 +1535,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((row, idx) => {
+                  {visibleHistory.map((row, idx) => {
                     const tier = row.risk_tier || 'Low'
                     const factorsList = Array.isArray(row.top_factors)
                       ? row.top_factors

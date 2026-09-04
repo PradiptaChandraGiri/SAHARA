@@ -111,5 +111,18 @@ cron.schedule("*/15 * * * *", () => {
   runSchedulerTick().catch((err) => console.error("Cron scheduler error:", err));
 });
 
+// Nightly Automatic Data Retention Cleanup (Runs daily at 00:00 midnight)
+cron.schedule("0 0 * * *", async () => {
+  try {
+    const delResults = await pool.query(`DELETE FROM results WHERE expires_at IS NOT NULL AND expires_at < now()`);
+    const delCheckins = await pool.query(`DELETE FROM checkins WHERE expires_at IS NOT NULL AND expires_at < now()`);
+    if (delResults.rowCount > 0 || delCheckins.rowCount > 0) {
+      console.log(`[Nightly Storage Purge] Automatically cleaned up ${delResults.rowCount} expired results and ${delCheckins.rowCount} expired check-ins.`);
+    }
+  } catch (err) {
+    console.error("Nightly retention cleanup error:", err.message);
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`SAHARA backend running on port ${PORT}`));

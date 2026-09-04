@@ -211,6 +211,52 @@ router.post("/api/me/retention/cleanup", async (req, res) => {
   }
 });
 
+// POST /api/me/retention/purge-old - prunes records older than N days (default 30) or trims test records
+router.post("/api/me/retention/purge-old", async (req, res) => {
+  const userId = getUserIdFromReq(req);
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
+
+  const { olderThanDays = 30, keepLatestCount = null } = req.body || {};
+
+  try {
+    let deletedCount = 0;
+    if (keepLatestCount !== null && Number(keepLatestCount) > 0) {
+      // Keep only the most recent N check-ins
+      const keepRows = await pool.query(
+        `SELECT id FROM results WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
+        [userId, Number(keepLatestCount)]
+      );
+      const keepIds = keepRows.rows.map((r) => r.id);
+      if (keepIds.length > 0) {
+        const delRes = await pool.query(
+          `DELETE FROM results WHERE user_id = $1 AND id != ALL($2::uuid[])`,
+          [userId, keepIds]
+        );
+        deletedCount = delRes.rowCount;
+      }
+    } else {
+      const days = Number(olderThanDays) || 30;
+      const delRes = await pool.query(
+        `DELETE FROM results WHERE user_id = $1 AND created_at < now() - ($2 || ' days')::INTERVAL`,
+        [userId, days]
+      );
+      deletedCount = delRes.rowCount;
+    }
+
+    // Also remove any expired checkin entries for this user
+    await pool.query(`DELETE FROM checkins WHERE user_id = $1 AND expires_at IS NOT NULL AND expires_at < now()`);
+
+    res.json({
+      ok: true,
+      deletedCount,
+      message: `Cleaned up ${deletedCount} record(s) to optimize storage.`,
+    });
+  } catch (err) {
+    console.error("Purge old records error:", err);
+    res.status(500).json({ error: "Failed to purge older records." });
+  }
+});
+
 // POST /api/results/ai-guidance - Generates real-time AI guidance & dynamic tailored suggestions using Groq
 router.post("/api/results/ai-guidance", async (req, res) => {
   const assessmentData = req.body || {};
