@@ -88,6 +88,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [pruningStorage, setPruningStorage] = useState(false)
   const [pruneSuccessMsg, setPruneSuccessMsg] = useState<string | null>(null)
   const [timeWindowFilter, setTimeWindowFilter] = useState<number | 'all'>(14)
+  const [analyticsGrouping, setAnalyticsGrouping] = useState<'daily' | 'all'>('daily')
 
   // Notification Preferences State
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>({
@@ -388,6 +389,39 @@ export default function Profile({ onNavigate }: ProfileProps) {
     }
   }
 
+  const handleConsolidateDaily = async () => {
+    if (
+      !window.confirm(
+        'Consolidate test records to keep only 1 clean assessment per calendar day? Redundant duplicate test runs on the same day will be pruned to optimize storage.'
+      )
+    ) {
+      return
+    }
+    setPruningStorage(true)
+    try {
+      const savedToken = token || (typeof window !== 'undefined' ? localStorage.getItem('sahara_token') : null)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (savedToken) headers['Authorization'] = `Bearer ${savedToken}`
+
+      const res = await fetch(`${API_BASE}/api/me/retention/consolidate-daily`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPruneSuccessMsg(data.message || 'Daily consolidation complete.')
+        await fetchHistory()
+        await fetchRetentionStatus()
+        setTimeout(() => setPruneSuccessMsg(null), 5000)
+      }
+    } catch (err) {
+      console.warn('Consolidate daily error:', err)
+    } finally {
+      setPruningStorage(false)
+    }
+  }
+
   const handleDownloadData = async () => {
     setExporting(true)
     try {
@@ -463,10 +497,31 @@ export default function Profile({ onNavigate }: ProfileProps) {
     return new Date(item.timestamp).getTime() >= cutoffMs
   })
 
+  // Computes either clean daily points (1 per active calendar day) or raw attempts
+  const chartRecords = React.useMemo(() => {
+    if (analyticsGrouping === 'all') {
+      return [...visibleHistory].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
+    }
+    // Group by calendar day - keeps the latest check-in for each day
+    const dayMap = new Map<string, any>()
+    const sortedAsc = [...visibleHistory].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+    for (const item of sortedAsc) {
+      const d = new Date(item.timestamp)
+      const dayKey = d.toISOString().slice(0, 10)
+      const dayLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      dayMap.set(dayKey, { ...item, dayLabel })
+    }
+    return Array.from(dayMap.values())
+  }, [visibleHistory, analyticsGrouping])
+
   const sortedChronological = [...visibleHistory].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   )
-  const hasTrend = sortedChronological.length >= 2
+  const hasTrend = chartRecords.length >= 2
 
   const formatExpiryDisplay = (expiresAtStr?: string, createdStr?: string) => {
     if (!expiresAtStr && !createdStr) return 'Active'
@@ -1302,6 +1357,17 @@ export default function Profile({ onNavigate }: ProfileProps) {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   type="button"
+                  onClick={handleConsolidateDaily}
+                  disabled={pruningStorage || history.length <= 1}
+                  className="btn-outline-dark"
+                  style={{ padding: '7px 14px', fontSize: 12.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <RefreshCw size={13} className={pruningStorage ? 'animate-spin' : ''} />
+                  <span>Consolidate Test Runs (1/Day)</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handlePruneStorage({ olderThanDays: 30 })}
                   disabled={pruningStorage || history.length === 0}
                   className="btn-outline-dark"
@@ -1376,54 +1442,97 @@ export default function Profile({ onNavigate }: ProfileProps) {
                   Longitudinal Wellbeing Progress
                 </h3>
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
-                  Risk score evolution across your {sortedChronological.length} check-ins ({timeWindowFilter === 'all' ? 'All Active Time' : `Past ${timeWindowFilter} Days`})
+                  Risk score evolution across your {chartRecords.length} {analyticsGrouping === 'daily' ? 'daily check-ins' : 'check-in events'} ({timeWindowFilter === 'all' ? 'All Active Time' : `Past ${timeWindowFilter} Days`})
                 </p>
               </div>
 
-              {/* Interactive Timeframe Filter Tabs */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface-raised)', padding: '4px 6px', borderRadius: 10, border: '1px solid var(--color-border)' }}>
-                {[
-                  { value: 7, label: '7 Days' },
-                  { value: 14, label: '14 Days' },
-                  { value: 30, label: '30 Days' },
-                  { value: 'all', label: 'All Records' },
-                ].map((t) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {/* View Mode: Daily Overview vs All Check-ins */}
+                <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface-raised)', padding: 3, borderRadius: 8, border: '1px solid var(--color-border)' }}>
                   <button
-                    key={t.value}
                     type="button"
-                    onClick={() => setTimeWindowFilter(t.value as any)}
+                    onClick={() => setAnalyticsGrouping('daily')}
                     style={{
-                      background: timeWindowFilter === t.value ? 'var(--color-primary)' : 'transparent',
-                      color: timeWindowFilter === t.value ? '#FFFFFF' : 'var(--color-text-secondary)',
+                      background: analyticsGrouping === 'daily' ? 'var(--color-primary)' : 'transparent',
+                      color: analyticsGrouping === 'daily' ? '#FFFFFF' : 'var(--color-text-secondary)',
                       border: 'none',
                       borderRadius: 6,
                       padding: '4px 10px',
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: 700,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {t.label}
+                    Daily Trend
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setAnalyticsGrouping('all')}
+                    style={{
+                      background: analyticsGrouping === 'all' ? 'var(--color-primary)' : 'transparent',
+                      color: analyticsGrouping === 'all' ? '#FFFFFF' : 'var(--color-text-secondary)',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    All Events ({visibleHistory.length})
+                  </button>
+                </div>
+
+                {/* Interactive Timeframe Filter Tabs */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-surface-raised)', padding: '3px 5px', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                  {[
+                    { value: 7, label: '7D' },
+                    { value: 14, label: '14D' },
+                    { value: 30, label: '30D' },
+                    { value: 'all', label: 'All' },
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setTimeWindowFilter(t.value as any)}
+                      style={{
+                        background: timeWindowFilter === t.value ? 'var(--color-primary)' : 'transparent',
+                        color: timeWindowFilter === t.value ? '#FFFFFF' : 'var(--color-text-secondary)',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '4px 8px',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Responsive SVG Trend Chart */}
-            <div style={{ height: 160, width: '100%', position: 'relative', marginTop: 10 }}>
-              <svg viewBox="0 0 500 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+            <div style={{ height: 175, width: '100%', position: 'relative', marginTop: 10 }}>
+              <svg viewBox="0 0 500 130" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
                 {/* Horizontal reference lines */}
-                <line x1="0" y1="30" x2="500" y2="30" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="70" x2="500" y2="70" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1="0" y1="25" x2="500" y2="25" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1="0" y1="65" x2="500" y2="65" stroke="var(--color-border-subtle)" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1="0" y1="105" x2="500" y2="105" stroke="var(--color-border)" strokeWidth="1" />
 
                 {/* Draw Trend Line */}
                 {(() => {
-                  const points = sortedChronological.map((item, idx) => {
-                    const x = (idx / (sortedChronological.length - 1)) * 460 + 20
+                  const n = chartRecords.length
+                  const points = chartRecords.map((item, idx) => {
+                    const x = n === 1 ? 250 : (idx / (n - 1)) * 440 + 30
                     const score = item.combined_score !== null ? Math.round(item.combined_score * 100) : (item.anxiety_score * 10) || 50
-                    const y = 110 - (score / 100) * 90
-                    return { x, y, score, item }
+                    const y = 95 - (score / 100) * 70
+                    const dateLabel = item.dayLabel || new Date(item.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                    return { x, y, score, item, dateLabel }
                   })
 
                   const pathD = points.reduce(
@@ -1435,20 +1544,31 @@ export default function Profile({ onNavigate }: ProfileProps) {
                     <>
                       {/* Gradient Area below line */}
                       <path
-                        d={`${pathD} L ${points[points.length - 1].x} 115 L ${points[0].x} 115 Z`}
+                        d={`${pathD} L ${points[points.length - 1].x} 105 L ${points[0].x} 105 Z`}
                         fill="var(--color-primary-subtle)"
                       />
                       {/* Trend Stroke */}
                       <path d={pathD} fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" />
-                      {/* Data Dots */}
-                      {points.map((p, i) => (
-                        <g key={i}>
-                          <circle cx={p.x} cy={p.y} r="5" fill="var(--color-surface)" stroke="var(--color-primary)" strokeWidth="2.5" />
-                          <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="700" fill="var(--color-text-primary)" textAnchor="middle">
-                            {p.score}%
-                          </text>
-                        </g>
-                      ))}
+                      {/* Data Dots & Non-overlapping Labels */}
+                      {points.map((p, i) => {
+                        const showLabel = points.length <= 12 || i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 10) === 0
+                        return (
+                          <g key={i}>
+                            <circle cx={p.x} cy={p.y} r="5" fill="var(--color-surface)" stroke="var(--color-primary)" strokeWidth="2.5" />
+                            {showLabel && (
+                              <text x={p.x} y={p.y - 10} fontSize="10" fontWeight="700" fill="var(--color-text-primary)" textAnchor="middle">
+                                {p.score}%
+                              </text>
+                            )}
+                            {/* Date Label on bottom X-axis */}
+                            {showLabel && (
+                              <text x={p.x} y={120} fontSize="9" fontWeight="600" fill="var(--color-text-muted)" textAnchor="middle">
+                                {p.dateLabel}
+                              </text>
+                            )}
+                          </g>
+                        )
+                      })}
                     </>
                   )
                 })()}

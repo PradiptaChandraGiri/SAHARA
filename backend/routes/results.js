@@ -257,6 +257,42 @@ router.post("/api/me/retention/purge-old", async (req, res) => {
   }
 });
 
+// POST /api/me/retention/consolidate-daily - prunes duplicate test runs on the same calendar day
+router.post("/api/me/retention/consolidate-daily", async (req, res) => {
+  const userId = getUserIdFromReq(req);
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
+
+  try {
+    const resDistinct = await pool.query(
+      `SELECT DISTINCT ON (created_at::date) id
+       FROM results
+       WHERE user_id = $1
+       ORDER BY created_at::date, created_at DESC`,
+      [userId]
+    );
+    const keepIds = resDistinct.rows.map((r) => r.id);
+
+    let deletedCount = 0;
+    if (keepIds.length > 0) {
+      const delRes = await pool.query(
+        `DELETE FROM results WHERE user_id = $1 AND id != ALL($2::uuid[])`,
+        [userId, keepIds]
+      );
+      deletedCount = delRes.rowCount;
+    }
+
+    res.json({
+      ok: true,
+      deletedCount,
+      retainedDays: keepIds.length,
+      message: `Storage optimized: removed ${deletedCount} duplicate test runs, keeping 1 clean check-in per day (${keepIds.length} days total).`,
+    });
+  } catch (err) {
+    console.error("Consolidate daily error:", err);
+    res.status(500).json({ error: "Failed to consolidate daily check-ins." });
+  }
+});
+
 // POST /api/results/ai-guidance - Generates real-time AI guidance & dynamic tailored suggestions using Groq
 router.post("/api/results/ai-guidance", async (req, res) => {
   const assessmentData = req.body || {};
