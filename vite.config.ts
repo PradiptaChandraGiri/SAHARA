@@ -187,7 +187,7 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
             {
               tag: 'style',
               children: `
-  .figma-bypass-link {
+  .skip-bypass-link {
     position: fixed;
     top: 8px;
     left: 8px;
@@ -200,7 +200,7 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
     font: 600 14px/1.2 system-ui, sans-serif;
     text-decoration: none;
   }
-  .figma-bypass-link:focus {
+  .skip-bypass-link:focus {
     transform: translateY(0);
   }
 `,
@@ -208,7 +208,7 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
             },
             {
               tag: 'a',
-              attrs: { class: 'figma-bypass-link', href: '#root' },
+              attrs: { class: 'skip-bypass-link', href: '#root' },
               children: 'Skip to content',
               injectTo: 'body-prepend',
             },
