@@ -15,7 +15,7 @@ const CHECKIN_FIELDS = [
   "internet_usage", "financial_stress", "family_expectation",
 ];
 
-// POST /api/checkins/parse-symptoms - Ada Health / Claude AI style free-text NLP symptom & strain parser
+// POST /api/checkins/parse-symptoms - Free-text clinical NLP symptom & strain parser
 router.post("/api/checkins/parse-symptoms", async (req, res) => {
   const { freeText } = req.body;
   if (!freeText || typeof freeText !== "string" || freeText.trim().length === 0) {

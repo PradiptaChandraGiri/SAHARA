@@ -1,7 +1,8 @@
 {
-  "description": "Provides AI-driven holistic assessments and personalized responses to support users in making informed decisions and improving outcomes efficiently.",
+  "title": "SAHARA — Student Academic Health & Mental Resilience Platform",
+  "description": "SAHARA is an early-warning student mental wellbeing and academic resilience platform engineered by Pradipta Chandra Giri.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,

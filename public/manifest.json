@@ -32,7 +32,7 @@
     {
       "name": "AI Support Chat",
       "short_name": "AI Support",
-      "description": "Speak with the SAHARA Copilot",
+      "description": "Speak with the SAHARA AI Assistant",
       "url": "/?page=ai-support",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },

@@ -43,6 +43,7 @@ const notificationRoutes = require("./routes/notifications");
 const { runSchedulerTick } = require("./jobs/notificationScheduler");
 
 const app = express();
+app.disable("x-powered-by");
 
 // Twilio sends form-encoded data; everything else is JSON.
 app.use(express.urlencoded({ extended: false })); // for /whatsapp-webhook

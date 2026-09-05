@@ -145,7 +145,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
   const [analyzeMsg, setAnalyzeMsg] = useState(0)
   const [validationError, setValidationError] = useState('')
 
-  // Conversational AI Symptom Intake state (Ada Health / Claude Healthcare style)
+  // Conversational AI Symptom Intake state (Clinical free-text NLP)
   const [showAiModal, setShowAiModal] = useState(false)
   const [freeTextSymptom, setFreeTextSymptom] = useState('')
   const [isParsingSymptom, setIsParsingSymptom] = useState(false)
@@ -390,7 +390,7 @@ export default function CheckIn({ onNavigate, onComplete }: CheckInProps) {
           </div>
         </div>
 
-        {/* Conversational NLP Intake Prompt Banner (Ada Health / Claude Healthcare style) */}
+        {/* Conversational NLP Intake Prompt Banner */}
         <div
           style={{
             background: 'linear-gradient(135deg, #01575E 0%, #0E1A2B 100%)',

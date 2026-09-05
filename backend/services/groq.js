@@ -534,7 +534,7 @@ Return ONLY valid JSON.`;
   return coachingResult;
 }
 
-// Conversational Symptom / Strain NLP Parser (Ada Health & Claude Healthcare Style)
+// Conversational Symptom & Academic Strain NLP Parser
 async function parseSymptomsFromText(freeText) {
   const prompt = `You are a clinical student mental health intake specialist.
 A university student submitted the following natural language description of their symptoms and academic strain:
